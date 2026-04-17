@@ -1,0 +1,108 @@
+# Troubleshooting
+
+Common issues and how to resolve them.
+
+## XRPC endpoint returns 404
+
+**Symptom**: `GET /xrpc/your.method.name` returns `{"error": "method not found"}`.
+
+**Causes**:
+
+- The lexicon hasn't been uploaded yet. Check with `GET /admin/lexicons` or the [dashboard](../getting-started/dashboard.md).
+- The lexicon's `defs.main.type` doesn't match the HTTP method. Queries are `GET`, procedures are `POST`.
+- The NSID in the URL doesn't match the `id` field in the uploaded lexicon JSON.
+
+## Queries return empty results
+
+**Symptom**: The XRPC query endpoint returns `{"records": []}` even though records should exist.
+
+**Causes**:
+
+- The query lexicon is missing a `target_collection`. Without it, the query doesn't know which records to read. See [Lexicons - target_collection](../guides/lexicons.md#target-collection).
+- The record-type lexicon hasn't finished backfilling. Check backfill status with `GET /admin/backfill/status` or the dashboard.
+- Records exist on the network but HappyView hasn't indexed them yet. Jetstream only delivers events from after the collection was added to the filter. Use [backfill](../guides/backfill.md) to import historical records.
+
+## Procedure returns 401 Unauthorized
+
+**Symptom**: `POST /xrpc/your.method.name` returns `{"error": "..."}` with status 401.
+
+**Causes**:
+
+- No session cookie or `Authorization: Bearer` header is present.
+- The session cookie has expired or was signed with a different `SESSION_SECRET`.
+- The API key has been revoked or is invalid.
+
+## Admin endpoints return 403 Forbidden
+
+**Symptom**: Admin API calls return `{"error": "forbidden"}`.
+
+**Causes**:
+
+- Your DID is not in the users table. Ask an existing user with `users:create` permission to add you via `POST /admin/users`.
+- If this is a fresh deployment with no users, the first authenticated request to any admin endpoint automatically bootstraps you as the super user. Make sure you're logged in via the dashboard or using a valid API key.
+- You may be in the users table but lack the required permission for the endpoint you're calling. Check your permissions with `GET /admin/users` or ask a user with `users:update` permission to grant the permission you need.
+
+## Permission denied errors
+
+**Symptom**: Admin API calls return `{"error": "insufficient permissions"}` with status 403, even though you can access other endpoints.
+
+**Causes**:
+
+- Your user account doesn't have the specific permission required by the endpoint. Each endpoint requires a specific permission — see the [permissions table](admin-api.md#permissions).
+- If using an API key, the key's effective permissions are the intersection of the key's permissions and your user permissions. A key can never have more access than the user who created it.
+- Only the super user can call `POST /admin/users/transfer-super`. This endpoint cannot be accessed with any permission — it requires super user status.
+
+## Lua script errors
+
+**Symptom**: An XRPC endpoint returns `{"error": "script execution failed"}` or `{"error": "script exceeded execution time limit"}`.
+
+**What to do**:
+
+1. Check the server logs: the full error message is logged at error level but not exposed to the client.
+2. Use `log("message")` in your script to trace execution. Output appears in server logs at debug level (requires `RUST_LOG` to include debug).
+3. If you hit the execution limit, your script likely has an infinite loop or is processing too much data. See [Lua Scripting - Sandbox](../guides/scripting.md#sandbox).
+
+See [Lua Scripting - Debugging](../guides/scripting.md#debugging) for more.
+
+## Backfill job stuck in "pending" or "running"
+
+**Symptom**: A backfill job doesn't progress or stays in `pending`.
+
+**Causes**:
+
+- The backfill worker processes one job at a time. If another job is running, yours will wait.
+- The relay (`RELAY_URL`) may be unreachable or slow to respond. Check connectivity.
+- Individual PDS fetches can fail silently. The worker logs warnings and continues. Check server logs for details.
+
+See [Backfill](../guides/backfill.md) for how the process works.
+
+## Records not appearing in real time
+
+**Symptom**: New records created on the network don't show up in queries.
+
+**Causes**:
+
+- HappyView receives real-time events via [Jetstream](https://github.com/bluesky-social/jetstream). Verify the `JETSTREAM_URL` is reachable and check server logs for `jetstream.disconnected` events.
+- No record-type lexicon exists for the collection. HappyView only indexes collections that have a corresponding record-type lexicon.
+- The Jetstream subscription hasn't reconnected with the new collection filter after a lexicon change. This should happen automatically. Check server logs for connection errors.
+
+## OAuth or login issues
+
+HappyView handles AT Protocol OAuth internally via the `atrium-oauth` library. If users can't log in:
+
+1. Verify `PUBLIC_URL` is set correctly and the URL is publicly accessible (required for OAuth callbacks).
+2. Check that the user's PDS authorization server is reachable.
+3. Verify `SESSION_SECRET` hasn't changed since sessions were created (changing it invalidates all existing session cookies).
+4. Check server logs for OAuth-specific error messages.
+
+## Database connection errors
+
+**Symptom**: HappyView fails to start or returns 500 errors.
+
+**Causes**:
+
+- `DATABASE_URL` is not set or points to an unreachable Postgres instance.
+- The database user doesn't have sufficient permissions. HappyView needs to create tables (migrations run automatically on startup).
+- Postgres version is too old. HappyView requires Postgres 17+.
+
+See [Configuration](../getting-started/configuration.md) for environment variable details.
