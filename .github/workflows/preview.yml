@@ -11,8 +11,8 @@ permissions:
   pull-requests: write
 
 on:
+  # Every pull request, including one stacked on another branch.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}

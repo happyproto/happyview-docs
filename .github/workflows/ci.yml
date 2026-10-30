@@ -4,8 +4,8 @@ permissions:
   contents: read
 
 on:
+  # Every pull request, including one stacked on another branch.
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
