@@ -2,7 +2,7 @@
 title: "Developing Plugins"
 ---
 
-This guide covers how to build your own HappyView plugins, which are WebAssembly modules. For installing and configuring plugins, see the [Plugins guide](/docs/guides/plugins).
+This guide covers how to build your own HappyView plugins, which are WebAssembly modules. For installing and configuring plugins, see the [Plugins guide](/docs/guides/plugins). [Plugin SDK](/docs/reference/plugin-sdk) in the reference has every manifest field, capability, host function and limit, and how to publish to the registry.
 
 See the [plugins](https://github.com/happyproto/plugins) repository for examples and the plugin SDK.
 
@@ -58,7 +58,7 @@ The manifest's `plugin_type` field decides what the host expects the plugin to e
 | `library` | A plugin other plugins and Lua scripts call into, via `host_call_library` or `require(namespace)`. See [Library Plugins](#library-plugins) below. |
 | `interpreter` | A script runtime. It runs the scripts written in its language. See [Interpreter manifests](#interpreter-manifests) below. |
 
-Every plugin, `auth` included, needs `api_version` `"2"` and a `capabilities` list covering everything its compiled module imports. The loader refuses an older or missing `api_version` with an error naming the plugin type and the version it found.
+Every plugin, `auth` included, needs `api_version` `"2"` and a `capabilities` list covering everything its compiled module imports. The loader refuses an older `api_version` with an error naming the plugin type and the version it found, and a manifest with no `api_version` at all as unreadable.
 
 A `library` plugin may declare `namespace` — the name scripts use in `require(namespace)`. It defaults to `id` when omitted.
 
@@ -250,7 +250,7 @@ A `library` plugin may declare other libraries it calls through `host_call_libra
 
 `version` is a semver requirement (`>=1.0.0`, `^1`, …); it defaults to `*` when omitted. The loader validates the whole dependency graph on every install and uninstall: a missing dependency, an installed version that doesn't satisfy the requirement, a dependency cycle, and a self-dependency are all rejected. Uninstalling a plugin that other libraries still depend on is refused too, unless the request passes `?force=true` (see [Remove a plugin](/docs/reference/admin/plugins#remove-a-plugin)) to cascade the removal.
 
-`auth` plugins cannot declare dependencies — the loader rejects any `dependencies` entry on a manifest whose `plugin_type` is `auth` (or absent).
+Only library plugins can declare dependencies. The loader rejects any `dependencies` entry on an `auth` plugin (the default when `plugin_type` is absent) or an `interpreter`.
 
 ## API Endpoints
 
@@ -552,7 +552,7 @@ With the SDK, these are `host::call_library_start` and `host::call_library_wait_
 
 ### Capabilities
 
-Every host function except `host_log` is gated by a capability. The loader reads the compiled module's import section and refuses to install a plugin whose imports are not all covered by declared capabilities, whatever its `plugin_type`.
+Every host function except `host_log`, `host_lexicon_get`, `host_allowed_hosts` and `host_script_panic` is gated by a capability; [Plugin SDK](/docs/reference/plugin-sdk#capabilities) lists them all. The loader reads the compiled module's import section and refuses to install a plugin whose imports are not all covered by declared capabilities, whatever its `plugin_type`.
 
 | Capability | Risk | Grants |
 | --- | --- | --- |
