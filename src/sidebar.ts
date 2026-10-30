@@ -12,7 +12,9 @@ export const v3Sidebar: Sidebar = [
   {
     label: 'Getting Started',
     items: [
+      d('getting-started/how-happyview-fits-atproto'),
       d('getting-started/installation'),
+      d('getting-started/running-locally'),
       d('getting-started/project-structure'),
       d('getting-started/lexicons'),
       d('getting-started/queries-and-procedures'),
@@ -22,9 +24,7 @@ export const v3Sidebar: Sidebar = [
       d('getting-started/plugins-and-libraries'),
       d('getting-started/authentication'),
       d('getting-started/testing'),
-      d('getting-started/local-development'),
       d('getting-started/deploying'),
-      d('getting-started/upgrading'),
     ],
   },
   {
@@ -136,6 +136,7 @@ export const v3Sidebar: Sidebar = [
           d('guides/telemetry'),
           d('guides/github-actions'),
           d('guides/troubleshooting'),
+          d('guides/upgrading-to-v3'),
           d('guides/upgrading-to-v2'),
         ],
       },
