@@ -1,0 +1,74 @@
+name: Deploy
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # sequoia publishes new blog posts as site.standard documents; without
+      # these it skips (scripts/sequoia-publish.mjs).
+      ATP_IDENTIFIER: ${{ vars.ATP_IDENTIFIER }}
+      ATP_APP_PASSWORD: ${{ secrets.ATP_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Tests
+        run: bun test
+
+      - name: Install wispctl
+        run: npm i -g wispctl@2.1.0
+
+      # wispctl reads the app password from WISPCTL_APP_PASSWORD, so the
+      # secret never appears on the command line.
+      - name: Deploy to wisp.place
+        run: wispctl deploy "$WISP_HANDLE" --path dist --site "$WISP_SITE" --yes --quiet
+        env:
+          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_SITE: ${{ vars.WISP_SITE }}
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
+
+      # The deployed landing page answers 200 with its H1, and an old URL
+      # answers 301 to its new home. SITE_URL is unset until the domain
+      # points at wisp.place, and then the check is skipped.
+      - name: Smoke check
+        if: vars.SITE_URL != ''
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          expected='Write the lexicon. HappyView serves the API.'
+          for attempt in 1 2 3 4 5 6; do
+            body=$(mktemp)
+            status=$(curl -sS -o "$body" -w '%{http_code}' --max-time 15 "$SITE_URL/" || true)
+            location=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "$SITE_URL/guides/backfill" || true)
+            echo "Attempt $attempt: / is HTTP $status; /guides/backfill is $location"
+            if [ "$status" = "200" ] && grep -qF "$expected" "$body" && [ "${location%% *}" = "301" ] && [ "${location#* }" = "$SITE_URL/docs/guides/backfill" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$SITE_URL did not serve the landing page and the redirects after deploy"
+          exit 1

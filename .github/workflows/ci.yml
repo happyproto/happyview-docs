@@ -1,0 +1,77 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # The changelogs are built from HappyView's GitHub releases; the token
+      # only raises the API's rate limit.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Type check
+        run: ./node_modules/.bin/astro check
+
+      # The build fails on a broken internal link or anchor
+      # (starlight-links-validator).
+      - name: Build
+        run: bun run build
+
+      # The frozen-URL test reads dist/, so it runs after the build.
+      - name: Tests
+        run: bun test
+
+      - name: File count
+        # wisp.place takes at most 1000 files per site.
+        run: |
+          count=$(find dist -type f | wc -l)
+          echo "dist holds $count files"
+          [ "$count" -le 1000 ] || { echo "::error::dist holds $count files; wisp.place takes at most 1000"; exit 1; }
+
+  permissions:
+    name: Permissions table
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # The glossary's permissions table is generated from HappyView's
+      # src/admin/permissions.rs on alpha. This fails when HappyView has
+      # changed it since; run the script and commit the result.
+      - uses: actions/checkout@v7
+        with:
+          repository: gamesgamesgamesgamesgames/happyview
+          ref: alpha
+          path: happyview
+          sparse-checkout: src/admin/permissions.rs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - run: node scripts/generate-permissions.mjs happyview/src/admin/permissions.rs --check

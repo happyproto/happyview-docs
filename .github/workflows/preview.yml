@@ -1,0 +1,61 @@
+name: Preview
+
+# Each pull request from a branch of this repository is deployed as its own
+# wisp.place preview site, pr-<sha7>, at
+# https://pr-<sha7>-<claim>.preview.wisp.place/, and the URL is posted on
+# the pull request. Preview sites are served with X-Robots-Tag: noindex.
+# Off until WISP_PREVIEW_CLAIM names a claimed wisp subdomain.
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: vars.WISP_PREVIEW_CLAIM != '' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Install wispctl
+        run: npm i -g wispctl@2.1.0
+
+      - name: Deploy preview
+        run: wispctl deploy "$WISP_HANDLE" --path dist --sha "$SHA" --preview-claim "$WISP_PREVIEW_CLAIM" --yes --quiet
+        env:
+          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_PREVIEW_CLAIM: ${{ vars.WISP_PREVIEW_CLAIM }}
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+
+      - name: Post the preview URL
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WISP_PREVIEW_CLAIM: ${{ vars.WISP_PREVIEW_CLAIM }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          url="https://pr-${SHA:0:7}-${WISP_PREVIEW_CLAIM}.preview.wisp.place/"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "Preview of ${SHA:0:7}: $url (comment sign-in works only on happyview.dev)"

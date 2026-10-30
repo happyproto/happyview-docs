@@ -1,0 +1,59 @@
+name: External links
+
+# Checks every external link in the built site once a week. Internal links
+# and anchors are checked on every build by starlight-links-validator; this
+# covers the rest, which can break without a change here.
+
+permissions:
+  contents: read
+  issues: write
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  links:
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      # npmjs.com answers 403 to scripts. Example hosts in code samples are
+      # placeholders.
+      - name: Check external links
+        id: lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --scheme https --scheme http
+            --exclude '^https?://(www\.)?npmjs\.com'
+            --exclude '^https?://(localhost|127\.0\.0\.1)'
+            --exclude '\.example(\.com)?(/|$)'
+            --exclude '^https://happyview\.dev'
+            'dist/**/*.html'
+          fail: false
+          output: lychee/report.md
+
+      - name: Open or update an issue
+        if: steps.lychee.outputs.exit_code != 0
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: External links report
+          content-filepath: lychee/report.md
+          labels: links
