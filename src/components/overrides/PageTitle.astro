@@ -1,0 +1,84 @@
+---
+// The title, then what kind of page this is and what to read first, then a
+// button that copies the page's Markdown source.
+// Starlight's PAGE_TITLE_ID, which the package does not export.
+const PAGE_TITLE_ID = '_top';
+
+const { entry } = Astro.locals.starlightRoute;
+const { title, type, prerequisites } = entry.data as {
+  title: string;
+  type?: 'conceptual' | 'how-to' | 'reference';
+  prerequisites?: string[];
+};
+const typeLabel = { conceptual: 'Concept', 'how-to': 'How-to', reference: 'Reference' } as const;
+const isV2 = entry.id.startsWith('docs/v2/') || entry.id === 'docs/v2';
+const markdownUrl = isV2 ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
+---
+
+<h1 id={PAGE_TITLE_ID}>{title}</h1>
+{(type || markdownUrl) && (
+  <div class="page-meta not-content">
+    {type && <span class="hp-tag" data-tone="brand">{typeLabel[type]}</span>}
+    {markdownUrl && (
+      <button type="button" class="hp-button hp-button-quiet hp-button-small" data-copy-markdown={markdownUrl}>
+        Copy as Markdown
+      </button>
+    )}
+  </div>
+)}
+{prerequisites && prerequisites.length > 0 && (
+  <p class="prerequisites">
+    Read first:{' '}
+    {prerequisites.map((href, i) => (
+      <Fragment>{i > 0 && ', '}<a href={href}>{href.replace(/^\/docs\//, '').replace(/\/$/, '')}</a></Fragment>
+    ))}
+  </p>
+)}
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy-markdown]')) {
+    button.addEventListener('click', async () => {
+      const label = button.textContent;
+      try {
+        const res = await fetch(button.dataset.copyMarkdown!);
+        await navigator.clipboard.writeText(await res.text());
+        button.textContent = 'Copied';
+      } catch {
+        button.textContent = 'Copy failed';
+      }
+      setTimeout(() => (button.textContent = label), 2000);
+    });
+  }
+
+  // Diagrams: load mermaid only on pages that have one.
+  const diagrams = document.querySelectorAll<HTMLElement>('pre.mermaid');
+  if (diagrams.length) {
+    const { default: mermaid } = await import('mermaid');
+    const dark = document.documentElement.dataset.theme === 'dark';
+    mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
+    await mermaid.run({ nodes: [...diagrams] });
+  }
+</script>
+
+<style>
+  h1 {
+    margin-top: 1rem;
+    font-size: var(--sl-text-h1);
+    line-height: var(--sl-line-height-headings);
+    font-weight: var(--hp-weight-semibold);
+    letter-spacing: var(--hp-tracking-tight);
+    color: var(--sl-color-white);
+  }
+  .page-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hp-space-3);
+    margin-block-start: var(--hp-space-3);
+  }
+  .prerequisites {
+    margin-block-start: var(--hp-space-3);
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-sm);
+  }
+</style>

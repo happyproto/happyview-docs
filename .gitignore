@@ -1,11 +1,11 @@
-.vercel
+node_modules/
+dist/
+.astro/
 .env*.local
-.next
-.source
 
 # Sequoia publish state (regenerated during build)
 .sequoia-state.json
 
 # Generated changelogs (built from GitHub releases)
-content/docs/reference/changelog.md
-content/docs/sdk/**/changelog.md
+src/content/docs/docs/changelog.md
+src/content/docs/docs/reference/sdk/**/changelog.md

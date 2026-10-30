@@ -1,0 +1,96 @@
+/* Starlight on the HappyProto design system.
+ *
+ * Starlight paints from its --sl-* variables; each is pointed at an --hp-*
+ * token here. The tokens already swap for dark mode, through
+ * prefers-color-scheme and through data-theme, which Starlight's theme
+ * picker sets, so one mapping serves both themes. */
+
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'],
+::backdrop {
+  --sl-font: var(--hp-font-sans);
+  --sl-font-mono: var(--hp-font-mono);
+
+  --sl-color-white: var(--hp-color-fg);
+  --sl-color-gray-1: var(--hp-color-fg);
+  --sl-color-gray-2: var(--hp-color-fg);
+  --sl-color-gray-3: var(--hp-color-fg-muted);
+  --sl-color-gray-4: var(--hp-color-fg-muted);
+  --sl-color-gray-5: var(--hp-color-border);
+  --sl-color-gray-6: var(--hp-color-surface-raised);
+  --sl-color-gray-7: var(--hp-color-surface);
+  --sl-color-black: var(--hp-color-bg);
+
+  --sl-color-accent-low: color-mix(in oklab, var(--hp-color-accent) 16%, var(--hp-color-bg));
+  --sl-color-accent: var(--hp-color-accent);
+  --sl-color-accent-high: var(--hp-color-accent);
+  --sl-color-text-accent: var(--hp-color-accent);
+  --sl-color-text-invert: var(--hp-color-accent-fg);
+
+  --sl-color-bg: var(--hp-color-bg);
+  --sl-color-bg-nav: var(--hp-color-bg);
+  --sl-color-bg-sidebar: var(--hp-color-bg);
+  --sl-color-bg-inline-code: var(--hp-color-surface-raised);
+  --sl-color-bg-accent: var(--hp-color-accent);
+  --sl-color-hairline-light: var(--hp-color-border);
+  --sl-color-hairline: var(--hp-color-border);
+  --sl-color-hairline-shade: var(--hp-color-border);
+
+  /* Asides and badges: note is the brand blue, tip the brand orange, the
+     rest the semantic colours. Each aside's ground is its ink tinted onto
+     the page, so links and code in it keep the page's contrast. */
+  --sl-color-blue: var(--hp-color-accent);
+  --sl-color-blue-high: var(--hp-color-accent);
+  --sl-color-blue-low: color-mix(in oklab, var(--hp-color-accent) 14%, var(--hp-color-bg));
+  --sl-color-purple: var(--hp-color-accent-alt);
+  --sl-color-purple-high: var(--hp-color-accent-alt);
+  --sl-color-purple-low: color-mix(in oklab, var(--hp-color-accent-alt) 14%, var(--hp-color-bg));
+  --sl-color-orange: var(--hp-color-warning);
+  --sl-color-orange-high: var(--hp-color-warning);
+  --sl-color-orange-low: color-mix(in oklab, var(--hp-color-warning) 14%, var(--hp-color-bg));
+  --sl-color-red: var(--hp-color-danger);
+  --sl-color-red-high: var(--hp-color-danger);
+  --sl-color-red-low: color-mix(in oklab, var(--hp-color-danger) 14%, var(--hp-color-bg));
+  --sl-color-green: var(--hp-color-success);
+  --sl-color-green-high: var(--hp-color-success);
+  --sl-color-green-low: color-mix(in oklab, var(--hp-color-success) 14%, var(--hp-color-bg));
+
+  --sl-text-h1: var(--hp-text-3xl);
+  --sl-text-h2: var(--hp-text-2xl);
+  --sl-text-h3: var(--hp-text-xl);
+  --sl-text-h4: var(--hp-text-lg);
+  --sl-line-height: var(--hp-leading-normal);
+  --sl-line-height-headings: var(--hp-leading-tight);
+}
+
+body {
+  background: var(--hp-color-bg);
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5) {
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-tight);
+}
+
+/* One hairline between header, sidebar and page, as on happyproto.at. */
+.header {
+  border-block-end: 1px solid var(--hp-color-border);
+}
+
+/* Links in prose: the accent ink, underlined, as the design system's
+   .hp-link. */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--hp-color-accent);
+  text-underline-offset: 0.2em;
+}
+
+/* Code blocks: Expressive Code's frame on the raised surface. */
+.expressive-code {
+  --ec-brdRad: var(--hp-radius-md);
+}
+
+pre.mermaid {
+  background: transparent;
+  border: 0;
+}

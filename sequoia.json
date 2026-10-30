@@ -2,9 +2,9 @@
   "$schema": "https://sequoia.pub/schema.json",
   "siteUrl": "https://happyview.dev",
   "pathPrefix": "/blog",
-  "contentDir": "./content/blog",
+  "contentDir": "./src/content/blog",
   "imagesDir": "./public",
-  "outputDir": "./.next",
+  "outputDir": "./dist",
   "publicDir": "./public",
   "publicationUri": "at://did:plc:qneu5uamqs6cug7sjobbaexm/site.standard.publication/3mpokbucn3y26",
   "frontmatter": {

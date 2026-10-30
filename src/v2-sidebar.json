@@ -1,0 +1,209 @@
+[
+  {
+    "slug": "docs/v2"
+  },
+  {
+    "label": "Getting Started",
+    "items": [
+      "docs/v2/getting-started/quickstart",
+      "docs/v2/getting-started/configuration",
+      "docs/v2/getting-started/service-identity",
+      "docs/v2/getting-started/dashboard",
+      "docs/v2/getting-started/authentication",
+      {
+        "label": "Deployment",
+        "collapsed": true,
+        "items": [
+          "docs/v2/getting-started/deployment/railway",
+          "docs/v2/getting-started/deployment/docker",
+          "docs/v2/getting-started/deployment/other",
+          "docs/v2/getting-started/deployment/local-development",
+          "docs/v2/getting-started/deployment/production"
+        ]
+      }
+    ]
+  },
+  {
+    "label": "Tutorials",
+    "items": [
+      "docs/v2/tutorials/statusphere"
+    ]
+  },
+  {
+    "label": "Guides",
+    "items": [
+      "docs/v2/guides/upgrading-to-v2",
+      "docs/v2/guides/lexicons",
+      "docs/v2/guides/backfill",
+      "docs/v2/guides/background-jobs",
+      "docs/v2/guides/record-scripts",
+      "docs/v2/guides/lua-scripting",
+      "docs/v2/guides/api-clients",
+      "docs/v2/guides/linked-repos",
+      "docs/v2/guides/attestation-signing",
+      "docs/v2/guides/labelers",
+      "docs/v2/guides/plugins",
+      "docs/v2/guides/developing-plugins",
+      "docs/v2/guides/api-keys",
+      "docs/v2/guides/permissions",
+      "docs/v2/guides/event-logs",
+      {
+        "label": "Database",
+        "collapsed": true,
+        "items": [
+          "docs/v2/guides/database/database-setup",
+          "docs/v2/guides/database/postgres-to-sqlite-migration",
+          "docs/v2/guides/database/sqlite-to-postgres-migration"
+        ]
+      },
+      "docs/v2/guides/github-actions"
+    ]
+  },
+  {
+    "label": "JavaScript SDKs",
+    "items": [
+      "docs/v2/sdk/overview",
+      {
+        "label": "Lex Agent",
+        "collapsed": true,
+        "items": [
+          "docs/v2/sdk/lex-agent/overview"
+        ]
+      },
+      {
+        "label": "OAuth Client",
+        "collapsed": true,
+        "items": [
+          "docs/v2/sdk/oauth-client/overview"
+        ]
+      },
+      {
+        "label": "OAuth Client Browser",
+        "collapsed": true,
+        "items": [
+          "docs/v2/sdk/oauth-client-browser/overview"
+        ]
+      },
+      {
+        "label": "OAuth Client Node",
+        "collapsed": true,
+        "items": [
+          "docs/v2/sdk/oauth-client-node/overview"
+        ]
+      }
+    ]
+  },
+  {
+    "label": "Experimental",
+    "items": [
+      {
+        "label": "Permissioned Spaces",
+        "collapsed": true,
+        "items": [
+          "docs/v2/experimental/spaces",
+          "docs/v2/experimental/spaces/managing-spaces",
+          "docs/v2/experimental/spaces/members",
+          "docs/v2/experimental/spaces/records",
+          "docs/v2/experimental/spaces/credentials",
+          "docs/v2/experimental/spaces/notifications",
+          "docs/v2/experimental/spaces/invites",
+          "docs/v2/experimental/spaces/changelog"
+        ]
+      }
+    ]
+  },
+  {
+    "label": "API Reference",
+    "items": [
+      "docs/v2/api-reference/xrpc-api",
+      {
+        "label": "Admin API",
+        "collapsed": true,
+        "items": [
+          "docs/v2/api-reference/admin/admin-api",
+          "docs/v2/api-reference/admin/lexicons",
+          "docs/v2/api-reference/admin/scripts",
+          "docs/v2/api-reference/admin/records",
+          "docs/v2/api-reference/admin/stats",
+          "docs/v2/api-reference/admin/backfill",
+          "docs/v2/api-reference/admin/jobs",
+          "docs/v2/api-reference/admin/events",
+          "docs/v2/api-reference/admin/api-keys",
+          "docs/v2/api-reference/admin/users",
+          "docs/v2/api-reference/admin/identity",
+          "docs/v2/api-reference/admin/labelers",
+          "docs/v2/api-reference/admin/settings",
+          "docs/v2/api-reference/admin/xrpc-proxy",
+          "docs/v2/api-reference/admin/domains",
+          "docs/v2/api-reference/admin/oauth-keys",
+          "docs/v2/api-reference/admin/script-variables",
+          "docs/v2/api-reference/admin/api-clients",
+          "docs/v2/api-reference/admin/linked-repos",
+          "docs/v2/api-reference/admin/plugins",
+          "docs/v2/api-reference/admin/dead-letters",
+          "docs/v2/api-reference/admin/service-identity",
+          "docs/v2/api-reference/admin/service-entries",
+          "docs/v2/api-reference/admin/verification-methods",
+          "docs/v2/api-reference/admin/feature-flags",
+          "docs/v2/api-reference/admin/permissions"
+        ]
+      },
+      {
+        "label": "OAuth API",
+        "collapsed": true,
+        "items": [
+          "docs/v2/api-reference/oauth/api-clients"
+        ]
+      },
+      {
+        "label": "Lua API",
+        "collapsed": true,
+        "items": [
+          "docs/v2/api-reference/lua/record-api",
+          "docs/v2/api-reference/lua/database-api",
+          "docs/v2/api-reference/lua/http-api",
+          "docs/v2/api-reference/lua/xrpc-lua-api",
+          "docs/v2/api-reference/lua/atproto-api",
+          "docs/v2/api-reference/lua/json-api",
+          "docs/v2/api-reference/lua/jobs-api",
+          "docs/v2/api-reference/lua/linked-repos-api",
+          "docs/v2/api-reference/lua/utility-globals",
+          "docs/v2/api-reference/lua/standard-libraries"
+        ]
+      }
+    ]
+  },
+  {
+    "label": "Reference",
+    "items": [
+      "docs/v2/reference/glossary",
+      "docs/v2/reference/architecture",
+      {
+        "label": "Script Examples",
+        "collapsed": true,
+        "items": [
+          "docs/v2/reference/script-examples/get-record",
+          "docs/v2/reference/script-examples/create-record",
+          "docs/v2/reference/script-examples/upsert-record",
+          "docs/v2/reference/script-examples/paginated-list",
+          "docs/v2/reference/script-examples/list-or-fetch",
+          "docs/v2/reference/script-examples/expanded-query",
+          "docs/v2/reference/script-examples/update-or-delete",
+          "docs/v2/reference/script-examples/batch-save",
+          "docs/v2/reference/script-examples/sidecar-records",
+          "docs/v2/reference/script-examples/cascading-delete",
+          "docs/v2/reference/script-examples/complex-mutations",
+          "docs/v2/reference/script-examples/signed-record",
+          "docs/v2/reference/script-examples/signed-record-verify",
+          "docs/v2/reference/script-examples/algolia-sync",
+          "docs/v2/reference/script-examples/meilisearch-sync"
+        ]
+      },
+      "docs/v2/reference/troubleshooting",
+      {
+        "label": "Changelog",
+        "link": "/docs/changelog/"
+      }
+    ]
+  }
+]

@@ -1,0 +1,71 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { PUBLICATION_URI, formatDate } from '../../lib/blog';
+
+const posts = (await getCollection('blog')).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Base title="Blog | HappyView" description="Release notes and news from HappyView.">
+  <link slot="head" rel="site.standard.publication" href={PUBLICATION_URI} />
+  <section class="mk-section blog">
+    <div class="mk-container">
+      <h1 class="mk-section-title">Blog</h1>
+      <ul class="posts" role="list">
+        {posts.map((post) => (
+          <li>
+            <a href={`/blog/${post.id}/`}>
+              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+              <h2>{post.data.title}</h2>
+              {post.data.description && <p>{post.data.description}</p>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .blog {
+    border-block-start: 0;
+  }
+  .posts {
+    display: grid;
+    gap: var(--hp-space-4);
+    max-inline-size: 48rem;
+    margin: var(--hp-space-8) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .posts a {
+    display: grid;
+    gap: var(--hp-space-2);
+    padding: var(--hp-space-6);
+    border: 1px solid var(--hp-color-border);
+    border-radius: var(--hp-radius-lg);
+    background: var(--hp-color-surface);
+    color: inherit;
+    text-decoration: none;
+  }
+  .posts a:hover {
+    border-color: var(--hp-color-accent);
+  }
+  .posts a:focus-visible {
+    outline: 2px solid var(--hp-color-accent);
+    outline-offset: 2px;
+  }
+  .posts h2 {
+    margin: 0;
+    font-size: var(--hp-text-xl);
+    font-weight: var(--hp-weight-semibold);
+  }
+  .posts p,
+  .posts time {
+    margin: 0;
+    color: var(--hp-color-fg-muted);
+  }
+  .posts time {
+    font-size: var(--hp-text-sm);
+  }
+</style>

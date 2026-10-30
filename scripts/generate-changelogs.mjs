@@ -6,31 +6,32 @@ const API_BASE = "https://api.github.com";
 const CHANGELOGS = [
   {
     name: "HappyView",
-    output: "content/docs/reference/changelog.md",
+    title: "Changelog",
+    output: "src/content/docs/docs/changelog.md",
     match: (tag) => /^v\d/.test(tag),
     formatVersion: (tag) => tag,
   },
   {
     name: "@happyview/oauth-client",
-    output: "content/docs/sdk/oauth-client/changelog.md",
+    output: "src/content/docs/docs/reference/sdk/oauth-client/changelog.md",
     match: (tag) => tag.startsWith("@happyview/oauth-client-v"),
     formatVersion: (tag) => tag.replace("@happyview/oauth-client-", ""),
   },
   {
     name: "@happyview/oauth-client-browser",
-    output: "content/docs/sdk/oauth-client-browser/changelog.md",
+    output: "src/content/docs/docs/reference/sdk/oauth-client-browser/changelog.md",
     match: (tag) => tag.startsWith("@happyview/oauth-client-browser-v"),
     formatVersion: (tag) => tag.replace("@happyview/oauth-client-browser-", ""),
   },
   {
     name: "@happyview/oauth-client-node",
-    output: "content/docs/sdk/oauth-client-node/changelog.md",
+    output: "src/content/docs/docs/reference/sdk/oauth-client-node/changelog.md",
     match: (tag) => tag.startsWith("@happyview/oauth-client-node-v"),
     formatVersion: (tag) => tag.replace("@happyview/oauth-client-node-", ""),
   },
   {
     name: "@happyview/lex-agent",
-    output: "content/docs/sdk/lex-agent/changelog.md",
+    output: "src/content/docs/docs/reference/sdk/lex-agent/changelog.md",
     match: (tag) => tag.startsWith("@happyview/lex-agent-v"),
     formatVersion: (tag) => tag.replace("@happyview/lex-agent-", ""),
   },
@@ -78,14 +79,14 @@ function cleanReleaseBody(body) {
 
 function buildMarkdown(changelog, releases) {
   const matching = releases
-    .filter((r) => !r.prerelease && changelog.match(r.tag_name))
+    .filter((r) => !r.draft && changelog.match(r.tag_name))
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
   if (matching.length === 0) return null;
 
   const lines = [
     `---`,
-    `title: "${changelog.name}"`,
+    `title: "${changelog.title ?? `${changelog.name} changelog`}"`,
     `---`,
     "",
     `<!-- Generated automatically from GitHub releases. Do not edit by hand. -->`,
@@ -101,7 +102,7 @@ function buildMarkdown(changelog, releases) {
 
     lines.push(`## ${title}`);
     lines.push("");
-    lines.push(`*Released ${date}*`);
+    lines.push(`*${release.prerelease ? "Pre-release" : "Released"} ${date}*`);
     lines.push("");
 
     const body = cleanReleaseBody(release.body);
@@ -124,12 +125,35 @@ const ROOT = dirname(new URL(import.meta.url).pathname).replace(
   ""
 );
 
+// The sidebar links every changelog, so a build without API access still needs
+// a page at each path. Existing files are left alone.
+function writePlaceholders() {
+  for (const changelog of CHANGELOGS) {
+    const outPath = resolve(ROOT, changelog.output);
+    if (existsSync(outPath)) continue;
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, placeholder(changelog, "The changelog could not be fetched for this build."));
+  }
+}
+
+function placeholder(changelog, text) {
+  return [
+    `---`,
+    `title: "${changelog.title ?? `${changelog.name} changelog`}"`,
+    `---`,
+    "",
+    text,
+    "",
+  ].join("\n");
+}
+
 async function main() {
   console.log("Fetching releases from GitHub...");
   const releases = await fetchAllReleases();
 
   if (releases === null) {
     console.warn("Skipping changelog generation (no API access). Using existing files.");
+    writePlaceholders();
     return;
   }
 
@@ -140,16 +164,7 @@ async function main() {
   for (const changelog of CHANGELOGS) {
     let md = buildMarkdown(changelog, releases);
     if (!md) {
-      md = [
-        `---`,
-        `title: "${changelog.name}"`,
-        `---`,
-        "",
-        `<!-- Generated automatically from GitHub releases. Do not edit by hand. -->`,
-        "",
-        "No releases yet.",
-        "",
-      ].join("\n");
+      md = placeholder(changelog, "No releases yet.");
       console.log(`  ${changelog.name}: no releases found, wrote placeholder.`);
     } else {
       console.log(`  ${changelog.name}: wrote ${changelog.output}`);

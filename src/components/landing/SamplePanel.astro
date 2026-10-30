@@ -1,0 +1,116 @@
+---
+// "Lexicons in, XRPC out": the sample project's files and the request it
+// answers, as a window with one tab per file. Without JavaScript every tab's
+// panel shows, one after another.
+import { Code } from 'astro:components';
+import type { SampleTab } from '../../content/landing/landing';
+
+interface Props { tabs: SampleTab[] }
+const { tabs } = Astro.props;
+---
+
+<section class="hp-window lp-sample" aria-label="Sample project">
+  <header class="hp-window-bar lp-tabs" role="tablist" aria-label="Files">
+    {tabs.map((tab, i) => (
+      <button type="button" role="tab" id={`lp-tab-${i}`} aria-controls={`lp-panel-${i}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+        {tab.label}
+      </button>
+    ))}
+  </header>
+  {tabs.map((tab, i) => (
+    <div class="lp-panel" role="tabpanel" id={`lp-panel-${i}`} aria-labelledby={`lp-tab-${i}`} data-index={i}>
+      {tab.path && <p class="lp-path">{tab.path}</p>}
+      <Code code={tab.code.trimEnd()} lang={tab.lang as never} themes={{ light: 'github-light', dark: 'github-dark' }} />
+    </div>
+  ))}
+</section>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('.lp-sample')) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const select = (index: number) => {
+      tabs.forEach((tab, i) => {
+        tab.setAttribute('aria-selected', String(i === index));
+        tab.tabIndex = i === index ? 0 : -1;
+      });
+      panels.forEach((panel, i) => (panel.hidden = i !== index));
+    };
+    root.dataset.enhanced = '';
+    select(0);
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(i));
+      tab.addEventListener('keydown', (event) => {
+        const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+        if (!step) return;
+        const next = (i + step + tabs.length) % tabs.length;
+        select(next);
+        tabs[next].focus();
+      });
+    });
+  }
+</script>
+
+<style>
+  .lp-sample {
+    text-align: start;
+  }
+  .lp-tabs {
+    gap: var(--hp-space-1);
+    overflow-x: auto;
+  }
+  .lp-tabs button {
+    appearance: none;
+    min-block-size: 2.75rem;
+    padding: 0 var(--hp-space-3);
+    border: 0;
+    border-block-end: 2px solid transparent;
+    background: none;
+    color: var(--hp-color-fg-muted);
+    font: inherit;
+    font-family: var(--hp-font-mono);
+    font-size: var(--hp-text-sm);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .lp-sample:not([data-enhanced]) .lp-tabs {
+    display: none;
+  }
+  .lp-tabs button[aria-selected='true'] {
+    border-block-end-color: var(--hp-color-accent);
+    color: var(--hp-color-fg);
+  }
+  .lp-tabs button:focus-visible {
+    outline: 2px solid var(--hp-color-accent);
+    outline-offset: -2px;
+  }
+  .lp-panel {
+    padding: var(--hp-space-4);
+  }
+  .lp-path {
+    margin: 0 0 var(--hp-space-2);
+    font-family: var(--hp-font-mono);
+    font-size: var(--hp-text-xs);
+    color: var(--hp-color-fg-muted);
+  }
+  .lp-panel :global(pre) {
+    margin: 0;
+    padding: var(--hp-space-3);
+    border-radius: var(--hp-radius-md);
+    font-size: var(--hp-text-sm);
+    line-height: var(--hp-leading-normal);
+    overflow-x: auto;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .lp-panel :global(.astro-code),
+    :global(:root:not([data-theme='light'])) .lp-panel :global(.astro-code span) {
+      color: var(--shiki-dark) !important;
+      background-color: var(--shiki-dark-bg) !important;
+    }
+  }
+  :global(:root[data-theme='dark']) .lp-panel :global(.astro-code),
+  :global(:root[data-theme='dark']) .lp-panel :global(.astro-code span) {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+</style>

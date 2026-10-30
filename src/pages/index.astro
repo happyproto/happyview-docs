@@ -1,0 +1,220 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Prose from '../components/landing/Prose.astro';
+import SamplePanel from '../components/landing/SamplePanel.astro';
+import { capabilities, hero, hosting, sample } from '../content/landing/landing';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+---
+
+<Base title="HappyView: an open-source AppView for atproto" description={hero.subline}>
+  <section class="mk-hero lp-hero" aria-labelledby="hero-title">
+    <div class="mk-container lp-hero-inner">
+      <div class="lp-hero-copy">
+        <span class="hp-tag" data-tone="alt">v3 alpha</span>
+        <h1 class="mk-title" id="hero-title">{hero.title}</h1>
+        <p class="mk-lede">{hero.subline}</p>
+        <div class="lp-ctas">
+          <a class="hp-button hp-button-primary" href={hero.ctas.primary.href}>{hero.ctas.primary.label}</a>
+          <a class="hp-button" href={hero.ctas.secondary.href}>{hero.ctas.secondary.label}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mk-section" aria-labelledby="sample-title">
+    <div class="mk-container lp-split">
+      <div class="lp-split-head">
+        <h2 class="mk-section-title" id="sample-title">{sample.title}</h2>
+        <p class="lp-help"><Prose text={sample.intro} /></p>
+        <p class="lp-help"><Prose text={sample.after} /></p>
+      </div>
+      <SamplePanel tabs={sample.tabs} />
+    </div>
+  </section>
+
+  <section class="mk-section" aria-labelledby="capabilities-title">
+    <div class="mk-container">
+      <h2 class="mk-section-title" id="capabilities-title">What you get</h2>
+      <ul class="lp-tiles" role="list">
+        {capabilities.map((tile) => (
+          <li>
+            <a class="lp-tile" href={tile.href}>
+              <h3>{tile.title}</h3>
+              <p><Prose text={tile.blurb} /></p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="mk-section" aria-labelledby="hosting-title">
+    <div class="mk-container">
+      <h2 class="mk-section-title" id="hosting-title">{hosting.title}</h2>
+      <p class="lp-help">{hosting.intro}</p>
+      <div class="lp-hosting">
+        {[hosting.selfHost, hosting.managed].map((option) => (
+          <section class="hp-window">
+            <header class="hp-window-bar"><h3 class="hp-window-title">{option.title}</h3></header>
+            <div class="hp-window-body">
+              <ul class="lp-points">
+                {option.points.map((point) => <li><Prose text={point} /></li>)}
+              </ul>
+              <a class="hp-button" href={option.cta.href}>{option.cta.label}</a>
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="mk-section" aria-labelledby="blog-title">
+    <div class="mk-container">
+      <div class="lp-row">
+        <h2 class="mk-section-title" id="blog-title">From the blog</h2>
+        <a class="mk-link" href="/blog/">All posts</a>
+      </div>
+      <ul class="lp-posts" role="list">
+        {posts.map((post) => (
+          <li>
+            <a class="lp-tile" href={`/blog/${post.id}/`}>
+              <time datetime={post.data.date.toISOString()}>{date(post.data.date)}</time>
+              <h3>{post.data.title}</h3>
+              {post.data.description && <p>{post.data.description}</p>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .lp-hero {
+    padding-block: calc(2 * var(--hp-space-12)) var(--hp-space-12);
+  }
+  .lp-hero-inner {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+  }
+  .lp-hero-copy {
+    display: grid;
+    justify-items: center;
+    gap: var(--hp-space-6);
+    max-inline-size: 52rem;
+  }
+  .lp-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--hp-space-3);
+  }
+  .lp-split {
+    display: grid;
+    gap: var(--hp-space-8);
+  }
+  @media (min-width: 64rem) {
+    .lp-split {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      align-items: start;
+    }
+  }
+  .lp-split-head {
+    display: grid;
+    gap: var(--hp-space-4);
+  }
+  .lp-help {
+    margin: 0;
+    max-inline-size: 60ch;
+    color: var(--hp-color-fg-muted);
+  }
+  .mk-section-title + .lp-help {
+    margin-block-start: var(--hp-space-3);
+  }
+  .lp-tiles,
+  .lp-posts {
+    display: grid;
+    gap: var(--hp-space-4);
+    margin: var(--hp-space-8) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  @media (min-width: 40rem) {
+    .lp-tiles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 64rem) {
+    .lp-tiles,
+    .lp-posts {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .lp-tile {
+    display: grid;
+    align-content: start;
+    gap: var(--hp-space-2);
+    block-size: 100%;
+    padding: var(--hp-space-6);
+    border: 1px solid var(--hp-color-border);
+    border-radius: var(--hp-radius-lg);
+    background: var(--hp-color-surface);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color var(--hp-motion-duration-fast) var(--hp-motion-ease);
+  }
+  .lp-tile:hover {
+    border-color: var(--hp-color-accent);
+  }
+  .lp-tile:focus-visible {
+    outline: 2px solid var(--hp-color-accent);
+    outline-offset: 2px;
+  }
+  .lp-tile h3 {
+    margin: 0;
+    font-size: var(--hp-text-lg);
+    font-weight: var(--hp-weight-semibold);
+  }
+  .lp-tile p,
+  .lp-tile time {
+    margin: 0;
+    color: var(--hp-color-fg-muted);
+  }
+  .lp-tile time {
+    font-size: var(--hp-text-sm);
+    font-variant-numeric: var(--hp-font-numeric);
+  }
+  .lp-hosting {
+    display: grid;
+    gap: var(--hp-space-4);
+    margin-block-start: var(--hp-space-8);
+  }
+  @media (min-width: 48rem) {
+    .lp-hosting {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .lp-points {
+    display: grid;
+    gap: var(--hp-space-2);
+    margin: 0 0 var(--hp-space-6);
+    padding-inline-start: var(--hp-space-6);
+  }
+  .lp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--hp-space-4);
+  }
+  code {
+    font-family: var(--hp-font-mono);
+    font-size: 0.9em;
+  }
+</style>

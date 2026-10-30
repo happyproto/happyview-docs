@@ -1,0 +1,63 @@
+/* The comment and engagement components are written with Tailwind's
+   utility classes. Only the utilities are loaded, not Tailwind's reset, so
+   nothing else on the page changes. */
+@import 'tailwindcss/utilities' source('../components/blog');
+
+.post-body {
+  max-inline-size: 70ch;
+  font-size: var(--hp-text-lg);
+  line-height: var(--hp-leading-relaxed);
+}
+.post-body :is(h2, h3) {
+  margin-block: var(--hp-space-12) var(--hp-space-4);
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-tight);
+  line-height: var(--hp-leading-tight);
+}
+.post-body h2 {
+  font-size: var(--hp-text-2xl);
+}
+.post-body h3 {
+  font-size: var(--hp-text-xl);
+}
+.post-body a {
+  color: var(--hp-color-accent);
+  text-underline-offset: 0.2em;
+}
+.post-body :not(pre) > code {
+  padding: 0.1em 0.3em;
+  border-radius: var(--hp-radius-sm);
+  background: var(--hp-color-surface-raised);
+  font-family: var(--hp-font-mono);
+  font-size: 0.9em;
+}
+.post-body pre {
+  padding: var(--hp-space-4);
+  border: 1px solid var(--hp-color-border);
+  border-radius: var(--hp-radius-md);
+  font-size: var(--hp-text-sm);
+  overflow-x: auto;
+}
+.post-body img {
+  max-inline-size: 100%;
+  block-size: auto;
+  border-radius: var(--hp-radius-md);
+}
+.post-body blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--hp-space-4);
+  border-inline-start: 2px solid var(--hp-color-border-strong);
+  color: var(--hp-color-fg-muted);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .post-body .astro-code,
+  :root:not([data-theme='light']) .post-body .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
+:root[data-theme='dark'] .post-body .astro-code,
+:root[data-theme='dark'] .post-body .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}

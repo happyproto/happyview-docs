@@ -1,0 +1,92 @@
+---
+// Starlight's Header.astro, without the social icons and language picker
+// this site doesn't use, and with the site's own links between search and the
+// theme picker. The landing page and blog use SiteHeader, which carries the
+// same links.
+import Search from '@astrojs/starlight/components/Search.astro';
+import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
+import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
+import { nav, repo } from '../../site';
+
+const path = Astro.url.pathname;
+const current = (href: string) =>
+  href === '/docs/' ? path.startsWith('/docs/') && !path.startsWith('/docs/changelog') : path.startsWith(href);
+---
+
+<div class="header">
+  <div class="title-wrapper sl-flex">
+    <SiteTitle />
+  </div>
+  <div class="sl-flex print:hidden">
+    <Search />
+  </div>
+  <div class="sl-hidden md:sl-flex print:hidden right-group">
+    <nav class="site-nav" aria-label="Site">
+      {nav.map((link) => (
+        <a href={link.href} aria-current={current(link.href) ? 'page' : undefined}>{link.label}</a>
+      ))}
+      <a href={repo.happyview}>GitHub</a>
+    </nav>
+    <ThemeSelect />
+  </div>
+</div>
+
+<style>
+  .header {
+    display: flex;
+    gap: var(--sl-nav-gap);
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+  }
+  .title-wrapper {
+    overflow: clip;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    min-width: 0;
+  }
+  .right-group {
+    gap: var(--hp-space-4);
+    align-items: center;
+  }
+  .site-nav {
+    display: flex;
+    gap: var(--hp-space-4);
+    padding-inline-end: var(--hp-space-4);
+    border-inline-end: 1px solid var(--hp-color-border);
+  }
+  .site-nav a {
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-sm);
+    font-weight: var(--hp-weight-medium);
+    text-decoration: none;
+  }
+  .site-nav a:hover,
+  .site-nav a[aria-current='page'] {
+    color: var(--hp-color-fg);
+  }
+  @media (min-width: 50rem) {
+    :global(:root[data-has-sidebar]) {
+      --__sidebar-pad: calc(2 * var(--sl-nav-pad-x));
+    }
+    :global(:root:not([data-has-toc])) {
+      --__toc-width: 0rem;
+    }
+    .header {
+      --__sidebar-width: max(0rem, var(--sl-content-inline-start, 0rem) - var(--sl-nav-pad-x));
+      --__main-column-fr: calc(
+        (
+            100% + var(--__sidebar-pad, 0rem) - var(--__toc-width, var(--sl-sidebar-width)) -
+              (2 * var(--__toc-width, var(--sl-nav-pad-x))) - var(--sl-content-inline-start, 0rem) -
+              var(--sl-content-width)
+          ) / 2
+      );
+      display: grid;
+      grid-template-columns:
+        minmax(calc(var(--__sidebar-width) + max(0rem, var(--__main-column-fr) - var(--sl-nav-gap))), auto)
+        1fr
+        auto;
+      align-content: center;
+    }
+  }
+</style>

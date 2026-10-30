@@ -1,0 +1,16 @@
+---
+// happyproto.at's SiteFooter (src/components/SiteFooter.astro), with text
+// links in place of its Bluesky and Discord marks.
+import { footer } from '../../site';
+---
+
+<footer class="mk-footer">
+  <div class="mk-container mk-footer-inner">
+    <p>{footer.copyright}</p>
+    <ul class="mk-footer-links" role="list">
+      {footer.links.map((link) => (
+        <li><a class="mk-link" href={link.href}>{link.label}</a></li>
+      ))}
+    </ul>
+  </div>
+</footer>

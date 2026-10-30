@@ -1,0 +1,86 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { EngagementActions } from '../../components/blog/engagement-actions';
+import { PostComments } from '../../components/blog/post-comments';
+import { PUBLICATION_URI, formatDate } from '../../lib/blog';
+import '../../styles/blog.css';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const { title, description, date, author, tags, atUri } = post.data;
+---
+
+<Base title={`${title} | HappyView`} description={description ?? title}>
+  <Fragment slot="head">
+    <link rel="site.standard.publication" href={PUBLICATION_URI} />
+    {atUri && <link rel="site.standard.document" href={atUri} />}
+  </Fragment>
+  <article class="mk-section post">
+    <div class="mk-container">
+      <header class="post-head">
+        <h1 class="mk-section-title">{title}</h1>
+        {description && <p class="post-description">{description}</p>}
+        <div class="post-meta">
+          <img src={author.avatar} alt="" width="24" height="24" />
+          <span>{author.name}</span>
+          <time datetime={date.toISOString()}>{formatDate(date)}</time>
+          {tags.map((tag) => <span class="hp-tag">{tag}</span>)}
+        </div>
+        <EngagementActions client:visible documentUri={atUri} publicationUri={PUBLICATION_URI} />
+      </header>
+      <div class="post-body">
+        <Content />
+      </div>
+      <footer class="post-foot">
+        <EngagementActions client:visible documentUri={atUri} publicationUri={PUBLICATION_URI} />
+        <hr />
+        <PostComments client:visible atUri={atUri} />
+      </footer>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .post {
+    border-block-start: 0;
+  }
+  .post-head,
+  .post-foot {
+    display: grid;
+    gap: var(--hp-space-4);
+    max-inline-size: 70ch;
+  }
+  .post-head {
+    margin-block-end: var(--hp-space-12);
+  }
+  .post-foot {
+    margin-block-start: var(--hp-space-12);
+  }
+  .post-foot hr {
+    inline-size: 100%;
+    border: 0;
+    border-block-start: 1px solid var(--hp-color-border);
+  }
+  .post-description {
+    margin: 0;
+    font-size: var(--hp-text-xl);
+    color: var(--hp-color-fg-muted);
+  }
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--hp-space-3);
+    font-size: var(--hp-text-sm);
+    color: var(--hp-color-fg-muted);
+  }
+  .post-meta img {
+    border-radius: 50%;
+  }
+</style>

@@ -1,0 +1,40 @@
+---
+// Where atproto OAuth returns after a reader signs in to like or comment on a
+// post. It finishes the sign-in, then goes back to the post.
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Signing in | HappyView" description="Finishing sign-in.">
+  <section class="mk-section callback">
+    <div class="mk-container">
+      <p data-status>Finishing sign-in…</p>
+      <p data-error hidden></p>
+      <a href="/blog/" data-back hidden>Back to the blog</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { getOAuthClient } from '../../lib/atproto-oauth';
+
+  const status = document.querySelector<HTMLElement>('[data-status]')!;
+  const error = document.querySelector<HTMLElement>('[data-error]')!;
+  const back = document.querySelector<HTMLElement>('[data-back]')!;
+  try {
+    const client = await getOAuthClient();
+    const result = await client.init();
+    window.location.replace(result?.state ?? '/blog/');
+  } catch (err) {
+    status.textContent = 'Sign-in failed.';
+    error.textContent = err instanceof Error ? err.message : String(err);
+    error.hidden = false;
+    back.hidden = false;
+  }
+</script>
+
+<style>
+  .callback {
+    border-block-start: 0;
+    text-align: center;
+  }
+</style>

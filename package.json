@@ -1,38 +1,41 @@
 {
-  "name": "@happyview/docs",
-  "version": "0.0.0",
+  "name": "happyview.dev",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "astro dev",
     "generate-changelogs": "node scripts/generate-changelogs.mjs",
     "sequoia:publish": "node scripts/sequoia-publish.mjs",
-    "build": "npm run generate-changelogs && npm run sequoia:publish && next build",
-    "start": "next start"
+    "build": "bun run generate-changelogs && bun run sequoia:publish && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "bun test"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.5",
+    "@astrojs/react": "^7.1.2",
+    "@astrojs/starlight": "0.42.7",
+    "@astrojs/vercel": "11.0.17",
     "@atproto/api": "^0.20.25",
     "@atproto/oauth-client-browser": "^0.4.5",
-    "@happyview/design-system": "workspace:*",
-    "@tailwindcss/postcss": "^4.2.0",
-    "@types/mdast": "^4.0.4",
-    "@types/mdx": "^2.0.13",
-    "fumadocs-core": "^16.8.10",
-    "fumadocs-mdx": "^15.0.4",
-    "fumadocs-ui": "^16.8.10",
-    "lucide-react": "^1.14.0",
+    "@happyview/design-system": "1.1.1",
+    "astro": "7.4.4",
     "mermaid": "^11.16.0",
-    "next": "^16.1.6",
-    "next-themes": "^0.4.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "tailwindcss": "^4.2.0",
-    "unist-util-visit": "^5.1.0",
     "sequoia-cli": "^0.5.7",
-    "zod": "^4.4.3"
+    "starlight-links-validator": "^0.27.0",
+    "starlight-llms-txt": "^0.12.0",
+    "starlight-sidebar-topics": "0.9.0",
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/vite": "^4.2.0",
+    "@types/bun": "^1.4.2",
+    "@types/mdast": "^4.0.4",
     "@types/react": "^19.0.0",
+    "tailwindcss": "^4.2.0",
     "typescript": "^5.7.0"
   }
 }

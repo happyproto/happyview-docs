@@ -1,0 +1,57 @@
+---
+// happyproto.at's SiteHeader (src/components/SiteHeader.astro), with
+// HappyView's logo and the site's links in place of the beta sign-up.
+import { Image } from 'astro:assets';
+import logoDark from '../../assets/logo.dark.png';
+import logoLight from '../../assets/logo.light.png';
+import { nav, repo } from '../../site';
+
+const path = Astro.url.pathname;
+---
+
+<header class="mk-header">
+  <a class="mk-link mk-skip" href="#main">Skip to content</a>
+  <div class="mk-container mk-header-inner">
+    <a class="mk-header-home" href="/">
+      <Image class="site-logo site-logo-light" src={logoLight} alt="HappyView" height={40} loading="eager" />
+      <Image class="site-logo site-logo-dark" src={logoDark} alt="HappyView" height={40} loading="eager" />
+    </a>
+    <nav class="mk-header-actions" aria-label="Site">
+      {nav.map((link) => (
+        <a class="mk-link" href={link.href} aria-current={path.startsWith(link.href) ? 'page' : undefined}>{link.label}</a>
+      ))}
+      <a class="mk-link" href={repo.happyview}>GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-logo {
+    display: block;
+    inline-size: auto;
+    block-size: 2.5rem;
+  }
+  .site-logo-dark {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .site-logo-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .site-logo-dark {
+      display: block;
+    }
+  }
+  :global(:root[data-theme='dark']) .site-logo-light {
+    display: none;
+  }
+  :global(:root[data-theme='dark']) .site-logo-dark {
+    display: block;
+  }
+  .mk-header-actions {
+    gap: var(--hp-space-4);
+  }
+  .mk-header-actions a[aria-current='page'] {
+    color: var(--hp-color-fg);
+  }
+</style>
