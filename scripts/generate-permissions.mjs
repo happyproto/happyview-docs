@@ -29,18 +29,23 @@ const all = [...allBody[1].matchAll(/Self::(\w+)/g)].map((m) => m[1])
 for (const v of all) if (!info.has(v)) throw new Error(`no PermissionInfo for ${v}`)
 if (info.size !== all.length) throw new Error(`info() has ${info.size} entries, all() has ${all.length}`)
 
-// The templates nest: Viewer is a list, Operator and Manager insert into the
-// one before them, Full Access is all().
+// The templates nest: Viewer is a list, the second template and Manager insert
+// into the one before them, Full Access is all(). The second was called
+// Operator until HappyView renamed it Maintainer, so its name is read from
+// `Template::label`.
+const second = source.match(/Self::(\w+) => "(\w+)",\s*Self::Manager => "Manager"/)
+if (!second) throw new Error('Template::label() not found')
+const [, middle, middleLabel] = second
 const templatesBody = source.slice(source.indexOf('pub fn permissions(&self) -> HashSet<Permission>'))
 const section = (from, to) => templatesBody.slice(templatesBody.indexOf(from), templatesBody.indexOf(to))
 const variants = (text) => [...text.matchAll(/Permission::(\w+)/g)].map((m) => m[1])
-const viewer = new Set(variants(section('Self::Viewer =>', 'Self::Operator =>')))
-const operator = new Set([...viewer, ...variants(section('Self::Operator =>', 'Self::Manager =>'))])
-const manager = new Set([...operator, ...variants(section('Self::Manager =>', 'Self::FullAccess =>'))])
+const viewer = new Set(variants(section('Self::Viewer =>', `Self::${middle} =>`)))
+const maintainer = new Set([...viewer, ...variants(section(`Self::${middle} =>`, 'Self::Manager =>'))])
+const manager = new Set([...maintainer, ...variants(section('Self::Manager =>', 'Self::FullAccess =>'))])
 if (!/Self::FullAccess => Permission::all\(\)/.test(templatesBody)) throw new Error('Full Access is no longer all()')
 
 // The permission set's level: the lowest template that grants it.
-const lowest = (v) => (viewer.has(v) ? 'Viewer' : operator.has(v) ? 'Operator' : manager.has(v) ? 'Manager' : 'Full Access')
+const lowest = (v) => (viewer.has(v) ? 'Viewer' : maintainer.has(v) ? middleLabel : manager.has(v) ? 'Manager' : 'Full Access')
 
 const byCategory = new Map()
 for (const v of all) {
@@ -50,7 +55,7 @@ for (const v of all) {
 }
 
 const lines = [
-	`HappyView has **${all.length} permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (${viewer.size}), **Operator** (${operator.size}), **Manager** (${manager.size}) and **Full Access** (all ${all.length}). The operator with superadmin holds every permission and can't be restricted.`,
+	`HappyView has **${all.length} permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (${viewer.size}), **${middleLabel}** (${maintainer.size}), **Manager** (${manager.size}) and **Full Access** (all ${all.length}). The operator with superadmin holds every permission and can't be restricted.`,
 	'',
 	'| Permission | What it allows | Lowest template that grants it |',
 	'|---|---|---|',

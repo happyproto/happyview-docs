@@ -118,7 +118,7 @@ One thing a dashboard user or API key may do, such as `lexicons:publish` or
 ### Template
 
 A starting set of [permissions](#permission) for a new user: **Viewer**,
-**Operator**, **Manager** or **Full Access**. Each includes everything in the
+**Maintainer**, **Manager** or **Full Access**. Each includes everything in the
 one before it.
 
 ### Superadmin
@@ -167,7 +167,7 @@ yourself, it doesn't apply to you.
 
 {/* BEGIN generated: permissions (generate-permissions.mjs) */}
 
-HappyView has **52 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (10), **Operator** (14), **Manager** (41) and **Full Access** (all 52). The operator with superadmin holds every permission and can't be restricted.
+HappyView has **52 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (10), **Maintainer** (14), **Manager** (41) and **Full Access** (all 52). The operator with superadmin holds every permission and can't be restricted.
 
 | Permission | What it allows | Lowest template that grants it |
 |---|---|---|
@@ -190,11 +190,11 @@ HappyView has **52 permissions**. A user holds any mix of them; the four built-i
 | `users:update` | Modify user permissions | Full Access |
 | `users:delete` | Remove dashboard users | Full Access |
 | **API Keys** | | |
-| `api-keys:create` | Generate new API keys for admin access | Operator |
+| `api-keys:create` | Generate new API keys for admin access | Maintainer |
 | `api-keys:read` | View existing API keys | Viewer |
-| `api-keys:delete` | Revoke existing API keys | Operator |
+| `api-keys:delete` | Revoke existing API keys | Maintainer |
 | **Backfill** | | |
-| `backfill:create` | Trigger historical record backfill jobs | Operator |
+| `backfill:create` | Trigger historical record backfill jobs | Maintainer |
 | `backfill:read` | View backfill job status and progress | Viewer |
 | **System** | | |
 | `stats:read` | View collection statistics and record counts | Viewer |
@@ -217,7 +217,7 @@ HappyView has **52 permissions**. A user holds any mix of them; the four built-i
 | `api-clients:delete` | Remove registered API clients | Manager |
 | **Dead Letters** | | |
 | `dead-letters:read` | View failed hook executions | Viewer |
-| `dead-letters:manage` | Retry, re-index, or dismiss dead letters | Operator |
+| `dead-letters:manage` | Retry, re-index, or dismiss dead letters | Maintainer |
 | **Spaces** | | |
 | `spaces:create` | Create new permissioned data spaces | Manager |
 | `spaces:read` | View space details, metadata, and members | Manager |

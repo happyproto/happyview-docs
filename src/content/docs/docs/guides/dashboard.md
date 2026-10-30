@@ -59,7 +59,7 @@ Navigate to **Dead Letters** to view records that failed to index. Each entry sh
 
 ### Users
 
-Navigate to **Users** to manage who can access the admin API and dashboard. You can add users by DID, assign permissions individually or via a template (`viewer`, `operator`, `manager`, `full_access`), and remove users. The operator with superadmin is marked **Owner** and has every permission. See [Permissions](/docs/guides/permissions) for what each permission grants.
+Navigate to **Users** to manage who can access the admin API and dashboard. You can add users by DID, assign permissions individually or via a template (`viewer`, `maintainer`, `manager`, `full_access`), and remove users. The operator with superadmin is marked **Owner** and has every permission. See [Permissions](/docs/guides/permissions) for what each permission grants.
 
 ### API Keys
 
