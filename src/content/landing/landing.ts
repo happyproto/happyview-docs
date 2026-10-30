@@ -43,6 +43,8 @@ export const sample = {
 		{ label: 'Request', lang: 'shell', code: `$ hpy happyview dev\n\n$ ${request}\n${response}` },
 	] satisfies SampleTab[],
 	after: 'Change the script, save it and call it again: the new version answers, with no restart.',
+	// The sample runs `hpy`, which a visitor won't have yet.
+	needs: { label: 'Needs hpy, HappyProto’s CLI (beta)', href: '/docs/getting-started/installation' } satisfies Link,
 	// Not in the tabbed design. Here in case the page wants a fifth tab.
 	test: {
 		label: 'Test',

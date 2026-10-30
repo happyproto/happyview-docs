@@ -32,6 +32,7 @@ const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month
         <h2 class="mk-section-title" id="sample-title">{sample.title}</h2>
         <p class="lp-help"><Prose text={sample.intro} /></p>
         <p class="lp-help"><Prose text={sample.after} /></p>
+        <p class="lp-help"><a class="mk-link" href={sample.needs.href}>{sample.needs.label}</a></p>
       </div>
       <SamplePanel tabs={sample.tabs} />
     </div>

@@ -277,7 +277,7 @@ A `library` plugin may declare other libraries it calls through `host_call_libra
 | `GET /admin/plugins`                    | List installed plugins                      |
 | `POST /admin/plugins`                   | Install a plugin                            |
 | `POST /admin/plugins/preview`           | Preview plugin before installing            |
-| `GET /admin/plugins/official`           | Browse the official plugin registry catalog |
+| `GET /admin/plugins/official`           | Browse the official plugin registry |
 | `DELETE /admin/plugins/{id}`            | Remove a plugin                             |
 | `POST /admin/plugins/{id}/reload`       | Reload plugin from source                   |
 | `POST /admin/plugins/{id}/check-update` | Check whether a newer version is available  |

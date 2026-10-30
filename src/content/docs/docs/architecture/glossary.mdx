@@ -62,8 +62,8 @@ Where HappyView finds plugins to install. The registry is a set of
 (`software.release.project`), with its **versions** (`software.release.version`).
 A project is named by its publisher's DID plus a name, for example `happyview-lua`.
 HappyView reads the registry at `https://api.happyproto.at` and refreshes its
-catalogue every 15 minutes. `PLUGIN_REGISTRY_URL` points it elsewhere, or `off`
-turns the catalogue off.
+registry listing every 15 minutes. `PLUGIN_REGISTRY_URL` points it elsewhere, or `off`
+stops HappyView reading the registry.
 
 A registry install is checked by CID: HappyView fetches the plugin's manifest
 and module from the registry, refuses any bytes whose CID doesn't match, and

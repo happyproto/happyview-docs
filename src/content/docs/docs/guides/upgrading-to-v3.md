@@ -56,7 +56,7 @@ The scripts list also flags each row: `runnable` is `false` when no installed in
 
 ### Which interpreter
 
-Three are published, each its own project in the catalogue:
+Three are published, each its own project in the registry:
 
 | Language | `script_type` | Registry project | Script files |
 |----------|---------------|------------------|--------------|
@@ -68,17 +68,17 @@ An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The 
 
 ### Installing it
 
-Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the catalogue, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
+Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the registry, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
 
 **It is the `alpha` channel.** A project publishes up to three — `latest`, `beta` and `alpha` — and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has; `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later, once there is somewhere to move it to — see [Channels](/docs/guides/plugins#channels).
 
 **There is nothing to checksum.** A registry version names its manifest and its module by CID; HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
 
-**The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded — which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it turns the catalogue off, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
+**The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded — which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it stops HappyView reading the registry, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
 
 To install without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`. To give a fleet its interpreter without anyone clicking, `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of sources on the first boot that names them — see [Default plugins](/docs/guides/plugins#default-plugins).
 
-If you installed an interpreter from a release URL earlier in the alpha, you needn't reinstall: the next catalogue refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working — [From a URL](/docs/guides/plugins#from-a-url) covers both.
+If you installed an interpreter from a release URL earlier in the alpha, you needn't reinstall: the next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working — [From a URL](/docs/guides/plugins#from-a-url) covers both.
 
 ## 2. Migrate your stored scripts
 
@@ -97,7 +97,7 @@ Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua bo
 
 The codemod rewrites a v2 global into a `require`, and a `happyview.*` module is a library plugin. A migrated script therefore saves fine and then fails at run time on the first library it names that isn't installed. Do this before you let traffic reach a migrated script.
 
-The `require` block the codemod writes at the top of each script is the list of what that script needs. The `internal.*` modules in it come from the interpreter itself and need nothing installed; each `happyview.*` module is a project in the catalogue:
+The `require` block the codemod writes at the top of each script is the list of what that script needs. The `internal.*` modules in it come from the interpreter itself and need nothing installed; each `happyview.*` module is a project in the registry:
 
 | `require` | Registry project |
 |-----------|------------------|
@@ -112,7 +112,7 @@ The `require` block the codemod writes at the top of each script is the list of 
 | `happyview.jobs` | `happyview-jobs` |
 | `happyview.http` | `happyview-http` |
 
-They install exactly as an interpreter does, from the same catalogue and the same `alpha` channel. The catalogue carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
+They install exactly as an interpreter does, from the same registry and the same `alpha` channel. The registry carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
 
 The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3 — the one exporting `lexicon` — and says so by name if it meets an older one; the row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
 
@@ -129,7 +129,7 @@ There is no fallback for any plugin type, auth included. A v2-era manifest also 
 
 The instance still boots. A refused plugin logs `Failed to install plugin at boot` or `Failed to load plugins from database` and is simply absent, so anything that depended on it — account linking through an auth plugin, say — stops working until you replace it. Check your boot log after the upgrade.
 
-The official auth plugins — Steam, Xbox, Microsoft and itch.io — are published in the catalogue alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the catalogue. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing Plugins](/docs/guides/developing-plugins) covers what it now has to declare.
+The official auth plugins — Steam, Xbox, Microsoft and itch.io — are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing Plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
 ## 5. Script limits now apply
 
@@ -192,7 +192,7 @@ That is not the same as a return path. A script the codemod rewrote will not run
 
 ## Checklist
 
-- [ ] Install an interpreter plugin from the catalogue on the `alpha` channel, and confirm boot no longer warns
+- [ ] Install an interpreter plugin from the registry on the `alpha` channel, and confirm boot no longer warns
 - [ ] Run the codemod over every stored script, and finish any `-- codemod:` markers by hand
 - [ ] Install a library plugin for every `happyview.*` module the rewritten scripts require
 - [ ] Confirm `needs_migration` is empty and `runnable` is true for every script

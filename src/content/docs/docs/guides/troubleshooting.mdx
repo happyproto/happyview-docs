@@ -131,7 +131,7 @@ auth plugin, say) stops working without any other error.
 lists its capabilities. It checks that list against what the plugin's module
 actually imports. There is no fallback for any plugin type.
 
-**Fix.** Install a current release from the catalogue. For your own plugin,
+**Fix.** Install a current release from the registry. For your own plugin,
 rebuild it against the v3 SDK and declare its capabilities. After an upgrade,
 search the startup log for `Failed to load plugin` to find every refused plugin.
 
@@ -145,7 +145,7 @@ Failed to load plugin from the registry  plugin_id=<id> error=registry request f
 
 The plugin isn't loaded until the next startup or reload that can reach the
 registry. Scripts in that plugin's language then fail as in
-[No interpreter installed](#no-interpreter-installed). The catalogue's own
+[No interpreter installed](#no-interpreter-installed). The registry's own
 refresh logs `official_registry: refresh failed` and retries every 15 minutes.
 
 **Why.** A plugin installed from the registry is stored as a reference with
@@ -154,7 +154,7 @@ at every startup and reload, and refuses any bytes whose CID doesn't match.
 
 **Fix.** Make the registry reachable from the instance (by default
 `https://api.happyproto.at`), then reload the plugin from the dashboard or
-restart. `PLUGIN_REGISTRY_URL=off` turns the catalogue off, but doesn't change
+restart. `PLUGIN_REGISTRY_URL=off` stops HappyView reading the registry, but doesn't change
 where an already-installed plugin fetches from.
 
 ## Lexicon publishing

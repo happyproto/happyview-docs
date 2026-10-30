@@ -54,6 +54,16 @@ A lexicon's id, such as `xyz.statusphere.status`.
 **Record lexicon**, **query lexicon**, **procedure lexicon**:
 A lexicon named by its `main` type.
 
+**Project lexicon**:
+A lexicon defined by a file under a project's `src/lexicons/`.
+
+**Network lexicon**:
+A lexicon an instance fetches from its authority on the network and keeps up to date.
+
+**Uploaded lexicon**:
+A lexicon added to an instance through the dashboard or the admin API.
+_Avoid_: local lexicon, manual lexicon (except quoting the dashboard's **Local** tab or the API's `manual` source)
+
 **Collection**:
 The set of records of one record lexicon, named by that lexicon's NSID.
 _Avoid_: collection (for the lexicon itself), table
@@ -97,7 +107,7 @@ _Avoid_: permission (for a plugin)
 
 **Registry**:
 Where plugins are published and installed from.
-_Avoid_: marketplace, store
+_Avoid_: marketplace, store, catalogue (except as the dashboard's label)
 
 **Channel**:
 A named release line in the registry, such as `alpha`.

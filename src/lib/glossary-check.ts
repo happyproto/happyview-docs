@@ -16,6 +16,7 @@ export const AVOIDED: { pattern: RegExp; use: string }[] = [
   { pattern: /\bWASM plugins?\b/i, use: 'plugin' },
   { pattern: /\bmarketplace\b/i, use: 'registry' },
   { pattern: /\bplugin store\b/i, use: 'registry' },
+  { pattern: /\bcatalog(ue)?s?\b/i, use: 'registry (the dashboard\'s **Catalogue** label may be quoted in bold)' },
 ];
 
 // Product text quoted as it stands, and other meanings of an avoided word:

@@ -1,0 +1,92 @@
+---
+title: "Installation"
+description: "Install hpy, HappyProto's command-line tool, and create your first HappyView project."
+type: how-to
+prerequisites:
+  - /docs/getting-started/how-happyview-fits-atproto
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page installs `hpy` and creates a project. You don't install HappyView itself: `hpy` downloads the version your project uses when you run it.
+
+`hpy` is in beta and HappyView v3 is in alpha. `hpy happyview create` picks the HappyView version for you, so you don't need to choose one.
+
+## Before you start
+
+- **macOS or Linux.** On Windows, use WSL and follow the Linux steps inside it: running a project locally isn't supported on Windows itself yet.
+- **An atproto account to develop with**, such as a Bluesky account. A separate test account is best, because a project running locally writes to that account's real PDS. [Running locally](/docs/getting-started/running-locally) explains why.
+
+## Install hpy
+
+`hpy` has no stable release yet, so install it from its `beta` channel:
+
+<Tabs syncKey="install">
+<TabItem label="Homebrew">
+
+```sh
+brew install happyproto/tap/hpy-beta
+```
+
+</TabItem>
+<TabItem label="Install script">
+
+```sh
+curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
+```
+
+</TabItem>
+</Tabs>
+
+Check that it worked:
+
+```sh
+hpy --version
+```
+
+`hpy update` keeps it up to date on the `beta` channel. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
+
+## Create a project
+
+```sh
+hpy happyview create --name my-app
+```
+
+`create` asks four things:
+
+| Prompt | What to answer |
+| --- | --- |
+| **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account gets the superadmin privilege on your local instance. If you've signed in with `hpy registry login`, its DID is offered. |
+| **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected to start with. |
+| **Libraries** | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`. |
+| **App name** | Your app's name. It defaults to the directory's name. |
+
+It creates `my-app/` and downloads nothing yet.
+
+## What you get
+
+```text
+my-app/
+├── happyview.toml
+├── happyview.lock
+├── .env.example
+├── .gitignore
+├── .luarc.json
+└── src/
+    └── lexicons/
+        └── com/
+            └── example/
+                ├── hello.json
+                └── hello.lua
+```
+
+- `happyview.toml` names the HappyView version, the interpreters and libraries, and your instance's settings.
+- `happyview.lock` pins the exact plugin versions, so every machine runs the same ones.
+- `.luarc.json` points your editor at HappyView's types. A project with JavaScript or TypeScript gets a `tsconfig.json` instead or as well.
+- `src/lexicons/com/example/hello.json` is a query lexicon, and `hello.lua` beside it is the script that answers it. The script is in the first language you picked.
+
+[Project structure](/docs/getting-started/project-structure) explains every file.
+
+## Next steps
+
+- [Running locally](/docs/getting-started/running-locally): start your project and call `com.example.hello`.

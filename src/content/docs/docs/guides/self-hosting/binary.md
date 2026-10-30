@@ -31,4 +31,4 @@ On Windows, set the variables with `$env:DATABASE_URL = "..."` in PowerShell
 before running `.\happyview.exe`.
 
 Set `PLUGIN_REGISTRY_URL=off` on an instance with no outbound network to
-stop it fetching the official plugin catalogue.
+stop it reading the official registry.
