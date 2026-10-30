@@ -11,13 +11,16 @@ local json = require("internal.json")
 local http = require("happyview.http")
 
 function handle(input, ctx)
+  -- Meilisearch ids may contain only letters, digits, `-` and `_`
+  local id = (input.did .. "_" .. input.collection .. "_" .. input.rkey):gsub("[^%w%-_]", "_")
+
   local headers = {
     ["Authorization"] = "Bearer " .. ctx.env.MEILISEARCH_API_KEY,
     ["Content-Type"] = "application/json",
   }
 
   if input.action == "delete" then
-    http.delete(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents/" .. input.uri, {
+    http.delete(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents/" .. id, {
       headers = headers,
     })
   else
@@ -25,7 +28,8 @@ function handle(input, ctx)
       headers = headers,
       body = json.encode(json.to_array({
         {
-          id = input.uri,
+          id = id,
+          uri = input.uri,
           collection = input.collection,
           did = input.did,
           record = input.record,
@@ -34,14 +38,20 @@ function handle(input, ctx)
     })
   end
 
-  return input.record or true  -- `record` is nil on delete; `true` lets it proceed
+  -- A delete has no record to return; `true` lets it proceed
+  if input.action == "delete" then
+    return true
+  end
+  return input.record
 end
 ```
 
 ## How it works
 
-1. On **create** or **update**: sends a `POST` request to Meilisearch's document API with the record data wrapped in an array. Meilisearch upserts by `id` — if a document with the same AT URI already exists, it's replaced.
-2. On **delete**: sends a `DELETE` request to remove the document from the index by its AT URI.
+1. On **create** or **update**: sends a `POST` request to Meilisearch's document API with the record data wrapped in an array. Meilisearch upserts by `id`, so a document for the same record is replaced.
+2. On **delete**: sends a `DELETE` request to remove the document from the index by its `id`.
+
+A Meilisearch document id may contain only letters, digits, `-` and `_`, so an AT URI cannot be one. The script builds the id from the DID, collection and rkey, replaces every other character with `_`, and stores the AT URI in a `uri` field.
 
 `input` is the [record event](/docs/reference/scripts/types-and-triggers#record-scripts). `json.to_array` ensures the table is encoded as a JSON array (Meilisearch expects an array of documents). See [JSON](/docs/reference/scripts/json).
 

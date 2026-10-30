@@ -470,7 +470,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.putMemb
 </TabItem>
 </Tabs>
 
-Delegation chains are resolved up to 10 levels deep. When a user appears in several chains, each flag is combined separately: the user can read if any path grants `read`, and can write if any path grants `write`.
+Delegation chains are resolved up to 10 levels deep. The delegation entry's own `read` and `write` are not applied; delegated members keep their own. When a user appears in several chains, each flag is combined separately: the user can read if any path grants `read`, and can write if any path grants `write`.
 
 ### Example: nested teams
 
@@ -492,7 +492,7 @@ In this example, the forum's resolved member list contains:
 
 ## Legacy addMember
 
-`com.atproto.simplespace.addMember` and `dev.happyview.space.addMember` are deprecated and kept until v3. They take a single `access` word in place of the two flags:
+`com.atproto.simplespace.addMember` and `dev.happyview.space.addMember` are deprecated. They are still served in v3 alpha; removal is not yet scheduled. They take a single `access` word in place of the two flags:
 
 | `access` | Equivalent |
 |---|---|

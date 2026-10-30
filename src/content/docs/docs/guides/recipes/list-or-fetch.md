@@ -13,7 +13,7 @@ function handle(input, ctx)
   if input.uri then
     local row = db.get(input.uri)
     if not row then
-      return { error = "record not found" }
+      return { error = "RecordNotFound", message = "no record at that uri" }
     end
     return { record = row }
   end
@@ -28,7 +28,7 @@ end
 
 ## How it works
 
-1. If a `uri` query parameter is provided, fetch that single record with `db.get` and return it. If it doesn't exist, return a structured error (using `error()` would trigger a 500 response).
+1. If a `uri` query parameter is provided, fetch that single record with `db.get` and return it. If it doesn't exist, return a structured error (using `error()` would trigger a 500 response). The response is a 400 only when the lexicon declares `RecordNotFound` under `defs.main.errors`, as in `"errors": [{ "name": "RecordNotFound" }]`; otherwise it is a 200.
 2. Otherwise, list records from the target collection with a `db.records` chain, with optional filtering by `did` and cursor-based pagination. The `cursor` is an opaque string from a previous response — pass it through directly. A `limit` the lexicon declares as an `integer` arrives as a number already; `tonumber()` covers a lexicon that leaves it untyped, where it arrives as a string.
 
 ## Usage

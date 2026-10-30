@@ -14,11 +14,16 @@ local record = require("happyview.record")
 
 function handle(input, ctx)
   if not input.uri then
-    return { error = "uri is required" }
+    return { error = "UriRequired", message = "uri is required" }
   end
 
-  if not db.get(input.uri) then
-    return { error = "not found" }
+  local row = db.get(input.uri)
+  if not row then
+    return { error = "RecordNotFound", message = "no record at that uri" }
+  end
+
+  if row.did ~= ctx.caller_did then
+    return { error = "NotOwner", message = "you can only delete your own records" }
   end
 
   -- Find the caller's comments that reference this URI
@@ -43,11 +48,13 @@ end
 
 ## How it works
 
-1. Check the primary record exists with `db.get`. Return early if it doesn't.
+1. Check the primary record exists with `db.get` and belongs to the caller. Return a structured error if it doesn't. Each error name (`UriRequired`, `RecordNotFound`, `NotOwner`) must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "NotOwner" }]`, for the response to be a 400; an undeclared one is sent as a 200.
 2. Query for related records: comments by the same user whose `postUri` field is the primary record's URI. `where` filters on a field of the stored body, so the match happens in the database rather than in Lua.
 3. Delete everything with `record.delete`. Each call removes the record from the user's PDS and the local index.
 
 ## Usage
+
+The DPoP proof is signed per request; an app built on the [HappyView SDK](/docs/reference/sdk) gets this from its session.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -57,7 +64,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.deleteP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -75,7 +83,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.deleteP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -92,7 +101,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.deletePost")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({
         "uri": "at://did:plc:abc/xyz.statusphere.post/abc123"
     }))
@@ -107,7 +117,8 @@ let response = client
 body := `{ "uri": "at://did:plc:abc/xyz.statusphere.post/abc123" }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.deletePost", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```

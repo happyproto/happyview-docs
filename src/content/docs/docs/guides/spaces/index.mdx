@@ -5,7 +5,7 @@ title: "Overview"
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 :::danger[Experimental]
-Permissioned Spaces are experimental and the API will change. This implementation follows [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data). HappyView uses the `com.atproto.space.*` and `com.atproto.simplespace.*` namespaces. The `dev.happyview.space.*` endpoints are deprecated aliases, kept until v3.
+Permissioned Spaces are experimental and the API will change. This implementation follows [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data). HappyView uses the `com.atproto.space.*` and `com.atproto.simplespace.*` namespaces. The `dev.happyview.space.*` endpoints are deprecated aliases. They are still served in v3 alpha; removal is not yet scheduled.
 :::
 
 Spaces are containers for permissioned data in atproto. Unlike regular public records that live in a user's repo, space records are gated by membership — only members can read or write data within a space.
@@ -104,7 +104,7 @@ Space endpoints are split across two namespaces:
 - **`com.atproto.space.*`**: protocol-level routes (queries, data, credentials, sync)
 - **`com.atproto.simplespace.*`**: management routes (create/update/delete spaces, membership)
 
-The `dev.happyview.space.*` aliases are deprecated and kept until v3. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and the notify endpoints take service auth.
+The `dev.happyview.space.*` aliases are deprecated. They are still served in v3 alpha; removal is not yet scheduled. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and the notify endpoints take service auth.
 
 | Endpoint                                      | Method | Description                                     |
 | --------------------------------------------- | ------ | ----------------------------------------------- |
@@ -123,6 +123,7 @@ The `dev.happyview.space.*` aliases are deprecated and kept until v3. Most endpo
 | `com.atproto.space.deleteRecord`               | POST   | Delete a record                                 |
 | `com.atproto.space.applyWrites`                | POST   | Batch write operations                          |
 | `com.atproto.space.getLatestCommit`            | GET    | Get per-user signed commit                      |
+| `com.atproto.space.getRepoState`               | GET    | Earlier name of `getLatestCommit`               |
 | `com.atproto.space.getRepo`                    | GET    | Export a user's repo as a CAR file              |
 | `com.atproto.space.listRepoOps`                | GET    | List record operation log entries               |
 | `com.atproto.space.listRepos`                  | GET    | List the space's writer set                     |
@@ -139,7 +140,7 @@ The `dev.happyview.space.*` aliases are deprecated and kept until v3. Most endpo
 | `dev.happyview.space.revokeInvite`             | POST   | Revoke an invite (HappyView extension)          |
 | `dev.happyview.space.listInvites`              | GET    | List invites (HappyView extension)              |
 
-`com.atproto.simplespace.addMember` is a deprecated form of `putMember`, kept until v3. See [Legacy addMember](/docs/guides/spaces/members#legacy-addmember).
+`com.atproto.simplespace.addMember` is a deprecated form of `putMember`. It is still served in v3 alpha; removal is not yet scheduled. See [Legacy addMember](/docs/guides/spaces/members#legacy-addmember).
 
 ## Access model
 
@@ -159,6 +160,10 @@ Each policy is **member-list** (the default), **public**, or **managing-app**.
 Under member-list policies, each **member** has two flags, `read` and `write`, set independently. The creator is automatically added with both. See [Members](/docs/guides/spaces/members).
 
 Spaces also support **delegation**: adding another space as a member, which grants its members access to this space.
+
+## Repositories on authors' PDSes
+
+A space repository can move from HappyView to its author's PDS. Each repository goes through three states: `polyfill` (held by HappyView), `migrating`, and `native` (held by the author's PDS). Migration is gated by the `feature.spaces_pds_migration` flag. Operators can follow progress with [`GET /admin/spaces/migration-status`](/docs/reference/admin/spaces#space-migration-status).
 
 ## Alignment with Proposal 0016
 
@@ -188,7 +193,7 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **Invite system**: `createInvite`, `acceptInvite`, `revokeInvite`, `listInvites` (under `dev.happyview.space.*`)
 - **`isDelegation` on members**: allows spaces to be members of other spaces
 - **`displayName`, `description` on spaces**: human-readable metadata
-- **`config` object**: `membership_public`, plus arbitrary extra fields. `records_public` is deprecated and not enforced.
+- **`config` object**: `membership_public`, a setting stored with the space, plus arbitrary extra fields. `records_public` is deprecated and not enforced.
 - **`read_self` access**: limits a member's reads to their own records
 
 ## Next steps

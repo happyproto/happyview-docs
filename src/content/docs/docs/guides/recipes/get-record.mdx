@@ -14,12 +14,12 @@ local db = require("happyview.db")
 
 function handle(input, ctx)
   if not input.uri then
-    return { error = "uri parameter is required" }
+    return { error = "UriRequired", message = "uri parameter is required" }
   end
 
   local row = db.get(input.uri)
   if not row then
-    return { error = "not found" }
+    return { error = "RecordNotFound", message = "no record at that uri" }
   end
 
   return { record = row }
@@ -33,12 +33,12 @@ import db from "happyview.db";
 
 export default async function handle(input, ctx) {
   if (!input.uri) {
-    return { error: "uri parameter is required" };
+    return { error: "UriRequired", message: "uri parameter is required" };
   }
 
   const row = await db.get(input.uri);
   if (!row) {
-    return { error: "not found" };
+    return { error: "RecordNotFound", message: "no record at that uri" };
   }
 
   return { record: row };
@@ -56,12 +56,12 @@ interface Input {
 
 export default async function handle(input: Input) {
   if (!input.uri) {
-    return { error: "uri parameter is required" };
+    return { error: "UriRequired", message: "uri parameter is required" };
   }
 
   const row = await db.get(input.uri);
   if (!row) {
-    return { error: "not found" };
+    return { error: "RecordNotFound", message: "no record at that uri" };
   }
 
   return { record: row };
@@ -74,7 +74,13 @@ export default async function handle(input: Input) {
 2. Look the record up with `db.get`. It returns an envelope, `{ uri, did, collection, rkey, cid, indexed_at, record }`, or nothing. The record body is the envelope's `record` field. In JavaScript and TypeScript, `db.get` returns a promise, so it is awaited.
 3. Return the envelope wrapped in an object.
 
-The script returns structured errors instead of throwing, so the client gets a body it can handle rather than a `500`.
+The script returns structured errors instead of throwing, so the client gets a body it can handle rather than a `500`. A returned error is a `400` only when its name is declared under `defs.main.errors` in the lexicon:
+
+```json
+"errors": [{ "name": "UriRequired" }, { "name": "RecordNotFound" }]
+```
+
+An undeclared `error` is sent as an ordinary `200` response body.
 
 ## Usage
 

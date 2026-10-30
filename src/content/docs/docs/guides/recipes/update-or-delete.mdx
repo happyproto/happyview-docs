@@ -21,10 +21,16 @@ function handle(input, ctx)
   if input.uri then
     -- Update existing
     local existing = db.get(input.uri)
-    if not existing then error("not found") end
+    if not existing then
+      return { error = "RecordNotFound", message = "no record at that uri" }
+    end
     local body = existing.record
     body.status = input.status
     return record.put(input.uri, body)
+  end
+
+  if input.delete then
+    return { error = "UriRequired", message = "a delete needs the uri of the record" }
   end
 
   -- Create new
@@ -35,10 +41,15 @@ end
 ## How it works
 
 1. If `input.delete` is truthy and `input.uri` is provided, delete the record with `record.delete`, which removes it from the caller's PDS and the local index.
-2. If only `input.uri` is provided, load the stored body with `db.get`, change its fields, and write it back with `record.put`, which calls `putRecord`.
-3. If neither condition matches, create a new record from the input with `record.create`.
+2. If only `input.uri` is provided, load the stored body with `db.get`, change its fields, and write it back with `record.put`, which calls `putRecord`. If no record exists at that URI, return a `RecordNotFound` error.
+3. If `input.delete` is set without a `uri`, return a `UriRequired` error rather than creating a record.
+4. Otherwise, create a new record from the input with `record.create`.
+
+`RecordNotFound` and `UriRequired` must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }, { "name": "UriRequired" }]`, for the response to be a 400. An undeclared error is sent as an ordinary 200 response body.
 
 ## Usage
+
+The DPoP proof is signed per request; an app built on the [HappyView SDK](/docs/reference/sdk) gets this from its session.
 
 **Create:**
 
@@ -50,7 +61,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({ status: "hello" }),
@@ -66,7 +78,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({ status: "hello" }),
@@ -81,7 +94,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({ "status": "hello" }))
     .send()
     .await?;
@@ -94,7 +108,8 @@ let response = client
 body := `{ "status": "hello" }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -124,7 +139,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -143,7 +159,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -161,7 +178,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({
         "uri": "at://did:plc:abc/xyz.statusphere.record/abc123",
         "status": "updated"
@@ -177,7 +195,8 @@ let response = client
 body := `{ "uri": "at://did:plc:abc/xyz.statusphere.record/abc123", "status": "updated" }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -207,7 +226,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -226,7 +246,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.setReco
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -244,7 +265,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({
         "uri": "at://did:plc:abc/xyz.statusphere.record/abc123",
         "delete": true
@@ -260,7 +282,8 @@ let response = client
 body := `{ "uri": "at://did:plc:abc/xyz.statusphere.record/abc123", "delete": true }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```

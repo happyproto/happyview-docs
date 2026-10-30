@@ -15,6 +15,10 @@ at:// did:plc:abcdefghijklmnop1234567890 / space / com.example.forum / main     
       └── space DID ───────────────────┘           └── space type ─┘   └── skey ─┘   └── author ──┘   └── collection ──────┘   └── rkey ────────────────┘
 ```
 
+:::note
+When a repository has moved to its author's PDS, HappyView forwards record writes to that PDS. This bridge is deprecated. A write returns `403` when HappyView holds no session for the author.
+:::
+
 ## Creating a record
 
 Requires `write` membership in the space. The rkey is auto-generated using a TID.
@@ -421,6 +425,8 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getRecord?space=at://
 | `space`      | string        | Yes      | The space containing the record |
 | `collection` | string (NSID) | Yes      | The record collection           |
 | `rkey`       | string        | Yes      | The record key                  |
+
+`getRecord` finds a record by space, collection and rkey only. If two authors use the same rkey in the same collection, the result is ambiguous.
 
 **Response:**
 
@@ -1040,7 +1046,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getLatestCommit?space
 | Field    | Type         | Description                                                    |
 | -------- | ------------ | -------------------------------------------------------------- |
 | `rev`    | string/null  | Current revision for this user's repo in the space             |
-| `commit` | object/null  | Deniable commit data (`ver`, base64url-encoded `hash`, `ikm`, `sig`, `mac`, and `rev`) |
+| `commit` | object/null  | Deniable commit data: `ver` and `rev`, plus `hash`, `ikm`, `sig` and `mac`, each a bytes object `{"$bytes": "<base64>"}` |
 
 ## Record operation log
 
@@ -1132,7 +1138,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
 | `space`  | string  | Yes      | The space URI                                  |
 | `did`    | string  | Yes      | The DID of the user whose ops to list          |
 | `limit`          | integer | No       | Max number of entries to return (default 100, max 1000) |
-| `cursor`         | string  | No       | Revision to start after (for pagination)       |
+| `cursor`         | string  | No       | Position to start after, as `{rev}:{idx}` from a previous response. A bare `rev` skips that whole revision |
 | `excludeValues`  | boolean | No       | If `true`, omit record values from response (default `false`) |
 
 **Response:**
@@ -1142,6 +1148,8 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
   "ops": [
     {
       "id": "...",
+      "space_id": "...",
+      "author_did": "did:plc:author",
       "rev": "3l2tkbx7225co",
       "idx": 0,
       "action": "create",
@@ -1150,13 +1158,24 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
       "cid": "bafyrei...",
       "prev": null,
       "value": { "text": "hello world" },
-      "createdAt": "2026-05-09T12:00:00Z"
+      "created_at": "2026-05-09T12:00:00Z"
     }
-  ]
+  ],
+  "cursor": "3l2tkbx7225co:0",
+  "commit": {
+    "ver": 1,
+    "rev": "3l2tkbx7225co",
+    "hash": { "$bytes": "..." },
+    "ikm": { "$bytes": "..." },
+    "sig": { "$bytes": "..." },
+    "mac": { "$bytes": "..." }
+  }
 }
 ```
 
-Each entry records a single write operation. The `action` is one of `create`, `update`, or `delete`. The `prev` field contains the CID of the record before the operation (for updates and deletes). The `value` field contains the record's current value (omitted for deletes or when `excludeValues=true`).
+Each entry records a single write operation. The `action` is one of `create`, `update`, or `delete`. The `prev` field contains the CID of the record before the operation (for updates and deletes). The `value` field contains the record's current value (omitted for deletes or when `excludeValues=true`). Entry fields are snake_case.
+
+`cursor` is the position of the last entry returned, as `{rev}:{idx}`; pass it back to read the next page. `commit` is the repo's current commit, so a syncer can fetch the ops and verify them in one round trip.
 
 ## Repo export
 
@@ -1254,7 +1273,7 @@ The response body is a CAR v1 file with content type `application/vnd.ipld.car`.
 
 Returns the space's writer set: every repo whose writes the space has accepted, with its current revision and LtHash digest. A repo joins the writer set when it commits to the space and passes the space's [write policy](/docs/guides/spaces/managing-spaces#policies).
 
-Syncers call this to find every repo in the space, and to catch up after missing a [write notification](/docs/guides/spaces/notifications). The caller must be a member, or present a [space credential](/docs/guides/spaces/credentials) whose audience is the space authority's DID. When `membership_public` is `true`, no authentication is needed.
+Syncers call this to find every repo in the space, and to catch up after missing a [write notification](/docs/guides/spaces/notifications). The caller must be a member, or present a [space credential](/docs/guides/spaces/credentials) whose audience is the space authority's DID.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1378,7 +1397,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepos?space=at://
 | `repos`  | array   | The repos on this page, in the order their updates were sequenced. A repo updated while paging can appear again on a later page. |
 | `cursor` | string? | The `spaceRev` of the last repo on the page. Absent when the page is empty. |
 
-Each repo carries `did`, `repoRev` (its revision as last reported to HappyView), `hash`, and `spaceRev` (the space revision of its last update). `rev` repeats `repoRev` under the alpha lexicon's name until v3.
+Each repo carries `did`, `repoRev` (its revision as last reported to HappyView), `hash`, and `spaceRev` (the space revision of its last update). `rev` repeats `repoRev` under the alpha lexicon's name. It is deprecated, still served in v3 alpha, and removal is not yet scheduled.
 
 To stay in sync, a syncer keeps the last `spaceRev` it processed and passes it as `cursor` on the next call. See [Receiving notifications](/docs/guides/spaces/notifications#receiving-notifications).
 
@@ -1473,6 +1492,109 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getBlob?space=at://di
 | `cid`   | string | Yes      | The CID of the blob      |
 
 The response body is the raw blob data with the original `Content-Type` header preserved.
+
+## Listing blobs
+
+Lists the CIDs of the blobs a repo's records reference.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch(
+  "https://happyview.example.com/xrpc/com.atproto.space.listBlobs?space=at://did:web:happyview.example.com/space/com.example.forum/main&repo=did:plc:author",
+  {
+    headers: {
+      "X-Client-Key": CLIENT_KEY,
+      "Authorization": `DPoP ${ACCESS_TOKEN}`,
+      "DPoP": DPOP_PROOF,
+    },
+  },
+);
+const data = await response.json();
+// data.cids — array of blob CIDs
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch(
+  "https://happyview.example.com/xrpc/com.atproto.space.listBlobs?space=at://did:web:happyview.example.com/space/com.example.forum/main&repo=did:plc:author",
+  {
+    headers: {
+      "X-Client-Key": CLIENT_KEY,
+      "Authorization": `DPoP ${ACCESS_TOKEN}`,
+      "DPoP": DPOP_PROOF,
+    },
+  },
+);
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let response = client
+    .get("https://happyview.example.com/xrpc/com.atproto.space.listBlobs")
+    .query(&[
+        ("space", "at://did:web:happyview.example.com/space/com.example.forum/main"),
+        ("repo", "did:plc:author"),
+    ])
+    .header("X-Client-Key", client_key)
+    .header("Authorization", format!("DPoP {}", access_token))
+    .header("DPoP", &dpop_proof)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET",
+  "https://happyview.example.com/xrpc/com.atproto.space.listBlobs?space=at://did:web:happyview.example.com/space/com.example.forum/main&repo=did:plc:author",
+  nil)
+req.Header.Set("X-Client-Key", clientKey)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl 'https://happyview.example.com/xrpc/com.atproto.space.listBlobs?space=at://did:web:happyview.example.com/space/com.example.forum/main&repo=did:plc:author' \
+  -H 'X-Client-Key: hvc_...' \
+  -H 'Authorization: DPoP <token>' \
+  -H 'DPoP: <proof>'
+```
+
+</TabItem>
+</Tabs>
+
+**Parameters:**
+
+| Field    | Type    | Required | Description                                          |
+| -------- | ------- | -------- | ---------------------------------------------------- |
+| `space`  | string  | Yes      | The space URI                                        |
+| `repo`   | string  | Yes      | The DID of the repo whose blobs to list              |
+| `limit`  | integer | No       | Max number of CIDs to return (default 500, max 1000) |
+| `cursor` | string  | No       | Cursor from a previous response                      |
+
+**Response:**
+
+```json
+{
+  "cids": ["bafkrei..."],
+  "cursor": "..."
+}
+```
+
+`cursor` is present when there are more CIDs to fetch.
 
 ## Cross-service access
 

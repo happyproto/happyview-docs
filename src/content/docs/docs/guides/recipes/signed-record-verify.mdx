@@ -15,7 +15,7 @@ local atproto = require("happyview.atproto")
 function handle(input, ctx)
   local row = db.get(input.uri)
   if not row then
-    return { error = "not found" }
+    return { error = "RecordNotFound", message = "no record at that uri" }
   end
   local record = row.record
 
@@ -29,7 +29,7 @@ function handle(input, ctx)
     )
     if not ok then
       -- We could not check. Say so — don't report it as a bad signature.
-      return { record = record, verified = nil, error = tostring(result) }
+      return { record = record, verified = nil, verifyError = tostring(result) }
     end
     verified = result
   end
@@ -40,11 +40,11 @@ end
 
 ## How it works
 
-1. Fetch the record by AT URI. The envelope's `did` is the repo the signature was bound to.
+1. Fetch the record by AT URI. The envelope's `did` is the repo the signature was bound to. If there is no record, return a `RecordNotFound` error. Declare it under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400; an undeclared one is sent as a 200.
 2. If a signature is present, rebuild the same field table that was signed and verify it with `verify_signature` on [`happyview.atproto`](/docs/reference/scripts/libraries).
 3. Return `verified = true` if the signature is valid, `false` if it's missing or doesn't match.
 
-The `pcall` matters. `verify_signature` returns `false` only when it checked and the signature didn't match; it *raises* when it couldn't check at all — `UNVERIFIABLE` for unparseable signature bytes or a missing field, `NO_SIGNER` when the instance has no key. Assigning that to `verified` would report a decode bug as a forged record.
+The `pcall` matters. `verify_signature` returns `false` only when it checked and the signature didn't match; it *raises* when it couldn't check at all — `UNVERIFIABLE` for unparseable signature bytes or a missing field, `NO_SIGNER` when the instance has no key. Assigning that to `verified` would report a decode bug as a forged record. The script reports it as `verifyError` instead, with `verified` left unset.
 
 ## Usage
 
@@ -101,7 +101,12 @@ curl "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.ex
 {
   "record": {
     "text": "Hello world",
-    "createdAt": "2026-04-30T12:00:00Z"
+    "createdAt": "2026-04-30T12:00:00Z",
+    "signature": {
+      "$type": "games.gamesgamesgamesgames.attestation",
+      "key": "did:web:happyview.example.com#attestation",
+      "signature": { "$bytes": "..." }
+    }
   },
   "verified": true
 }

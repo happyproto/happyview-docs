@@ -40,6 +40,8 @@ end
 
 ## Usage
 
+The DPoP proof is signed per request; an app built on the [HappyView SDK](/docs/reference/sdk) gets this from its session.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -48,7 +50,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.createP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -68,7 +71,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.createP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -87,7 +91,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.createPost")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({
         "text": "Hello world",
         "lang": "en",
@@ -104,7 +109,8 @@ let response = client
 body := `{ "text": "Hello world", "lang": "en", "source": "web" }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.createPost", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```

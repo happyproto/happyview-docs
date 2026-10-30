@@ -15,12 +15,12 @@ local record = require("happyview.record")
 
 function handle(input, ctx)
   if not input.uri then
-    return { error = "uri is required" }
+    return { error = "UriRequired", message = "uri is required" }
   end
 
   local row = db.get(input.uri)
   if not row then
-    return { error = "not found" }
+    return { error = "RecordNotFound", message = "no record at that uri" }
   end
   local r = row.record
 
@@ -28,8 +28,8 @@ function handle(input, ctx)
   r.likeCount = (r.likeCount or 0) + 1
 
   -- Merge tags, deduplicating and capping at 10
-  r.tags = r.tags or {}
   if input.tags then
+    r.tags = r.tags or {}
     for _, tag in ipairs(input.tags) do
       local found = false
       for _, t in ipairs(r.tags) do
@@ -63,15 +63,17 @@ end
 
 ## How it works
 
-1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, a plain table you can change in place.
+1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, a plain table you can change in place. A missing `uri` or record returns a structured error. `UriRequired` and `RecordNotFound` must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400; an undeclared one is sent as a 200.
 2. Apply transformations directly on the body's fields:
    - **Increment a counter**: use `or 0` to handle the field being `nil` on first access.
-   - **Merge tags**: iterate over `input.tags`, skip duplicates already in `r.tags`, append new ones, then trim the list to 10.
+   - **Merge tags**: iterate over `input.tags`, skip duplicates already in `r.tags`, append new ones, then trim the list to 10. `r.tags` is created only when the request sends `tags`, because an empty Lua table is written as a JSON object, not an array.
    - **Normalize a string**: use `string.gsub` to trim whitespace.
    - **Set a timestamp**: [`time.to_iso8601(time.now())`](/docs/reference/scripts/built-in-modules#internaltime) for UTC ISO 8601.
 3. Write the body back with `record.put`, which calls `putRecord` to update the record on the user's PDS.
 
 ## Usage
+
+The DPoP proof is signed per request; an app built on the [HappyView SDK](/docs/reference/sdk) gets this from its session.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -81,7 +83,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.updateP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -101,7 +104,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.statusphere.updateP
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -120,7 +124,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.statusphere.updatePost")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({
         "uri": "at://did:plc:abc/xyz.statusphere.post/abc123",
         "tags": ["tutorial", "atproto"],
@@ -141,7 +146,8 @@ body := `{
 }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.updatePost", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```

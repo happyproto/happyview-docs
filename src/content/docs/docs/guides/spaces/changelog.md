@@ -2,6 +2,20 @@
 title: "Changelog"
 ---
 
+## v2.17 and v3 alpha: Space moderation and access checks
+
+### Admin endpoints
+
+- **Operators can moderate spaces** through admin endpoints under `/admin/spaces`. See [Admin spaces](/docs/reference/admin/spaces).
+
+### Access changes
+
+- **`getSpace` is restricted** to the space's creator, an operator with superadmin, or a caller presenting a [space credential](/docs/guides/spaces/credentials).
+- **`listRepos` requires a member or a space credential.**
+- **`listMembers` is restricted to the space's creator and operators with superadmin.** See [Listing members](/docs/guides/spaces/members#listing-members).
+
+---
+
 ## v2.16 — Space Authority, Signed Credentials, and Sync
 
 Aligns credentials and sync with the latest [Proposal 0016](https://github.com/bluesky-social/proposals/blob/main/0016-permissioned-data/README.md) updates.
@@ -36,14 +50,16 @@ Aligns credentials and sync with the latest [Proposal 0016](https://github.com/b
 ### Sync
 
 - **`registerNotify` takes a service identifier.** `{space, service}`, where `service` is a DID with an optional fragment, resolved to its endpoint. Returns `{expiresAt}`. Unresolvable identifiers fail with `ServiceNotResolvable`. Registering again replaces the previous registration.
-- **Outbound `notifyWrite` calls.** Registered services receive `com.atproto.space.notifyWrite` once per commit, with service auth from HappyView and `{space, repo, repoRev, hash, spaceRev, prevSpaceRev?}`. `rev` repeats `repoRev` until v3.
-- **Inbound `notifyWrite` from repo hosts.** HappyView accepts `{space, repo, repoRev, hash}` with service auth signed by the writing account, and `rev` in place of `repoRev` until v3. The writer must pass the write policy. Stale revisions are ignored, and revisions more than 5 minutes in the future fail with `FutureRev`.
+- **Outbound `notifyWrite` calls.** Registered services receive `com.atproto.space.notifyWrite` once per commit, with service auth from HappyView and `{space, repo, repoRev, hash, spaceRev, prevSpaceRev?}`. `rev` repeats `repoRev`. It is deprecated, still sent in v3 alpha, and removal is not yet scheduled.
+- **Inbound `notifyWrite` from repo hosts.** HappyView accepts `{space, repo, repoRev, hash}` with service auth signed by the writing account, and `rev` in place of `repoRev` (deprecated; still accepted in v3 alpha, and removal is not yet scheduled). The writer must pass the write policy. Stale revisions are ignored, and revisions more than 5 minutes in the future fail with `FutureRev`.
 - **Space-wide revision.** Every accepted repo update advances a space revision.
 - **`listRepos` serves the writer set.** Returns `{repos: [{did, repoRev, hash, spaceRev}], cursor?}` in space revision order, with `limit` (default 100, max 1000). `cursor` is a space revision: pass the last one processed to list only repos updated after it.
 - **Fallback sweep.** HappyView re-syncs repos hosted on their authors' PDSes every 5 minutes.
 - **Service auth `lxm` is enforced.** Inbound tokens bound to a different method are rejected.
 
-### Backward compatibility (until v3)
+### Backward compatibility
+
+Deprecated. These forms are still served in v3 alpha; removal is not yet scheduled.
 
 - `createSpace` and `updateSpace` accept a single `policy` or `mintPolicy` (`public`, `member-list`, `managing-app`) with a sibling `managingApp` or `managingAppDid`, applied to both reads and writes when `readPolicy` and `writePolicy` are absent.
 - `appAccess` accepts `{"type": "open"}` and `{"type": "allowList", "allowed": [...]}`.
@@ -52,7 +68,7 @@ Aligns credentials and sync with the latest [Proposal 0016](https://github.com/b
 
 ### Request field renames
 
-- **`spaceType` replaces `type`** in `simplespace.createSpace` and as a new `listSpaces` filter. `type` is accepted in both until v3.
+- **`spaceType` replaces `type`** in `simplespace.createSpace` and as a new `listSpaces` filter. `type` is still accepted in both. It is deprecated, still served in v3 alpha, and removal is not yet scheduled.
 
 ### Credential and notification errors
 
@@ -62,18 +78,36 @@ Aligns credentials and sync with the latest [Proposal 0016](https://github.com/b
 
 ### Deprecated
 
-- **`config.records_public`.** It has never been enforced: setting it did not change who could read a space. Use a `public` `readPolicy` for a space anyone may read. It is still accepted and stored until v3.
+- **`config.records_public`.** It has never been enforced: setting it did not change who could read a space. Use a `public` `readPolicy` for a space anyone may read. It is still accepted and stored in v3 alpha; removal is not yet scheduled.
 
 ### Lua
 
 - **`space:put_member{did, read, write, is_delegation?}`** sets a member's flags and returns `{did, read, write}`.
 - **`space:members()`** entries include `read` and `write` booleans beside `access`.
 
+In v3, scripts use `require("happyview.spaces")` instead. Its space handle sets a member with `set_member{ did, access, is_delegation }`.
+
 ### Breaking changes
 
 - Credential clients must sign requests and use the `Atproto-Space` scheme.
 - Apps must request `space:` scopes naming HappyView's DID as the authority.
-- Syncers must accept `notifyWrite` calls in place of webhook payloads, or keep a legacy registration until v3.
+- Syncers must accept `notifyWrite` calls in place of webhook payloads, or keep a legacy registration. Legacy registrations are deprecated. They are still served in v3 alpha; removal is not yet scheduled.
+
+---
+
+## v2.15: Repositories on authors' PDSes
+
+### Removed
+
+- **`com.atproto.simplespace.getConfig` and `com.atproto.simplespace.updateConfig`.** Both were added in v2.10.0.
+
+### PDS migration
+
+- **A space repository can move to its author's PDS.** Migration is behind the `feature.spaces_pds_migration` flag, and starts when the author logs in with a `space:` scope.
+- **Dashboard login drops `space:` scopes** when the account's PDS does not support spaces.
+- **`GET /admin/spaces/migration-status`** reports migration progress to operators. See [Space migration status](/docs/reference/admin/spaces#space-migration-status).
+- **`community.lexicon.service.describe`** is served.
+- **Writes are forwarded** to repositories that have moved to their authors' PDSes.
 
 ---
 
@@ -110,7 +144,7 @@ Major restructuring to align with [atproto Proposal 0016](https://github.com/blu
 
 - **Protocol routes** now live under `com.atproto.space.*` (queries, data, credentials)
 - **Management routes** now live under `com.atproto.simplespace.*` (create/update/delete spaces, membership, config)
-- **`dev.happyview.space.*`** endpoints remain as backward-compatible aliases until v3
+- **`dev.happyview.space.*`** endpoints remain as backward-compatible aliases. Deprecated. Still served in v3 alpha; removal is not yet scheduled.
 - Invite endpoints remain under `dev.happyview.space.*` as HappyView extensions
 
 ### New terminology

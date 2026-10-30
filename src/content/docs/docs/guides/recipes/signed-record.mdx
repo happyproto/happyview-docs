@@ -15,24 +15,29 @@ local atproto = require("happyview.atproto")
 
 function handle(input, ctx)
   local body = { text = input.text, createdAt = time.to_iso8601(time.now()) }
-  local ref = record.create(ctx.collection, body)
 
   local ok, sig = pcall(atproto.sign, body)
-  if not ok then
-    sig = nil
+  if ok then
+    body.signature = sig
   end
 
-  return { uri = ref.uri, cid = ref.cid, signature = sig }
+  local ref = record.create(ctx.collection, body)
+  return { uri = ref.uri, cid = ref.cid, signature = body.signature }
 end
 ```
 
 ## How it works
 
-1. Create and save the record.
-2. Sign the same fields with `sign` on [`happyview.atproto`](/docs/reference/scripts/libraries). The `pcall` lets the script work without a signer configured, where `sign` raises `NO_SIGNER`.
-3. Return the signature alongside the URI.
+1. Build the record body.
+2. Sign it with `sign` on [`happyview.atproto`](/docs/reference/scripts/libraries). The `pcall` lets the script work without a signer configured, where `sign` raises `NO_SIGNER`. Signing also needs a caller: it fails when no account is signed in.
+3. Attach the signature to the body as `body.signature`, then save the record with `record.create`. The record lexicon must allow a `signature` field, or the write is refused.
+4. Return the signature alongside the URI.
+
+The signature's `$type` defaults to `games.gamesgamesgamesgames.attestation`. Set `ATTESTATION_SIG_TYPE` to use another type.
 
 ## Usage
+
+The DPoP proof is signed per request; an app built on the [HappyView SDK](/docs/reference/sdk) gets this from its session.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -42,7 +47,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.example.createPost"
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({ text: "Hello world" }),
@@ -58,7 +64,8 @@ const response = await fetch("http://127.0.0.1:3000/xrpc/xyz.example.createPost"
   method: "POST",
   headers: {
     "X-Client-Key": CLIENT_KEY,
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `DPoP ${ACCESS_TOKEN}`,
+    DPoP: DPOP_PROOF,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({ text: "Hello world" }),
@@ -73,7 +80,8 @@ const data = await response.json();
 let response = client
     .post("http://127.0.0.1:3000/xrpc/xyz.example.createPost")
     .header("X-Client-Key", client_key)
-    .header("Authorization", format!("Bearer {}", token))
+    .header("Authorization", format!("DPoP {access_token}"))
+    .header("DPoP", dpop_proof)
     .json(&serde_json::json!({ "text": "Hello world" }))
     .send()
     .await?;
@@ -86,7 +94,8 @@ let response = client
 body := `{ "text": "Hello world" }`
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.example.createPost", bytes.NewBufferString(body))
 req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Authorization", "DPoP "+accessToken)
+req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -111,7 +120,7 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.example.createPost \
   "uri": "at://did:plc:abc/xyz.example.post/3abc123",
   "cid": "bafyrei...",
   "signature": {
-    "$type": "your.app.attestation",
+    "$type": "games.gamesgamesgamesgames.attestation",
     "key": "did:web:happyview.example.com#attestation",
     "signature": { "$bytes": "..." }
   }
