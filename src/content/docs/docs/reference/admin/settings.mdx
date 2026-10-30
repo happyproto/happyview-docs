@@ -104,7 +104,15 @@ curl http://127.0.0.1:3000/admin/settings -H "$AUTH"
 </TabItem>
 </Tabs>
 
-Returns all key/value pairs stored in the `happyview_instance_settings` table, plus any env-var fallback values for keys not stored in the database. Each entry includes a `source` field: `"database"` for stored values, `"env"` for env-var fallbacks, and `"project"` for values from the project's `happyview.toml`.
+**Response**: `200 OK`
+
+```json
+[
+  { "key": "app_name", "value": "My HappyView", "source": "database" }
+]
+```
+
+Stored values come first, sorted by key. They are followed by values from the environment or `happyview.toml` for keys with no stored value. `source` is `database`, `env` or `project`.
 
 ### Known settings
 
@@ -121,6 +129,10 @@ Returns all key/value pairs stored in the `happyview_instance_settings` table, p
 | `backfill_retention_days` | `BACKFILL_RETENTION_DAYS` | `28` | Days to keep per-repo detail data from completed backfill jobs. `0` = keep indefinitely |
 | `verbose_event_logging` | `VERBOSE_EVENT_LOGGING` | `false` | Log every record index, record skip, and successful script run (record, label, and XRPC) to the event log. High write volume — recommended only for debugging |
 | `feature.spaces_enabled` | `FEATURE_SPACES_ENABLED` | --- | Enables the experimental Permissioned Spaces API. When `"true"`, space endpoints are available. When absent or any other value, space endpoints return `404 FeatureDisabled` |
+| `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` | `30` | Days to keep event log entries |
+| `script_instruction_limit` | `SCRIPT_INSTRUCTION_LIMIT` | `1000000` | Instruction budget for a script run. `PUT` refuses a value outside 1000 to 1000000000 with `400 Bad Request` |
+| `script_wall_clock_seconds` | `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Wall-clock limit for a request's script run, in seconds. `PUT` refuses a value outside 1 to 300 with `400 Bad Request` |
+| `cookie_integration_origins` | `COOKIE_INTEGRATION_ORIGINS` | --- | Origins allowed to use the dashboard's session cookie. `PUT` validates the list and answers `400 Bad Request` on a bad origin |
 
 ## Upsert a setting
 
@@ -192,13 +204,17 @@ curl -X PUT http://127.0.0.1:3000/admin/settings/app_name \
 </TabItem>
 </Tabs>
 
+The body is `{ "value": "..." }`. The value is always a string, so send `"true"`, not `true`.
+
+**Response**: `204 No Content`. `400 Bad Request` when a script limit is out of range or `cookie_integration_origins` is invalid.
+
 ## Delete a setting
 
 ```
 DELETE /admin/settings/{key}
 ```
 
-Removes the override; the corresponding environment variable (if any) takes effect again.
+Removes the override; the corresponding environment variable (if any) takes effect again. Returns `404 Not Found` if no value is stored for that key.
 
 ## Database info
 
@@ -245,4 +261,6 @@ PUT /admin/settings/logo
 DELETE /admin/settings/logo
 ```
 
-`PUT` accepts a binary image body and stores it as the instance logo (served via the public dashboard). `DELETE` removes the stored logo.
+`PUT` takes a `multipart/form-data` body whose first part is the image, and stores it as the instance logo (served via the public dashboard). The part's content type must be `image/*` and it must be at most 5 MB, otherwise the request is refused with `400 Bad Request`. `DELETE` removes the stored logo.
+
+**Response**: `204 No Content` for both.

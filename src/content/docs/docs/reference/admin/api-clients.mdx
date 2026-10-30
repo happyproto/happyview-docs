@@ -63,6 +63,10 @@ GET /admin/api-clients
 
 Requires `api-clients:view`. Returns clients ordered by `created_at` descending. Secrets are never returned.
 
+| Param       | Type   | Required | Description                                                  |
+| ----------- | ------ | -------- | ------------------------------------------------------------ |
+| `parent_id` | string | no       | Only clients whose `parent_client_id` is this id (query param) |
+
 The list includes `builtin-hpy`, the public client hpy signs in with (`client_key` `hvc_hpy`). HappyView writes it at every boot, and updating it, deleting it, or provisioning or rotating an authentication key for it answers `409 Conflict`.
 
 <Tabs syncKey="lang">
@@ -77,12 +81,16 @@ interface ApiClient {
   client_uri: string;
   redirect_uris: string[];
   scopes: string;
-  rate_limit_capacity: number;
-  rate_limit_refill_rate: number;
+  client_type: "confidential" | "public";
+  allowed_origins: string[] | null;
+  rate_limit_capacity: number | null;
+  rate_limit_refill_rate: number | null;
   is_active: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
+  parent_client_id: string | null;
+  owner_did: string | null;
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/api-clients", {
@@ -138,13 +146,15 @@ curl http://127.0.0.1:3000/admin/api-clients -H "$AUTH"
 ```json
 [
   {
-    "id": "01J9...",
+    "id": "7c9e6679-7425-40de-944b-e07fc1f0d4c7",
     "client_key": "hvc_a1b2c3...",
     "name": "My Game Client",
     "client_id_url": "https://example.com/client-metadata.json",
     "client_uri": "https://example.com",
     "redirect_uris": ["https://example.com/callback"],
     "scopes": "atproto",
+    "client_type": "confidential",
+    "allowed_origins": null,
     "rate_limit_capacity": 200,
     "rate_limit_refill_rate": 5.0,
     "is_active": true,
@@ -163,7 +173,7 @@ curl http://127.0.0.1:3000/admin/api-clients -H "$AUTH"
 POST /admin/api-clients
 ```
 
-Requires `api-clients:create`. Generates a `client_key` and `client_secret`. Store the secret — it won't be shown again.
+Requires `api-clients:create`. Generates a `client_key`, and a `client_secret` for a confidential client. Store the secret — it won't be shown again.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -172,9 +182,11 @@ Requires `api-clients:create`. Generates a `client_key` and `client_secret`. Sto
 interface ApiClient {
   id: string;
   client_key: string;
-  client_secret: string;
+  // Omitted for a public client.
+  client_secret?: string;
   name: string;
   client_id_url: string;
+  client_type: "confidential" | "public";
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/api-clients", {
@@ -287,18 +299,23 @@ curl -X POST http://127.0.0.1:3000/admin/api-clients \
 | `client_uri`             | string   | yes      | The client's home/landing URL                                                          |
 | `redirect_uris`          | string[] | yes      | Allowed OAuth redirect URIs                                                            |
 | `scopes`                 | string   | no       | Space-separated OAuth scopes (default `"atproto"`)                                     |
-| `rate_limit_capacity`    | integer  | no       | Per-client token bucket capacity. Falls back to `DEFAULT_RATE_LIMIT_CAPACITY` if unset |
-| `rate_limit_refill_rate` | number   | no       | Tokens added per second. Falls back to `DEFAULT_RATE_LIMIT_REFILL_RATE` if unset       |
+| `client_type`            | string   | no       | `"confidential"` (default) issues a `client_secret`; `"public"` issues none            |
+| `allowed_origins`        | string[] | no       | Browser origins allowed for this client                                                |
+| `rate_limit_capacity`    | integer  | no       | Per-client token bucket capacity. Falls back to `DEFAULT_RATE_LIMIT_CAPACITY` if unset. Applies only when both rate-limit fields are given |
+| `rate_limit_refill_rate` | number   | no       | Tokens added per second. Falls back to `DEFAULT_RATE_LIMIT_REFILL_RATE` if unset. Applies only when both rate-limit fields are given |
 
-**Response**: `201 Created`
+Returns `409 Conflict` if `client_id_url` is a registered domain's OAuth client.
+
+**Response**: `201 Created`. `client_secret` is omitted for a public client.
 
 ```json
 {
-  "id": "01J9...",
+  "id": "7c9e6679-7425-40de-944b-e07fc1f0d4c7",
   "client_key": "hvc_a1b2c3...",
   "client_secret": "hvs_d4e5f6...",
   "name": "My Game Client",
-  "client_id_url": "https://example.com/client-metadata.json"
+  "client_id_url": "https://example.com/client-metadata.json",
+  "client_type": "confidential"
 }
 ```
 
@@ -324,7 +341,7 @@ Requires `api-clients:edit`. All fields are optional — only provided fields ar
 <TabItem label="TypeScript">
 
 ```ts
-await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
+await fetch("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", {
   method: "PUT",
   headers: {
     ...headers,
@@ -341,7 +358,7 @@ await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
 <TabItem label="JavaScript">
 
 ```js
-await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
+await fetch("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", {
   method: "PUT",
   headers: {
     ...headers,
@@ -359,7 +376,7 @@ await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
 
 ```rust
 client
-    .put("http://127.0.0.1:3000/admin/api-clients/01J9...")
+    .put("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7")
     .bearer_auth(token)
     .json(&serde_json::json!({
         "name": "Renamed Client",
@@ -377,7 +394,7 @@ body := bytes.NewBufferString(`{
   "name": "Renamed Client",
   "rate_limit_capacity": 500
 }`)
-req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/api-clients/01J9...", body)
+req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
@@ -387,7 +404,7 @@ resp, err := http.DefaultClient.Do(req)
 <TabItem label="cURL">
 
 ```sh
-curl -X PUT http://127.0.0.1:3000/admin/api-clients/01J9... \
+curl -X PUT http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7 \
   -H "$AUTH" \
   -H "Content-Type: application/json" \
   -d '{
@@ -405,8 +422,9 @@ curl -X PUT http://127.0.0.1:3000/admin/api-clients/01J9... \
 | `client_uri`             | string   | New home URL                                                           |
 | `redirect_uris`          | string[] | Replace the allowed redirect URIs                                      |
 | `scopes`                 | string   | Replace the OAuth scopes                                               |
-| `rate_limit_capacity`    | integer  | New bucket capacity. Pass `null` to clear the override                 |
-| `rate_limit_refill_rate` | number   | New refill rate. Pass `null` to clear the override                     |
+| `allowed_origins`        | string[] | Replace the allowed browser origins. `null` leaves them unchanged      |
+| `rate_limit_capacity`    | integer  | New bucket capacity. `null` leaves the value unchanged; an override can't currently be cleared |
+| `rate_limit_refill_rate` | number   | New refill rate. `null` leaves the value unchanged; an override can't currently be cleared     |
 | `is_active`              | boolean  | Disable (`false`) or re-enable (`true`) the client without deleting it |
 
 **Response**: `204 No Content`
@@ -419,13 +437,13 @@ The OAuth registry is updated in place. The `client_id_url` is immutable — to 
 DELETE /admin/api-clients/{id}
 ```
 
-Requires `api-clients:delete`. Removes the client from the OAuth registry, the rate limiter, and the client identity store.
+Requires `api-clients:delete`. Removes the client from the OAuth registry, the rate limiter, and the client identity store. It also revokes the client's authentication keys and deletes its child clients. Returns `404 Not Found` if the client doesn't exist.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
 ```ts
-await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
+await fetch("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", {
   method: "DELETE",
   headers,
 });
@@ -435,7 +453,7 @@ await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
 <TabItem label="JavaScript">
 
 ```js
-await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
+await fetch("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", {
   method: "DELETE",
   headers,
 });
@@ -446,7 +464,7 @@ await fetch("http://127.0.0.1:3000/admin/api-clients/01J9...", {
 
 ```rust
 client
-    .delete("http://127.0.0.1:3000/admin/api-clients/01J9...")
+    .delete("http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7")
     .bearer_auth(token)
     .send()
     .await?;
@@ -456,7 +474,7 @@ client
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/api-clients/01J9...", nil)
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -465,7 +483,7 @@ resp, err := http.DefaultClient.Do(req)
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/api-clients/01J9... -H "$AUTH"
+curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7 -H "$AUTH"
 ```
 
 </TabItem>
@@ -493,13 +511,20 @@ Requires `api-clients:edit`. Generates an ES256 keypair for this client. Idempot
 <TabItem label="cURL">
 
 ```sh
-curl -X POST http://127.0.0.1:3000/admin/api-clients/01J9.../auth-key -H "$AUTH"
+curl -X POST http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7/auth-key -H "$AUTH"
 ```
 
 </TabItem>
 </Tabs>
 
 **Response**: `200 OK` with the key's `kid` and the `jwks_uri` to publish.
+
+```json
+{
+  "kid": "f0c3...",
+  "jwks_uri": "https://<instance>/oauth/clients/<id>/jwks.json"
+}
+```
 
 ### Get the current key
 
@@ -509,13 +534,20 @@ GET /admin/api-clients/{id}/auth-key
 
 Requires `api-clients:view`. Returns the `current` key's `kid` and the `jwks_uri` to publish, or `404` if the client has no key.
 
+```json
+{
+  "kid": "f0c3...",
+  "jwks_uri": "https://<instance>/oauth/clients/<id>/jwks.json"
+}
+```
+
 ### List every key
 
 ```
 GET /admin/api-clients/{id}/auth-keys
 ```
 
-Requires `api-clients:view`. Every key the client holds, ordered `current`, then `retiring`, then `revoked`, each with a live `session_count`.
+Requires `api-clients:view`. Every key the client holds, ordered `pending`, `current`, `retiring`, then `revoked`, each with a live `session_count` and an `activates_at` (when a pending key becomes current, otherwise `null`).
 
 Distinct from `GET .../auth-key`, which reports only the current key. An operator revoking a leaked key needs to see the **retiring** one and how many sessions revoking it will destroy. Revoked keys are listed so a revoke is visibly done.
 
@@ -523,7 +555,7 @@ Distinct from `GET .../auth-key`, which reports only the current key. An operato
 <TabItem label="cURL">
 
 ```sh
-curl http://127.0.0.1:3000/admin/api-clients/01J9.../auth-keys -H "$AUTH"
+curl http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7/auth-keys -H "$AUTH"
 ```
 
 </TabItem>
@@ -532,10 +564,10 @@ curl http://127.0.0.1:3000/admin/api-clients/01J9.../auth-keys -H "$AUTH"
 ```json
 {
   "keys": [
-    { "kid": "f0c3...", "status": "current",  "created_at": "...", "session_count": 12 },
-    { "kid": "8b41...", "status": "retiring", "created_at": "...", "session_count": 3 }
+    { "kid": "f0c3...", "status": "current",  "created_at": "...", "activates_at": null, "session_count": 12 },
+    { "kid": "8b41...", "status": "retiring", "created_at": "...", "activates_at": null, "session_count": 3 }
   ],
-  "jwks_uri": "https://happyview.example.com/oauth/clients/01J9.../jwks.json"
+  "jwks_uri": "https://happyview.example.com/oauth/clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7/jwks.json"
 }
 ```
 
@@ -547,13 +579,36 @@ POST /admin/api-clients/{id}/auth-key/recheck
 
 Requires `api-clients:edit`. Re-fetches the client's published metadata and reports whether HappyView can act as a confidential client for it, with the reason if not.
 
+```json
+{
+  "confidential": false,
+  "reason": "...",
+  "checked_at": "2026-08-29T10:14:02+00:00"
+}
+```
+
 ### Rotate the key
 
 ```
 POST /admin/api-clients/{id}/auth-key/rotate
 ```
 
-Requires `api-clients:edit`. Mints a new `current` key and demotes the previous one to `retiring`. **Nothing is logged out**: a retiring key stays in the published JWKS and keeps signing refreshes for the sessions established with it.
+Requires `api-clients:edit`. Mints a new key, staged the same way as the [instance key](/docs/reference/admin/oauth-keys#rotate-the-key). By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating while a key is pending returns that pending key. **Nothing is logged out**: a retiring key stays in the published JWKS and keeps signing refreshes for the sessions established with it.
+
+| Field       | Type    | Required | Description                                          |
+| ----------- | ------- | -------- | ---------------------------------------------------- |
+| `immediate` | boolean | no       | Make the new key `current` at once. Default `false`  |
+
+```json
+{
+  "kid": "f0c3...",
+  "status": "pending",
+  "activates_at": "2026-08-29T11:29:02+00:00",
+  "orphaned_sessions": 0
+}
+```
+
+`status` is `pending` or `current`. `activates_at` is `null` when `status` is `current`.
 
 ### Revoke a key
 
@@ -563,7 +618,7 @@ DELETE /admin/api-clients/{id}/auth-key/{kid}
 
 Requires `api-clients:edit`. Removes the key from the published JWKS immediately and strands every session pinned to it — those users must re-authenticate.
 
-This is the response to a **leaked or compromised key**, not routine cleanup. Rotation alone is not containment: the rotated-out key remains published and valid, which is precisely what keeps existing sessions working. A retiring key with no remaining sessions is swept automatically.
+This is the response to a **leaked or compromised key**, not routine cleanup. Rotation alone is not containment: the rotated-out key remains published and valid, which is precisely what keeps existing sessions working. A retiring key with no remaining sessions is revoked automatically.
 
 | Status | Meaning |
 | ------ | ------- |
@@ -574,7 +629,7 @@ This is the response to a **leaked or compromised key**, not routine cleanup. Ro
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/api-clients/01J9.../auth-key/$KID -H "$AUTH"
+curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7/auth-key/$KID -H "$AUTH"
 ```
 
 </TabItem>
@@ -602,7 +657,7 @@ Returns `400` if the client already holds no key.
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/api-clients/01J9.../auth-keys -H "$AUTH"
+curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e07fc1f0d4c7/auth-keys -H "$AUTH"
 ```
 
 </TabItem>
@@ -614,7 +669,7 @@ curl -X DELETE http://127.0.0.1:3000/admin/api-clients/01J9.../auth-keys -H "$AU
 
 ### Responding to a leaked client key
 
-1. `POST .../auth-key/rotate` — the leaked key becomes `retiring`, a fresh key takes over, and the client keeps working.
+1. `POST .../auth-key/rotate` with `{ "immediate": true }` — the leaked key becomes `retiring`, a fresh key takes over, and the client keeps working.
 2. `GET .../auth-keys` — confirm it is now `retiring` and note its `session_count`, which is how many users step 3 signs out.
 3. `DELETE .../auth-key/{kid}` on the leaked key.
 

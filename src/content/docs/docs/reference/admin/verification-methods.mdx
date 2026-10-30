@@ -213,6 +213,8 @@ curl -X POST http://127.0.0.1:3000/admin/verification-methods \
 | ------------- | ------ | -------- | --------------------------------------------------------------------------------- |
 | `fragment_id` | string | yes      | DID document fragment identifier, must start with `#` followed by alphanumerics or underscores |
 
+Returns `400 Bad Request` for a malformed `fragment_id`: it must start with `#`, followed only by letters, digits and underscores. Returns `500 Internal Server Error` if `TOKEN_ENCRYPTION_KEY` isn't set.
+
 **Response**: `201 Created`
 
 ```json
@@ -238,7 +240,7 @@ Requires `settings:manage` permission.
 
 ```ts
 const response = await fetch(
-  "http://127.0.0.1:3000/admin/verification-methods/attestation",
+  "http://127.0.0.1:3000/admin/verification-methods/%23attestation",
   { method: "DELETE", headers },
 );
 ```
@@ -248,7 +250,7 @@ const response = await fetch(
 
 ```js
 const response = await fetch(
-  "http://127.0.0.1:3000/admin/verification-methods/attestation",
+  "http://127.0.0.1:3000/admin/verification-methods/%23attestation",
   { method: "DELETE", headers },
 );
 ```
@@ -258,7 +260,7 @@ const response = await fetch(
 
 ```rust
 client
-    .delete("http://127.0.0.1:3000/admin/verification-methods/attestation")
+    .delete("http://127.0.0.1:3000/admin/verification-methods/%23attestation")
     .bearer_auth(token)
     .send()
     .await?;
@@ -269,7 +271,7 @@ client
 
 ```go
 req, _ := http.NewRequest("DELETE",
-  "http://127.0.0.1:3000/admin/verification-methods/attestation", nil)
+  "http://127.0.0.1:3000/admin/verification-methods/%23attestation", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -278,13 +280,13 @@ resp, err := http.DefaultClient.Do(req)
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/verification-methods/attestation \
+curl -X DELETE http://127.0.0.1:3000/admin/verification-methods/%23attestation \
   -H "$AUTH"
 ```
 
 </TabItem>
 </Tabs>
 
-The `fragment_id` path parameter is the identifier without the leading `#` (e.g. `attestation` for `#attestation`).
+The `fragment_id` path parameter is the full fragment including the `#`, URL-encoded as `%23` (e.g. `%23attestation` for `#attestation`). Sending it without the `#` answers `404 Not Found`.
 
 **Response**: `204 No Content`. Returns `404 Not Found` if no method with that fragment ID exists.

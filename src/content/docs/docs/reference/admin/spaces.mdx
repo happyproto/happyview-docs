@@ -66,11 +66,11 @@ curl "http://127.0.0.1:3000/admin/spaces?limit=20" -H "$AUTH"
       "updated_at": "2026-01-01T00:00:00Z"
     }
   ],
-  "cursor": "20"
+  "cursor": "50"
 }
 ```
 
-`cursor` is omitted when there are no more results.
+`cursor` is an offset. It is returned whenever a page is full, so the last page can be empty. `revision` is `null` until the space's first commit.
 
 ## Get a space
 

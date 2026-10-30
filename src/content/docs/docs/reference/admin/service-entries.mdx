@@ -61,7 +61,7 @@ interface ServiceEntry {
   id: number;
   fragment_id: string;
   service_type: string;
-  access_mode: string;
+  access_mode: "all" | "specific";
   created_at: string;
   updated_at: string;
 }
@@ -213,12 +213,23 @@ curl -X POST http://127.0.0.1:3000/admin/service-entries \
 
 | Field          | Type   | Required | Description                                                 |
 | -------------- | ------ | -------- | ----------------------------------------------------------- |
-| `fragment_id`  | string | yes      | DID document fragment (e.g. `#feed`, `#happyview`)          |
+| `fragment_id`  | string | yes      | DID document fragment (e.g. `#feed`, `#happyview`). Must be unique |
 | `service_type` | string | yes      | atproto service type (e.g. `BskyFeedGenerator`)         |
 
-The entry is created with `access_mode` set to `all`. The endpoint URL is derived from `PUBLIC_URL`.
+The entry is created with `access_mode` set to `all`. The endpoint URL is derived from `PUBLIC_URL`. A duplicate `fragment_id` currently fails with `500 Internal Server Error`.
 
-**Response**: `201 Created`
+**Response**: `201 Created`, with the created entry
+
+```json
+{
+  "id": 2,
+  "fragment_id": "#feed",
+  "service_type": "BskyFeedGenerator",
+  "access_mode": "all",
+  "created_at": "2026-05-09T12:00:00Z",
+  "updated_at": "2026-05-09T12:00:00Z"
+}
+```
 
 ## Update a service entry
 
@@ -238,7 +249,7 @@ await fetch("http://127.0.0.1:3000/admin/service-entries/1", {
   },
   body: JSON.stringify({
     service_type: "AtprotoLabeler",
-    access_mode: "allowlist",
+    access_mode: "specific",
   }),
 });
 ```
@@ -255,7 +266,7 @@ await fetch("http://127.0.0.1:3000/admin/service-entries/1", {
   },
   body: JSON.stringify({
     service_type: "AtprotoLabeler",
-    access_mode: "allowlist",
+    access_mode: "specific",
   }),
 });
 ```
@@ -269,7 +280,7 @@ client
     .bearer_auth(token)
     .json(&serde_json::json!({
         "service_type": "AtprotoLabeler",
-        "access_mode": "allowlist"
+        "access_mode": "specific"
     }))
     .send()
     .await?;
@@ -279,7 +290,7 @@ client
 <TabItem label="Go">
 
 ```go
-body := bytes.NewBufferString(`{"service_type": "AtprotoLabeler", "access_mode": "allowlist"}`)
+body := bytes.NewBufferString(`{"service_type": "AtprotoLabeler", "access_mode": "specific"}`)
 req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/service-entries/1", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
@@ -293,7 +304,7 @@ resp, err := http.DefaultClient.Do(req)
 curl -X PUT http://127.0.0.1:3000/admin/service-entries/1 \
   -H "$AUTH" \
   -H "Content-Type: application/json" \
-  -d '{ "service_type": "AtprotoLabeler", "access_mode": "allowlist" }'
+  -d '{ "service_type": "AtprotoLabeler", "access_mode": "specific" }'
 ```
 
 </TabItem>
@@ -303,9 +314,9 @@ curl -X PUT http://127.0.0.1:3000/admin/service-entries/1 \
 | -------------- | ------ | -------- | -------------------------------------------------- |
 | `fragment_id`  | string | no       | Updated DID document fragment                      |
 | `service_type` | string | no       | Updated service type                               |
-| `access_mode`  | string | no       | `all`, `allowlist`, or `disabled`                  |
+| `access_mode`  | string | no       | `all`, or `specific` (only the XRPCs bound to this entry). Any other value is `400 Bad Request` |
 
-All fields are optional. Only provided fields are updated.
+All fields are optional. Only provided fields are updated. Returns `404 Not Found` if the entry doesn't exist.
 
 **Response**: `204 No Content`
 
@@ -704,7 +715,7 @@ curl -X POST http://127.0.0.1:3000/admin/service-entries/sync-plc/request -H "$A
 </TabItem>
 </Tabs>
 
-Returns `400 Bad Request` if the identity mode is not `attach_account`.
+Returns `400 Bad Request` if the identity mode is not `attach_account`, no identity is configured, or no attached account is set. Returns `401 Unauthorized` when the attached account's PDS session has expired; re-authenticate on the Service Identity page.
 
 **Response**: `204 No Content`
 
@@ -733,6 +744,6 @@ curl -X POST http://127.0.0.1:3000/admin/service-entries/sync-plc/submit \
 | ------- | ------ | -------- | ------------------------------------ |
 | `token` | string | yes      | Email confirmation code from the PDS |
 
-Returns `400 Bad Request` if the identity mode is not `attach_account`.
+Returns `400 Bad Request` if the identity mode is not `attach_account`, no identity is configured, or no attached account is set. Returns `401 Unauthorized` when the attached account's PDS session has expired; re-authenticate on the Service Identity page.
 
 **Response**: `204 No Content`

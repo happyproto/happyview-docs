@@ -66,6 +66,12 @@ interface User {
   permissions: string[];
 }
 
+interface CreatedUser {
+  id: string;
+  // The resolved DID, even when a handle was sent.
+  did: string;
+}
+
 const response = await fetch("http://127.0.0.1:3000/admin/users", {
   method: "POST",
   headers: {
@@ -77,7 +83,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/users", {
     template: "operator",
   }),
 });
-const data: User = await response.json();
+const data: CreatedUser = await response.json();
 ```
 
 </TabItem>
@@ -146,20 +152,20 @@ curl -X POST http://127.0.0.1:3000/admin/users \
 
 | Field         | Type     | Required | Description                                                                        |
 | ------------- | -------- | -------- | ---------------------------------------------------------------------------------- |
-| `did`         | string   | yes      | The atproto DID of the user to add                                             |
+| `did`         | string   | yes      | The DID or handle of the operator to add. A leading `@` is fine. A handle is resolved to a DID |
 | `template`    | string   | no       | Permission template: `viewer`, `operator`, `manager`, or `full_access`             |
-| `permissions` | string[] | no       | Explicit list of permissions to grant (used instead of or in addition to `template`) |
+| `permissions` | string[] | no       | Explicit list of permissions to grant. When present, `template` is ignored |
 
-If neither `template` nor `permissions` is provided, the user is created with no permissions.
+If neither `template` nor `permissions` is provided, the operator gets the `viewer` template.
+
+Returns `400 Bad Request` if a handle can't be resolved, `403 Forbidden` if you grant a permission you don't hold, and `409 Conflict` if the operator already exists.
 
 **Response**: `201 Created`
 
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "did": "did:plc:newuser",
-  "is_super": false,
-  "permissions": ["lexicons:read", "records:read", "script-variables:read", "users:read", "api-keys:read", "api-keys:create", "api-keys:delete", "backfill:read", "backfill:create", "stats:read", "events:read"]
+  "did": "did:plc:newuser"
 }
 ```
 
@@ -169,7 +175,7 @@ If neither `template` nor `permissions` is provided, the user is created with no
 GET /admin/users
 ```
 
-Requires `users:read` permission.
+Requires `users:read` permission. Operators are ordered by `created_at`, and each `permissions` array is sorted alphabetically.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -181,7 +187,7 @@ interface UserWithTimestamps {
   is_super: boolean;
   permissions: string[];
   created_at: string;
-  last_used_at: string;
+  last_used_at: string | null;
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/users", {
@@ -239,7 +245,7 @@ curl http://127.0.0.1:3000/admin/users -H "$AUTH"
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "did": "did:plc:admin",
     "is_super": true,
-    "permissions": ["lexicons:create", "lexicons:read", "lexicons:delete", "records:read", "records:delete", "records:delete-collection", "script-variables:create", "script-variables:read", "script-variables:delete", "users:create", "users:read", "users:update", "users:delete", "api-keys:create", "api-keys:read", "api-keys:delete", "backfill:create", "backfill:read", "stats:read", "events:read"],
+    "permissions": ["api-keys:create", "api-keys:delete", "api-keys:read", "backfill:create", "backfill:read", "events:read", "lexicons:create", "lexicons:delete", "lexicons:read", "records:delete", "records:delete-collection", "records:read", "script-variables:create", "script-variables:delete", "script-variables:read", "stats:read", "users:create", "users:delete", "users:read", "users:update"],
     "created_at": "2025-01-01T00:00:00Z",
     "last_used_at": "2025-01-02T12:00:00Z"
   }
@@ -335,7 +341,7 @@ const response = await fetch(
     }),
   },
 );
-const data: User = await response.json();
+if (!response.ok) throw new Error(`update failed: ${response.status}`); // 204 No Content
 ```
 
 </TabItem>
@@ -356,7 +362,7 @@ const response = await fetch(
     }),
   },
 );
-const data = await response.json();
+if (!response.ok) throw new Error(`update failed: ${response.status}`); // 204 No Content
 ```
 
 </TabItem>
@@ -371,8 +377,8 @@ let response = client
         "revoke": ["records:delete"]
     }))
     .send()
-    .await?;
-let data: serde_json::Value = response.json().await?;
+    .await?
+    .error_for_status()?; // 204 No Content
 ```
 
 </TabItem>

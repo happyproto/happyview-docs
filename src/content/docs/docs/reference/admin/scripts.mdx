@@ -86,6 +86,19 @@ interface Script {
   // false when no installed interpreter claims `script_type`, so the script
   // is stored but inert. See "A script whose language has no interpreter".
   runnable: boolean;
+  // XRPC methods the script calls outbound, or null.
+  outbound_xrpcs: string[] | null;
+  // false when this id would be refused if it were created today, because
+  // the trigger rules have tightened. The script still runs and can be
+  // edited, but it can't be recreated once deleted.
+  recreatable: boolean;
+  // Present only for a compiled module's handler, which has no editable body.
+  module?: {
+    module: string;
+    path: string;
+    handler: string;
+    hash: string;
+  };
 }
 
 // List all scripts
@@ -186,7 +199,12 @@ curl "http://127.0.0.1:3000/admin/scripts?suffix=xyz.statusphere.status" -H "$AU
     "created_at": "2026-01-01T00:00:00Z",
     "updated_at": "2026-01-01T00:00:00Z",
     "needs_migration": [],
-    "runnable": true
+    "runnable": true,
+    "outbound_xrpcs": [],
+    "layer": "manual",
+    "path": null,
+    "shadows_stored": false,
+    "recreatable": true
   }
 ]
 ```
@@ -328,7 +346,12 @@ curl "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status"
   "created_at": "2026-01-01T00:00:00Z",
   "updated_at": "2026-01-01T00:00:00Z",
   "needs_migration": [],
-  "runnable": true
+  "runnable": true,
+  "outbound_xrpcs": [],
+  "layer": "manual",
+  "path": null,
+  "shadows_stored": false,
+  "recreatable": true
 }
 ```
 
@@ -437,7 +460,7 @@ curl -X POST http://127.0.0.1:3000/admin/scripts \
 | `id`          | string | yes      | Trigger string (e.g. `record.index:xyz.statusphere.status`)    |
 | `script_type` | string | no       | Script language; defaults to `"lua"`. Must be one an installed interpreter claims |
 | `body`        | string | yes      | The script source code                                         |
-| `description` | string | no       | Human-readable description (max 300 characters)                |
+| `description` | string | no       | Human-readable description (max 300 bytes of UTF-8). An empty string is stored as `null` |
 
 **Response**: `201 Created` (new) or `200 OK` (update)
 
@@ -450,7 +473,12 @@ curl -X POST http://127.0.0.1:3000/admin/scripts \
   "created_at": "2026-01-01T00:00:00Z",
   "updated_at": "2026-01-01T00:00:00Z",
   "needs_migration": [],
-  "runnable": true
+  "runnable": true,
+  "outbound_xrpcs": [],
+  "layer": "manual",
+  "path": null,
+  "shadows_stored": false,
+  "recreatable": true
 }
 ```
 
@@ -560,7 +588,12 @@ curl -X PATCH "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statuspher
   "created_at": "2026-01-01T00:00:00Z",
   "updated_at": "2026-01-01T00:00:00Z",
   "needs_migration": [],
-  "runnable": true
+  "runnable": true,
+  "outbound_xrpcs": [],
+  "layer": "manual",
+  "path": null,
+  "shadows_stored": false,
+  "recreatable": true
 }
 ```
 

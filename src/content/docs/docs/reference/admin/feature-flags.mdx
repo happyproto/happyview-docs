@@ -51,7 +51,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/feature-flags
 ```
 
-Returns all feature flags and their current status. Flags are backed by the `happyview_instance_settings` table — a flag is enabled when its key is set to `"true"`.
+Returns all feature flags and their current status. Flags are backed by the `happyview_instance_settings` table. A flag is enabled when its stored setting, or its environment variable if none is stored, is `"true"`, ignoring case.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

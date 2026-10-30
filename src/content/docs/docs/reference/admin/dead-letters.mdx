@@ -32,9 +32,9 @@ Paginated list of dead letters from both tables, merged and sorted by `created_a
 | Param        | Type   | Required | Description                                           |
 | ------------ | ------ | -------- | ----------------------------------------------------- |
 | `collection` | string | no       | Filter by collection NSID                             |
-| `resolved`   | string | no       | `"true"`, `"false"` (default), or omit for all        |
+| `resolved`   | string | no       | `"false"` (default, unresolved only), `"true"` (resolved only), or any other value such as `"all"` for both |
 | `cursor`     | string | no       | Pagination cursor from a previous response            |
-| `limit`      | number | no       | Max results per page (default 50, max 100)            |
+| `limit`      | number | no       | Max results per page, 1 to 100 (default 50)           |
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
@@ -64,11 +64,13 @@ curl "http://127.0.0.1:3000/admin/dead-letters?limit=10" -H "$AUTH"
       "created_at": "2026-06-01T12:00:00Z"
     }
   ],
-  "cursor": "2026-06-01T11:00:00Z"
+  "cursor": "2026-06-01T11:00:00+00:00"
 }
 ```
 
-Resolved dead letters include a `resolved_at` timestamp. `cursor` is omitted when there are no more results.
+Resolved dead letters include a `resolved_at` timestamp. `cursor` is the last row's `created_at`, and is returned only when there are more rows.
+
+For label rows, `action` is `"label"`, `lexicon_id` is the script's trigger id, `did` is the labeler's DID and `rkey` is the label value.
 
 ## Count dead letters
 
@@ -81,7 +83,7 @@ Returns the total count of dead letters across both tables.
 | Param        | Type   | Required | Description                                    |
 | ------------ | ------ | -------- | ---------------------------------------------- |
 | `collection` | string | no       | Filter by collection NSID                      |
-| `resolved`   | string | no       | `"true"`, `"false"` (default), or omit for all |
+| `resolved`   | string | no       | `"false"` (default, unresolved only), `"true"` (resolved only), or any other value such as `"all"` for both |
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
@@ -151,7 +153,7 @@ Returns `404` if the dead letter is not found.
 POST /admin/dead-letters/{id}/retry
 ```
 
-Re-runs the dead letter's script with the original event payload. On success the dead letter is marked resolved. On failure the error and attempt count are updated.
+Re-runs the dead letter's script with the original event payload. On success the dead letter is marked resolved. On failure the error and attempt count are updated, and the request returns `500 Internal Server Error`. A dead letter with an unknown `action` returns `400 Bad Request`.
 
 Label-arrival dead letters cannot be retried — the upstream label event is gone. These return `400 Bad Request`.
 
@@ -226,7 +228,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss" \
 POST /admin/dead-letters/bulk/retry
 ```
 
-Retry multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss).
+Retry multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss). Stops at the first failure and returns it; dead letters handled before it stay resolved.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
@@ -249,7 +251,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/retry" \
 POST /admin/dead-letters/bulk/reindex
 ```
 
-Reindex multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss).
+Reindex multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss). Stops at the first failure and returns it; dead letters handled before it stay resolved.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
