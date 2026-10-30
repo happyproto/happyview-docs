@@ -6,12 +6,11 @@ The admin API lets you manage lexicons, monitor records, run backfill jobs, and 
 
 ## Auth
 
-The admin API supports four authentication methods:
+The admin API supports three authentication methods:
 
 1. **API keys** — read/write tokens starting with `hv_`, passed as `Authorization: Bearer hv_...`. See the [API Keys guide](/docs/guides/api-keys) for details.
-2. **Service auth JWT** — atproto inter-service authentication via signed JWTs. The token must be bound to the method `dev.happyview.admin.manage` (its `lxm` claim). A PDS mints such a token for an OAuth app only when the user granted it that method, which is what the next method's permission set does.
-3. **Cookie-based session auth** — signed session cookies set during the dashboard OAuth login flow. The [web dashboard](/docs/guides/dashboard) uses this method.
-4. **App sessions granted `dev.happyview.adminFull`** — an API client's [DPoP session](/docs/reference/oauth), when the user approved the permission set `dev.happyview.adminFull` at sign-in. The app asks for it with the scope `include:dev.happyview.adminFull`. The session then acts with the user's own permissions.
+2. **Cookie-based session auth** — signed session cookies set during the dashboard OAuth login flow. The [web dashboard](/docs/guides/dashboard) uses this method.
+3. **App sessions granted `dev.happyview.adminFull`** — an API client's [DPoP session](/docs/reference/oauth), when the user approved the permission set `dev.happyview.adminFull` at sign-in. The app asks for it with the scope `include:dev.happyview.adminFull`. The session then acts with the user's own permissions.
 
 HappyView decides whether a session was granted the set by what the user's authorization server says, never by the scope the app registered. On the session's first admin request it refreshes the session itself, after checking that the user's PDS names the session's authorization server, and reads the granted scope from the token response. It reads it again once that access token expires, so revoking the grant at the PDS ends admin access within one token lifetime. Any other API client session is refused with `403 Forbidden`, because those sessions belong to apps built on the instance, and an admin signing in to one must not hand it the instance.
 
@@ -19,13 +18,17 @@ hpy, the HappyView CLI, signs in this way through a client every instance has bu
 
 In all cases the resolved DID is checked against the `happyview_users` table, and the user's permissions are loaded to authorize the request.
 
-**Auto-bootstrap**: If the `happyview_users` table is empty, the first authenticated request automatically creates the caller as the **super user** with all permissions granted.
+An atproto service-auth token is refused with `403 Forbidden`, whatever method it names: sign in with an app granted `dev.happyview.adminFull`, or use an API key.
+
+A hosting platform's key (`PLATFORM_API_KEY_HASH`) reaches only [Platform](/docs/reference/admin/platform), [Domains](/docs/reference/admin/domains), [Stats](/docs/reference/admin/stats) and Jetstream status.
+
+**Auto-bootstrap**: If the `happyview_users` table is empty and `SUPERADMIN_DID` isn't set, the first authenticated request makes the caller an operator with the superadmin privilege and every permission.
 
 Non-user DIDs receive a `403 Forbidden` response. Users without the required permission for a specific endpoint also receive `403 Forbidden`.
 
 ## Errors
 
-All error responses return JSON with an `error` field:
+Error responses are JSON with an `error` field:
 
 ```json
 {
@@ -33,12 +36,24 @@ All error responses return JSON with an `error` field:
 }
 ```
 
-| Status             | Meaning                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `400 Bad Request`  | Invalid input (missing required fields, malformed lexicon JSON)                        |
-| `401 Unauthorized` | Missing or invalid API key or service auth JWT                                         |
-| `403 Forbidden`    | Authenticated DID is not in the users table, or user lacks the required permission     |
-| `404 Not Found`    | Lexicon, user, or backfill job not found                                               |
+A missing permission names it, and a server error carries an id to find in the server's log:
+
+```json
+{ "error": "InsufficientPermissions", "message": "Missing permission: lexicons:create" }
+{ "error": "Internal server error", "correlationId": "…" }
+```
+
+| Status | Meaning |
+| --- | --- |
+| `400 Bad Request` | Invalid input (missing required fields, malformed lexicon JSON) |
+| `401 Unauthorized` | Missing or invalid credentials |
+| `403 Forbidden` | The caller isn't an operator, lacks the permission, or used a credential the route doesn't accept |
+| `404 Not Found` | The lexicon, user, job or other resource doesn't exist |
+| `409 Conflict` | The change conflicts with the current state, such as a lexicon a project file defines |
+| `412 Precondition Failed` | An `If-Match` didn't match, as on [Project](/docs/reference/admin/project) |
+| `413 Payload Too Large` | A body over its limit, such as a project bundle |
+| `422 Unprocessable Entity` | Well-formed input that can't be applied, such as a project that doesn't build |
+| `503 Service Unavailable` | Something the request needs isn't available, such as record storage |
 
 ```sh
 # All examples assume $TOKEN is an API key (hv_...)
@@ -51,19 +66,25 @@ AUTH="Authorization: Bearer $TOKEN"
 | ----- | ----------- |
 | [Lexicons](/docs/reference/admin/lexicons) | Upload, list, get, and delete lexicons and network lexicons |
 | [Lexicon Publishing](/docs/reference/admin/lexicon-publishing) | Publish lexicons to the network and manage publishing rules |
-| [Stats](/docs/reference/admin/stats) | Record counts by collection, admin and client counts |
+| [Stats](/docs/reference/admin/stats) | Record counts by collection, operator and client counts, Jetstream status |
 | [Backfill](/docs/reference/admin/backfill) | Create and monitor historical backfill jobs |
-| [Event Logs](/docs/reference/admin/events) | Query the audit trail of system events |
+| [Jobs](/docs/reference/admin/jobs) | List, inspect, cancel, pause and resume background jobs, and read their logs |
+| [Event Logs](/docs/reference/admin/events) | Query, count and purge the audit trail of system events |
 | [API Keys](/docs/reference/admin/api-keys) | Create, list, and revoke API keys |
 | [Users](/docs/reference/admin/users) | Create, list, update, and delete operators |
 | [Labelers](/docs/reference/admin/labelers) | Manage external labeler subscriptions |
-| [Records](/docs/reference/admin/records) | List and delete indexed records |
+| [Records](/docs/reference/admin/records) | List, delete and reconcile indexed records |
+| [Project](/docs/reference/admin/project) | Deploy a project and read what's deployed |
+| [Linked Repos](/docs/reference/admin/linked-repos) | Grant, invite and revoke access to repositories an instance can write to |
 | [Spaces](/docs/reference/admin/spaces) | Browse spaces and their records for moderation |
 | [Instance Settings](/docs/reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
+| [XRPC Proxy](/docs/reference/admin/xrpc-proxy) | Decide whether and where unknown XRPC methods are proxied |
+| [Telemetry](/docs/reference/admin/telemetry) | Telemetry consent, previews and sending |
+| [Database](/docs/reference/admin/database) | Database status, SQLite vacuum and record compression |
 | [Domains](/docs/reference/admin/domains) | Manage domains and their OAuth client identities |
 | [OAuth Keys](/docs/reference/admin/oauth-keys) | Rotate and revoke the instance's OAuth client-assertion signing key |
-| [Scripts](/docs/reference/admin/scripts) | Create, list, update, and delete Lua scripts |
-| [Script Variables](/docs/reference/admin/script-variables) | Encrypted key/value pairs for Lua scripts |
+| [Scripts](/docs/reference/admin/scripts) | Create, list, update, delete and migrate scripts |
+| [Script Variables](/docs/reference/admin/script-variables) | Encrypted key/value pairs for scripts' `ctx.env` |
 | [API Clients](/docs/reference/admin/api-clients) | Register and manage third-party XRPC clients |
 | [Plugins](/docs/reference/admin/plugins) | Install, configure, and manage plugins |
 | [Dead Letters](/docs/reference/admin/dead-letters) | List, inspect, dismiss, retry, and reindex dead-lettered events |
@@ -72,6 +93,8 @@ AUTH="Authorization: Bearer $TOKEN"
 | [Verification Methods](/docs/reference/admin/verification-methods) | Create, list, and delete DID verification methods |
 | [Feature Flags](/docs/reference/admin/feature-flags) | List feature flag status |
 | [Permissions](/docs/reference/admin/permissions) | List available permission definitions |
+| [Identity](/docs/reference/admin/identity) | Resolve a handle or DID |
+| [Platform](/docs/reference/admin/platform) | For a hosting platform: set the operator with superadmin |
 
 ## Permissions
 
@@ -79,23 +102,24 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 
 | Endpoint                                 | Required Permission        |
 | ---------------------------------------- | -------------------------- |
-| `POST /admin/lexicons`                   | `lexicons:create`          |
+| `POST /admin/lexicons`                   | `lexicons:create` (plus `backfill:create` to start a backfill) |
 | `GET /admin/lexicons`                    | `lexicons:read`            |
 | `GET /admin/lexicons/{id}`               | `lexicons:read`            |
 | `DELETE /admin/lexicons/{id}`            | `lexicons:delete`          |
-| `POST /admin/network-lexicons`           | `lexicons:create`          |
+| `POST /admin/network-lexicons`           | `lexicons:create` (plus `backfill:create` to start a backfill) |
 | `GET /admin/network-lexicons`            | `lexicons:read`            |
-| `DELETE /admin/network-lexicons/{id}`    | `lexicons:delete`          |
+| `DELETE /admin/network-lexicons/{nsid}`  | `lexicons:delete`          |
 | `GET /admin/lexicon-publishing`          | `lexicons:read`            |
 | `GET /admin/lexicon-publishing/dns`      | `lexicons:read`            |
+| `GET /admin/lexicon-publishing/dns/{nsid}` | `lexicons:read`          |
 | `POST /admin/lexicon-publishing/rules`   | `lexicons:publish`         |
 | `PATCH /admin/lexicon-publishing/rules/{id}` | `lexicons:publish`     |
 | `DELETE /admin/lexicon-publishing/rules/{id}` | `lexicons:publish`    |
 | `POST /admin/lexicon-publishing/publish` | `lexicons:publish`         |
 | `POST /admin/lexicon-publishing/unpublish` | `lexicons:publish`       |
-| `GET /admin/stats`                       | `stats:read`               |
-| `GET /admin/stats/counts`                | `stats:read`               |
-| `GET /admin/jetstream/status`            | `stats:read`               |
+| `GET /admin/stats`                       | `stats:read`, or the platform key |
+| `GET /admin/stats/counts`                | `stats:read`, or the platform key |
+| `GET /admin/jetstream/status`            | `stats:read`, or the platform key |
 | `POST /admin/backfill`                   | `backfill:create`          |
 | `GET /admin/backfill/status`             | `backfill:read`            |
 | `POST /admin/backfill/{id}/cancel`       | `backfill:create`          |
@@ -104,9 +128,20 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/backfill/{id}/events`        | `backfill:read`            |
 | `GET /admin/backfill/{id}/repos`         | `backfill:read`            |
 | `GET /admin/backfill/{id}/pds-summary`   | `backfill:read`            |
+| `GET /admin/backfill/{id}/errors`        | `backfill:read`            |
+| `POST /admin/backfill/{id}/retry-failed` | `backfill:create`          |
+| `GET /admin/backfill/collections/{nsid}` | `backfill:read`            |
 | `DELETE /admin/backfill/{id}/details`    | `backfill:create`          |
 | `DELETE /admin/backfill/details`         | `backfill:create`          |
 | `GET /admin/events`                      | `events:read`              |
+| `GET /admin/events/count`                | `events:read`              |
+| `POST /admin/events/purge`               | `events:purge`             |
+| `GET /admin/jobs`                        | `jobs:read`                |
+| `GET /admin/jobs/{id}`                   | `jobs:read`                |
+| `GET /admin/jobs/{id}/logs`              | `jobs:read`                |
+| `POST /admin/jobs/{id}/cancel`           | `jobs:manage`              |
+| `POST /admin/jobs/{id}/pause`            | `jobs:manage`              |
+| `POST /admin/jobs/{id}/resume`           | `jobs:manage`              |
 | `POST /admin/api-keys`                   | `api-keys:create`          |
 | `GET /admin/api-keys`                    | `api-keys:read`            |
 | `DELETE /admin/api-keys/{id}`            | `api-keys:delete`          |
@@ -116,6 +151,17 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `PATCH /admin/users/{id}/permissions`    | `users:update`             |
 | `DELETE /admin/users/{id}`               | `users:delete`             |
 | `POST /admin/users/transfer-super`       | Superadmin only            |
+| `PUT /admin/platform/super-user`         | The platform key only      |
+| `GET /admin/identity/resolve`            | Any operator               |
+| `PUT /admin/project`                     | `project:deploy`           |
+| `GET /admin/project`                     | `project:deploy`           |
+| `GET /admin/linked-repos`                | `linked-repos:read`        |
+| `POST /admin/linked-repos`               | `linked-repos:create`      |
+| `POST /admin/linked-repos/{id}/authorize` | `linked-repos:create`     |
+| `POST /admin/linked-repos/{id}/invite`   | `linked-repos:create`      |
+| `GET /admin/linked-repos/{id}/invites`   | `linked-repos:read`        |
+| `DELETE /admin/linked-repos/{id}/invites/{invite_id}` | `linked-repos:create` |
+| `DELETE /admin/linked-repos/{id}`        | `linked-repos:delete`      |
 | `GET /admin/script-variables`            | `script-variables:read`    |
 | `POST /admin/script-variables`           | `script-variables:create`  |
 | `DELETE /admin/script-variables/{key}`   | `script-variables:delete`  |
@@ -125,6 +171,8 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/scripts/{id}`                | `scripts:read`             |
 | `PATCH /admin/scripts/{id}`              | `scripts:manage`           |
 | `DELETE /admin/scripts/{id}`             | `scripts:manage`           |
+| `POST /admin/scripts/{id}/codemod`       | `scripts:read` to preview, `scripts:manage` to apply |
+| `GET /admin/editor/declarations`         | `scripts:read`             |
 | `POST /admin/labelers`                   | `labelers:create`          |
 | `GET /admin/labelers`                    | `labelers:read`            |
 | `PATCH /admin/labelers/{did}`            | `labelers:create`          |
@@ -132,11 +180,13 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/records`                     | `records:read`             |
 | `GET /admin/records/collections`         | `records:read`             |
 | `DELETE /admin/records`                  | `records:delete`           |
-| `DELETE /admin/records/collection`       | `records:delete-collection`|
+| `DELETE /admin/records/collection`       | `records:delete-collection` and `records:delete` |
+| `POST /admin/records/collection/reconcile` | `records:read` for a dry run, `records:delete` to apply |
 | `GET /admin/spaces`                      | `spaces:read`              |
 | `GET /admin/spaces/{id}`                 | `spaces:read`              |
 | `GET /admin/spaces/{id}/records`         | `spaces:manage-records`    |
 | `GET /admin/spaces/{id}/blob`            | `spaces:manage-records`    |
+| `GET /admin/spaces/migration-status`     | `spaces:read`              |
 | `GET /admin/database/status`             | `settings:manage`          |
 | `POST /admin/database/vacuum/schedule`   | `settings:manage`          |
 | `DELETE /admin/database/vacuum/schedule` | `settings:manage`          |
@@ -147,19 +197,26 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `DELETE /admin/settings/{key}`           | `settings:manage`          |
 | `PUT /admin/settings/logo`              | `settings:manage`          |
 | `DELETE /admin/settings/logo`           | `settings:manage`          |
+| `GET /admin/settings/telemetry`          | `settings:manage`          |
+| `PUT /admin/settings/telemetry`          | `settings:manage`          |
+| `POST /admin/settings/telemetry/dismiss` | `settings:manage`          |
+| `GET /admin/settings/telemetry/preview`  | `settings:manage`          |
+| `POST /admin/settings/telemetry/send`    | `settings:manage`          |
 | `GET /admin/plugins`                     | `plugins:read`             |
 | `POST /admin/plugins`                    | `plugins:create`           |
-| `POST /admin/plugins/preview`            | `plugins:read`             |
+| `POST /admin/plugins/preview`            | `plugins:create`           |
 | `GET /admin/plugins/official`            | `plugins:read`             |
 | `DELETE /admin/plugins/{id}`             | `plugins:delete`           |
 | `POST /admin/plugins/{id}/reload`        | `plugins:create`           |
-| `POST /admin/plugins/{id}/check-update`  | `plugins:read`             |
+| `POST /admin/plugins/{id}/check-update`  | `plugins:create`           |
 | `GET /admin/plugins/{id}/secrets`        | `plugins:read`             |
 | `PUT /admin/plugins/{id}/secrets`        | `plugins:create`           |
-| `GET /admin/domains`                     | `settings:manage`          |
-| `POST /admin/domains`                    | `settings:manage`          |
-| `DELETE /admin/domains/{id}`             | `settings:manage`          |
-| `POST /admin/domains/{id}/primary`       | `settings:manage`          |
+| `GET /admin/plugins/{id}/allowed-hosts`  | `plugins:read`             |
+| `PUT /admin/plugins/{id}/allowed-hosts`  | `plugins:create`           |
+| `GET /admin/domains`                     | `settings:manage`, or the platform key |
+| `POST /admin/domains`                    | `settings:manage`, or the platform key; only the platform key on an instance it manages |
+| `DELETE /admin/domains/{id}`             | `settings:manage`, or the platform key; only the platform key on an instance it manages |
+| `POST /admin/domains/{id}/primary`       | `settings:manage`, or the platform key; only the platform key on an instance it manages |
 | `GET /admin/oauth/instance-key`          | `settings:manage`          |
 | `POST /admin/oauth/instance-key/rotate`  | `settings:manage`          |
 | `DELETE /admin/oauth/instance-key/{kid}` | `settings:manage`          |
@@ -205,46 +262,3 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/permissions`                 | `users:read`               |
 | `GET /admin/settings/xrpc-proxy`         | `settings:manage`          |
 | `PUT /admin/settings/xrpc-proxy`         | `settings:manage`          |
-
-### Jetstream status
-
-`GET /admin/jetstream/status` reports the live [Jetstream](https://github.com/bluesky-social/jetstream) consumer since the process started. A platform API key can read it. Unknown values are an explicit `null`: `protocol`, `host`, `dictionary_id`, `applied_seq`, `applied_time_us` and `lag_ms` are all `null` before the first connection or event, and the two worker arrays are empty until the worker pool starts.
-
-| Field | Meaning |
-| --- | --- |
-| `protocol` | `v2` (`subscribeEvents`) or `v1` (`/subscribe`); `null` before the first connection |
-| `host` | The Jetstream host from `JETSTREAM_URL` |
-| `connected` | Whether a subscription is open now |
-| `compression` | Whether frames arrive zstd-compressed |
-| `dictionary_id` | The zstd dictionary in use, or `null` |
-| `applied_seq` | The newest event that it and every event before it have been applied: the position saved for a restart. `null` on v1, which has no seq |
-| `applied_time_us` | When Jetstream witnessed that event, in microseconds since the Unix epoch |
-| `lag_ms` | Milliseconds from `applied_time_us` to now |
-| `worker_queue_depths` | Events waiting in each worker's queue, one entry per `JETSTREAM_WORKERS`. The event a worker is applying or retrying is not counted |
-| `now_ms` | Server time when the snapshot was taken, in milliseconds since the Unix epoch. Subtract `worker_busy_since_ms` from it rather than using your own clock |
-| `worker_busy_since_ms` | One entry per worker: when its current event started, in milliseconds since the Unix epoch, or `null` when idle. An old value with an empty queue means the worker is stuck retrying |
-
-### Database disk usage and vacuum
-
-`GET /admin/database/status` reports the database and write-ahead log size, free disk space, and the status of the one-time SQLite vacuum described in [Configuration](/docs/guides/configuration). It also reports the periodic SQLite WAL checkpoint: `checkpoint_interval_secs` is the `SQLITE_CHECKPOINT_INTERVAL_SECS` in effect (`0` when disabled), `wal_checkpoint_bytes` is the `SQLITE_WAL_CHECKPOINT_BYTES` in effect (`0` when disabled, and always on Postgres), and `checkpoint` is the latest run since the process started, or `null` before the first one and always on Postgres. A run has `at` (RFC 3339), `busy` (`true` when a reader or writer kept it from finishing), `wal_frames` (frames in the WAL when it ran) and `checkpointed_frames` (frames copied back into the database file). `POST /admin/database/vacuum/schedule` arms the vacuum to run at the next restart; `DELETE /admin/database/vacuum/schedule` disarms it. These only apply to SQLite — on a Postgres-backed instance, scheduling returns `400 Bad Request` rather than silently doing nothing.
-
-### Record compression
-
-`POST /admin/storage/retrain` trains a new zstd dictionary for one collection from up to 20,000 of its most recently stored records, as the background task does when a collection first reaches `ZSTD_DICT_TRAIN_AT` records (see [the compact record format](/docs/guides/database/database-setup#after-the-upgrade)). Records written from then on are compressed with it. Records already compressed keep the dictionary they were compressed with, and records the background task has not reached yet get the new one. One retrain runs at a time. SQLite only.
-
-```sh
-curl -X POST "http://127.0.0.1:3000/admin/storage/retrain" -H "$AUTH" \
-  -H 'content-type: application/json' -d '{"collection": "app.bsky.feed.post"}'
-```
-
-```json
-{ "collection": "app.bsky.feed.post", "dict_id": 3 }
-```
-
-| Status | When |
-| --- | --- |
-| `200 OK` | The dictionary was trained and is in use |
-| `400 Bad Request` | The instance runs on Postgres, or `RECORD_COMPRESSION=none` |
-| `404 Not Found` | The instance holds no records in that collection |
-| `409 Conflict` | Another retrain is still running on this instance; try again when it finishes |
-| `422 Unprocessable Entity` | zstd could not train a dictionary from the records (`TrainingFailed`) |

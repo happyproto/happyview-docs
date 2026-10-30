@@ -174,7 +174,7 @@ sequenceDiagram
 - A delete with a `rev` removes a crawled row that has none.
 - A delete for a record HappyView does not hold leaves a tombstone only when the account holds records in that collection, or a running or pausing backfill covers it. Those are the cases where a create could still arrive. The network sends many deletes for records an instance never held, and tombstoning each would fill the table.
 
-Admins can watch the consumer with `GET /admin/jetstream/status` and the About page's Jetstream card. See [Jetstream status](/docs/reference/admin/admin-api#jetstream-status).
+Admins can watch the consumer with `GET /admin/jetstream/status` and the About page's Jetstream card. See [Jetstream status](/docs/reference/admin/stats#jetstream-status).
 
 ### Backfill
 

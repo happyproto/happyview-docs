@@ -20,7 +20,7 @@ A request with `Authorization: Bearer <key>` is then authenticated as the **plat
 The platform principal can:
 
 - list, add, remove and promote [domains](/docs/reference/admin/domains); while it's set, it is the only caller that can add, remove or promote one
-- read [stats](/docs/reference/admin/stats)
+- read [stats](/docs/reference/admin/stats), including [Jetstream status](/docs/reference/admin/stats#jetstream-status)
 - call the endpoints on this page
 
 Every other admin endpoint refuses it with `403`.

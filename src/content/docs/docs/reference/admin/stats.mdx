@@ -118,9 +118,11 @@ curl http://127.0.0.1:3000/admin/stats -H "$AUTH"
 ```json
 {
   "total_records": 12345,
-  "collections": [{ "collection": "xyz.statusphere.status", "count": 500 }]
+  "collections": [{ "collection": "xyz.statusphere.status", "count": 500, "indexed": true }]
 }
 ```
+
+`indexed` is `false` for a collection that still has records but is no longer indexed.
 
 ## Admin and client counts
 
@@ -148,3 +150,45 @@ curl http://127.0.0.1:3000/admin/stats/counts -H "$AUTH"
   "api_clients": 2
 }
 ```
+
+## Jetstream status
+
+```
+GET /admin/jetstream/status
+```
+
+The live Jetstream consumer's state since the process started. Requires `stats:read`; the platform key may call it too. This route exists only when the instance's records come from Jetstream, which is the default.
+
+**Response**: `200 OK`
+
+```json
+{
+  "protocol": "v2",
+  "host": "jetstream1.us-east.bsky.network",
+  "connected": true,
+  "compression": true,
+  "dictionary_id": 3,
+  "applied_seq": 18300422,
+  "applied_time_us": 1793390000000000,
+  "lag_ms": 412,
+  "worker_queue_depths": [0, 2, 0, 0, 1, 0, 0, 0],
+  "worker_busy_since_ms": [null, 1793390000100, null, null, null, null, null, null],
+  "now_ms": 1793390000512
+}
+```
+
+Unknown values are an explicit `null`: `protocol`, `host`, `dictionary_id`, `applied_seq`, `applied_time_us` and `lag_ms` are all `null` before the first connection or event, and the two worker arrays are empty until the worker pool starts.
+
+| Field | Meaning |
+| --- | --- |
+| `protocol` | `v2` (`subscribeEvents`) or `v1` (`/subscribe`); `null` before the first connection |
+| `host` | The Jetstream host from `JETSTREAM_URL` |
+| `connected` | Whether a subscription is open now |
+| `compression` | Whether frames arrive zstd-compressed |
+| `dictionary_id` | The zstd dictionary in use, or `null` |
+| `applied_seq` | The newest event that it and every event before it have been applied: the position saved for a restart. `null` on v1, which has no seq |
+| `applied_time_us` | When Jetstream witnessed that event, in microseconds since the Unix epoch |
+| `lag_ms` | Milliseconds from `applied_time_us` to now |
+| `worker_queue_depths` | Events waiting in each worker's queue, one entry per `JETSTREAM_WORKERS`. The event a worker is applying or retrying is not counted |
+| `now_ms` | Server time when the snapshot was taken, in milliseconds since the Unix epoch. Subtract `worker_busy_since_ms` from it rather than using your own clock |
+| `worker_busy_since_ms` | One entry per worker: when its current event started, in milliseconds since the Unix epoch, or `null` when idle. An old value with an empty queue means the worker is stuck retrying |

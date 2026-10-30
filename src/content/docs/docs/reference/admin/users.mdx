@@ -410,7 +410,7 @@ curl -X PATCH http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-44665544
 | `grant`  | string[] | no       | Permissions to add    |
 | `revoke` | string[] | no       | Permissions to remove |
 
-**Response**: `200 OK` with the updated user object.
+**Response**: `204 No Content`. Fetch the user again to see its permissions.
 
 ## Transfer superadmin
 
@@ -492,9 +492,9 @@ curl -X POST http://127.0.0.1:3000/admin/users/transfer-super \
 
 | Field            | Type   | Required | Description                                |
 | ---------------- | ------ | -------- | ------------------------------------------ |
-| `target_user_id` | string | yes      | The ID of the user to receive super status |
+| `target_user_id` | string | yes      | The ID of the operator to receive superadmin |
 
-**Response**: `200 OK`
+**Response**: `204 No Content`
 
 ## Delete a user
 

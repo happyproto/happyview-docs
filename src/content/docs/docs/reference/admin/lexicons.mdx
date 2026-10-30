@@ -587,6 +587,27 @@ HappyView resolves the NSID authority via DNS TXT, fetches the lexicon from the 
 }
 ```
 
+### Preview a network lexicon
+
+```
+GET /admin/network-lexicons/resolve/{nsid}
+```
+
+Resolves an NSID's lexicon from its authority on the network and returns it, without tracking it. The dashboard uses this to show a lexicon before you add it. Requires `lexicons:read`.
+
+**Response**: `200 OK`
+
+```json
+{
+  "nsid": "xyz.statusphere.status",
+  "authority_did": "did:plc:…",
+  "type": "record",
+  "lexicon_json": { "lexicon": 1, "id": "xyz.statusphere.status", "defs": {} }
+}
+```
+
+`type` is the lexicon's `defs.main.type`, or `null` if it has none. A lexicon that can't be resolved is an error; [Lexicons](/docs/reference/lexicons#nsid-authority-resolution) describes the lookup.
+
 ### List network lexicons
 
 ```

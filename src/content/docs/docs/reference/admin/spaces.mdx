@@ -175,3 +175,30 @@ curl "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei..." -H "$
 </Tabs>
 
 Returns `404 Not Found` if no record in the space references the blob, and `502 Bad Gateway` if the author's PDS cannot serve it.
+
+## Space migration status
+
+```
+GET /admin/spaces/migration-status
+```
+
+How far each space's repositories have moved from HappyView-hosted copies to their authors' PDSes, and which PDSes support spaces. Requires `spaces:read`.
+
+**Response**: `200 OK`
+
+```json
+{
+  "spaces": [
+    { "spaceId": "0b6c1f0e-…", "type": "com.example.forum", "skey": "main", "polyfill": 12, "migrating": 3, "native": 40 }
+  ],
+  "awaitingAuthorization": 5,
+  "detection": [
+    { "pds": "https://pds.example.com", "supported": true, "tier": "descriptor", "missing": [], "checkedAt": "2026-10-01T12:00:00Z" }
+  ]
+}
+```
+
+- `polyfill`, `migrating` and `native` count the space's repositories by where they're hosted: still on HappyView, moving, or on the author's PDS.
+- `awaitingAuthorization` counts accounts whose repositories are still on HappyView and who haven't signed in with a session granting `space:` access, so they can't move yet.
+- `detection` is what HappyView last found out about each PDS's support for spaces, and what it's `missing`. `tier` says how it found out: `descriptor` (the PDS lists its own methods), `probe` (inferred from how it answers a method that needs auth) or `unreachable` (it couldn't be reached, which says nothing about it).
+

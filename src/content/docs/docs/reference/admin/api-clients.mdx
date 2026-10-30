@@ -501,6 +501,14 @@ curl -X POST http://127.0.0.1:3000/admin/api-clients/01J9.../auth-key -H "$AUTH"
 
 **Response**: `200 OK` with the key's `kid` and the `jwks_uri` to publish.
 
+### Get the current key
+
+```
+GET /admin/api-clients/{id}/auth-key
+```
+
+Requires `api-clients:view`. Returns the `current` key's `kid` and the `jwks_uri` to publish, or `404` if the client has no key.
+
 ### List every key
 
 ```

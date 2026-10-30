@@ -69,7 +69,7 @@ interface EventLog {
 
 interface EventLogResponse {
   events: EventLog[];
-  cursor: string | null;
+  cursor?: string;
 }
 
 const response = await fetch(
@@ -129,7 +129,9 @@ curl "http://127.0.0.1:3000/admin/events?severity=error&limit=10" -H "$AUTH"
 | `category`   | string | no       | Filter by category prefix (e.g. `lexicon` matches all lexicon events) |
 | `severity`   | string | no       | Filter by severity: `info`, `warn`, or `error`                        |
 | `subject`    | string | no       | Filter by subject (lexicon ID, record URI, admin DID, etc.)           |
-| `cursor`     | string | no       | Pagination cursor (ISO 8601 timestamp from previous response)         |
+| `after`      | string | no       | Only events at or after this RFC 3339 time                            |
+| `before`     | string | no       | Only events before this RFC 3339 time                                 |
+| `cursor`     | string | no       | Pagination cursor: the `cursor` from a previous response              |
 | `limit`      | number | no       | Results per page (default `50`, max `100`)                            |
 
 **Response**: `200 OK`
@@ -157,4 +159,48 @@ curl "http://127.0.0.1:3000/admin/events?severity=error&limit=10" -H "$AUTH"
 }
 ```
 
-Events are returned in reverse chronological order (newest first). Pass the `cursor` value from the response to fetch the next page.
+Events are returned in reverse chronological order (newest first). Pass the `cursor` value from the response to fetch the next page; a response with no more pages has no `cursor` key. An empty parameter counts as unset, and an unreadable `after` or `before` is a `400`.
+
+**Permission:** `events:read`
+
+## Count event logs
+
+```
+GET /admin/events/count
+```
+
+Counts the events that match the same filters as [List event logs](#list-event-logs): `event_type`, `category`, `severity`, `subject`, `after` and `before`. `cursor` and `limit` are ignored.
+
+**Permission:** `events:read`
+
+**Response**: `200 OK`
+
+```json
+{ "count": 1284 }
+```
+
+## Purge event logs
+
+```
+POST /admin/events/purge
+```
+
+Deletes the events that match a filter, in a background job. The body takes the same filters as the list, all optional:
+
+```json
+{ "category": "record", "before": "2026-09-01T00:00:00Z" }
+```
+
+:::danger[An empty filter deletes every event]
+A body with no filters, `{}`, matches every event, and the job deletes them all.
+:::
+
+**Permission:** `events:purge`
+
+**Response**: `202 Accepted`
+
+```json
+{ "job_id": "550e8400-e29b-41d4-a716-446655440000" }
+```
+
+The job is a `happyview.purge-event-logs` [job](/docs/reference/admin/jobs); watch it there. The purge itself is logged as an `event_logs.purged` event. An unreadable `after` or `before` is a `400`.

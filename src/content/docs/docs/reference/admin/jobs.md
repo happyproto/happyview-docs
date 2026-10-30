@@ -16,8 +16,8 @@ Returns a paginated list of jobs, newest first.
 
 | Parameter | Type   | Description                                                                           |
 | --------- | ------ | ------------------------------------------------------------------------------------- |
-| `status`  | string | Filter by status (`pending`, `running`, `completed`, `failed`, `paused`, `cancelled`) |
-| `limit`   | number | Maximum number of results (default: 50)                                               |
+| `status`  | string | Filter by status: `pending`, `running`, `pausing`, `paused`, `cancelling`, `cancelled`, `completed` or `failed` |
+| `limit`   | number | Maximum number of results, 1 to 100 (default: 50)                                     |
 | `cursor`  | string | Pagination cursor from a previous response                                            |
 
 **Permission:** `jobs:read`
@@ -37,6 +37,9 @@ Returns a paginated list of jobs, newest first.
       "error": null,
       "created_by": "did:plc:abc123",
       "inherit_auth": false,
+      "api_client_id": null,
+      "dpop_key_id": null,
+      "attempt": 1,
       "started_at": "2026-07-01T12:00:05Z",
       "completed_at": "2026-07-01T12:02:30Z",
       "created_at": "2026-07-01T12:00:00Z"
@@ -49,7 +52,7 @@ Returns a paginated list of jobs, newest first.
 ## Get job
 
 ```http
-GET /admin/jobs/:id
+GET /admin/jobs/{id}
 ```
 
 Returns a single job by ID.
@@ -61,7 +64,7 @@ Returns a single job by ID.
 ## Cancel job
 
 ```http
-POST /admin/jobs/:id/cancel
+POST /admin/jobs/{id}/cancel
 ```
 
 Request cancellation of a job. If the job is `pending` or `paused`, it's immediately set to `cancelled`. If the job is `running`, it's set to `cancelling` — the worker will stop the job when the script next calls `ctx.job.should_stop()`.
@@ -82,11 +85,12 @@ Request cancellation of a job. If the job is `pending` or `paused`, it's immedia
 | ------ | ---------------------------------------------- |
 | 404    | Job not found                                  |
 | 409    | Job is already completed, failed, or cancelled |
+| 409    | The job's status changed while the request ran; reload and try again |
 
 ## Pause job
 
 ```http
-POST /admin/jobs/:id/pause
+POST /admin/jobs/{id}/pause
 ```
 
 Request pause of a running job. Sets the status to `pausing` — the worker will pause the job when the script next calls `ctx.job.should_stop()`.
@@ -107,11 +111,12 @@ Request pause of a running job. Sets the status to `pausing` — the worker will
 | ------ | ------------------ |
 | 404    | Job not found      |
 | 409    | Job is not running |
+| 409    | The job's status changed while the request ran; reload and try again |
 
 ## Resume job
 
 ```http
-POST /admin/jobs/:id/resume
+POST /admin/jobs/{id}/resume
 ```
 
 Resume a paused job. Sets the status back to `pending` so the worker picks it up again.
@@ -132,6 +137,43 @@ Resume a paused job. Sets the status back to `pending` so the worker picks it up
 | ------ | ----------------- |
 | 404    | Job not found     |
 | 409    | Job is not paused |
+| 409    | The job's status changed while the request ran; reload and try again |
+
+## Get a job's log
+
+```http
+GET /admin/jobs/{id}/logs
+```
+
+Returns the lines a job's script logged with `internal.logging`, oldest first.
+
+**Query parameters:**
+
+| Parameter | Type   | Description                                       |
+| --------- | ------ | ------------------------------------------------- |
+| `limit`   | number | Maximum number of lines, 1 to 500 (default: 100)  |
+| `cursor`  | string | The `cursor` from a previous response             |
+
+**Permission:** `jobs:read`
+
+**Response:**
+
+```json
+{
+  "logs": [
+    {
+      "id": "…",
+      "jobId": "550e8400-e29b-41d4-a716-446655440000",
+      "level": "info",
+      "message": "processing item",
+      "createdAt": "2026-07-01T12:00:06Z"
+    }
+  ],
+  "cursor": null
+}
+```
+
+`cursor` is set when there are more lines. A job with no lines, or an id that names no job, answers an empty list.
 
 ## Job object
 
@@ -146,6 +188,9 @@ Resume a paused job. Sets the status back to `pending` so the worker picks it up
 | `error`        | string\|null | Error message on failure                                                        |
 | `created_by`   | string       | DID of the user who enqueued the job                                            |
 | `inherit_auth` | boolean      | Whether the job inherits the creator's PDS auth                                 |
+| `api_client_id` | string\|null | The API client whose session the job inherited, when it did                    |
+| `dpop_key_id`  | string\|null | The DPoP key of the session the job inherited, when it did                     |
+| `attempt`      | number       | How many runs of the job have started, including one that lost its worker        |
 | `started_at`   | string\|null | ISO 8601 timestamp when the worker started executing                            |
 | `completed_at` | string\|null | ISO 8601 timestamp when the job finished                                        |
 | `created_at`   | string       | ISO 8601 timestamp when the job was enqueued                                    |

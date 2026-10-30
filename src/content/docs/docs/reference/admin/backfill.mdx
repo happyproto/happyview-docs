@@ -433,13 +433,33 @@ The three repo counters count work units. A unit is one repo under one collectio
 
 A job HappyView paused itself, because it ran out of work with repos it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A job an operator paused has no `error`. Resuming clears it.
 
+## Backfill state of a collection
+
+```
+GET /admin/backfill/collections/{nsid}
+```
+
+How a collection's backfill stands, as the record source describes it. Requires `backfill:read`.
+
+**Response**: `200 OK`
+
+```json
+{
+  "collection": "xyz.statusphere.status",
+  "executor": "store-pass",
+  "summary": { "message": "…", "records": 1840, "state": "running" }
+}
+```
+
+`executor` names what backfills this collection; `summary` is `null` when nothing has run, and its `state` is `running`, `complete`, `failed` or `null`.
+
 ## List errors for a job
 
 ```
 GET /admin/backfill/{id}/errors
 ```
 
-Paginated failure detail for a backfill job, with exact totals for each kind. Requires `BackfillRead`.
+Paginated failure detail for a backfill job, with exact totals for each kind. Requires `backfill:read`.
 
 | Param    | Type   | Required | Description                                          |
 | -------- | ------ | -------- | ---------------------------------------------------- |
@@ -493,7 +513,7 @@ HappyView keeps detail for the first `cap` failures of a job. When `capped` is `
 POST /admin/backfill/{id}/retry-failed
 ```
 
-Starts a new job for the failures of a finished job. Requires `BackfillCreate`.
+Starts a new job for the failures of a finished job. Requires `backfill:create`.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
@@ -533,7 +553,7 @@ Returns `400` when there is nothing to retry: no failures of a retryable kind, o
 GET /admin/backfill/{id}/repos
 ```
 
-Paginated per-repo detail for a backfill job. Requires `BackfillRead`.
+Paginated per-repo detail for a backfill job. Requires `backfill:read`.
 
 | Param    | Type   | Required | Description                                                                                                       |
 | -------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -574,7 +594,7 @@ curl "http://127.0.0.1:3000/admin/backfill/$JOB_ID/repos?phase=fetched&limit=10"
 GET /admin/backfill/{id}/pds-summary
 ```
 
-Aggregated PDS breakdown for a backfill job. Requires `BackfillRead`. No pagination — returns all PDS endpoints in one response, sorted by repo count descending. For jobs on the bounded queue the counts are kept per PDS as the job runs, and `total_repos` counts work units resolved to that PDS, like the other counters: a repo queued under two collections counts twice.
+Aggregated PDS breakdown for a backfill job. Requires `backfill:read`. No pagination — returns all PDS endpoints in one response, sorted by repo count descending. For jobs on the bounded queue the counts are kept per PDS as the job runs, and `total_repos` counts work units resolved to that PDS, like the other counters: a repo queued under two collections counts twice.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">
@@ -602,7 +622,7 @@ curl "http://127.0.0.1:3000/admin/backfill/$JOB_ID/pds-summary" -H "$AUTH"
 GET /admin/backfill/{id}/events
 ```
 
-Server-Sent Events stream of real-time backfill progress. Requires `BackfillRead`. The connection stays open until the job completes or the client disconnects. A keepalive comment is sent periodically to prevent timeouts.
+Server-Sent Events stream of real-time backfill progress. Requires `backfill:read`. The connection stays open until the job completes or the client disconnects. A keepalive comment is sent periodically to prevent timeouts.
 
 Events are sent with `event: event` and a JSON `data` payload. Each event has a `type` field:
 
@@ -622,7 +642,7 @@ Events are sent with `event: event` and a JSON `data` payload. Each event has a 
 DELETE /admin/backfill/{id}/details
 ```
 
-Delete the per-repo detail of one backfill job: its recent completions, its PDS summary, any repos left queued and, for jobs created before the bounded queue, its repo rows. Requires `BackfillCreate`.
+Delete the per-repo detail of one backfill job: its recent completions, its PDS summary, any repos left queued and, for jobs created before the bounded queue, its repo rows. Requires `backfill:create`.
 
 A job on the bounded queue can be flushed only once it is `completed`, `cancelled` or `failed`, since its queue is the work it still has to do. Flushing one that is running, pausing, paused or cancelling returns `409`. A job created before the bounded queue can be flushed in any state, as before.
 
@@ -644,7 +664,7 @@ curl -X DELETE "http://127.0.0.1:3000/admin/backfill/$JOB_ID/details" -H "$AUTH"
 DELETE /admin/backfill/details
 ```
 
-Delete the per-repo detail and leftover queue of every completed, cancelled and failed backfill job. Requires `BackfillCreate`.
+Delete the per-repo detail and leftover queue of every completed, cancelled and failed backfill job. Requires `backfill:create`.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">

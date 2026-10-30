@@ -140,10 +140,40 @@ curl -X DELETE "http://127.0.0.1:3000/admin/records/collection?collection=xyz.st
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK`
+**Response**: `202 Accepted`
 
 ```json
 {
-  "deleted": 42
+  "job_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+The delete runs as a `happyview.delete-collection` [job](/docs/reference/admin/jobs), in batches, so a large collection doesn't hold the database. Records arriving from the network while it runs are deleted too, until a batch comes back short.
+
+## Reconcile a collection
+
+```
+POST /admin/records/collection/reconcile
+```
+
+Compares an indexed collection with what each account's PDS holds now, and finds records the index still has but the PDS no longer does. A dry run reports them; an apply deletes them. It runs as a `happyview.reconcile-collection` [job](/docs/reference/admin/jobs), whose result is the report.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `collection` | string | yes | Collection NSID to reconcile |
+| `dry_run` | boolean | no | Default `true`: report only. `false` deletes what it finds |
+| `dids` | string[] | no | Only these accounts |
+| `pds_requests_per_second` | number | no | Requests per second to each PDS, `1` to `20` |
+| `allow_suspicious` | string[] | no | Accounts to reconcile even though their PDS lists suspiciously few records, which the job otherwise skips |
+
+**Permission:** `records:read` for a dry run, `records:delete` to apply.
+
+**Response**: `202 Accepted`
+
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Errors:** `400` when `collection` is empty, isn't indexed, isn't a record lexicon, is `com.atproto.lexicon.schema`, or is served from a shared external record store, and when the rate is out of range.
