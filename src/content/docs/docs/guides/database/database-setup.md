@@ -2,6 +2,10 @@
 title: "Database Setup"
 ---
 
+:::caution[Pending HAP-272]
+How to read one collection quickly from raw SQL is changing in HappyView (HAP-272, happyview#239). The [Reading one collection](#reading-one-collection) section describes the new view, which is not in a release yet.
+:::
+
 HappyView supports two database backends: **SQLite** (default) and **PostgreSQL**. The backend is auto-detected from your `DATABASE_URL` scheme, or you can set `DATABASE_BACKEND` explicitly.
 
 ## SQLite (default)
