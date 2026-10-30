@@ -1,8 +1,10 @@
 ---
-title: "Standard Libraries"
+title: "Lua standard libraries"
+description: "The parts of Lua 5.4's standard library a script can use in the Lua interpreter."
+type: reference
 ---
 
-The following Lua 5.4 standard library modules and builtins are available in the HappyView sandbox.
+The Lua interpreter (`happyview-lua`) keeps these Lua 5.4 standard libraries and builtins. JavaScript and TypeScript scripts get their engine's own built-ins; see [Languages](/docs/reference/scripts/languages).
 
 ## string
 
@@ -26,7 +28,6 @@ The following Lua 5.4 standard library modules and builtins are available in the
 - [`insert`](https://lua.org/manual/5.4/manual.html#pdf-table.insert)
 - [`remove`](https://lua.org/manual/5.4/manual.html#pdf-table.remove)
 - [`sort`](https://lua.org/manual/5.4/manual.html#pdf-table.sort)
-- [`unpack`](https://lua.org/manual/5.4/manual.html#pdf-table.unpack)
 
 ## math
 
@@ -47,9 +48,16 @@ Only the following safe functions are available from the `os` module:
 - [`time`](https://lua.org/manual/5.4/manual.html#pdf-os.time)
 - [`date`](https://lua.org/manual/5.4/manual.html#pdf-os.date)
 - [`difftime`](https://lua.org/manual/5.4/manual.html#pdf-os.difftime)
-- [`clock`](https://lua.org/manual/5.4/manual.html#pdf-os.clock)
 
-Dangerous functions like `os.execute`, `os.remove`, `os.rename`, and `os.exit` are not available.
+Every other `os` function is absent, including `os.execute`, `os.remove`, `os.rename`, `os.exit`, `os.getenv` and `os.clock`.
+
+## coroutine
+
+The whole [`coroutine`](https://lua.org/manual/5.4/manual.html#6.2) library.
+
+## utf8
+
+The whole [`utf8`](https://lua.org/manual/5.4/manual.html#6.5) library.
 
 ## Builtins
 
@@ -61,7 +69,6 @@ Dangerous functions like `os.execute`, `os.remove`, `os.rename`, and `os.exit` a
 - [`ipairs`](https://lua.org/manual/5.4/manual.html#pdf-ipairs)
 - [`next`](https://lua.org/manual/5.4/manual.html#pdf-next)
 - [`select`](https://lua.org/manual/5.4/manual.html#pdf-select)
-- [`unpack`](https://lua.org/manual/5.4/manual.html#pdf-table.unpack)
 - [`error`](https://lua.org/manual/5.4/manual.html#pdf-error)
 - [`pcall`](https://lua.org/manual/5.4/manual.html#pdf-pcall)
 - [`xpcall`](https://lua.org/manual/5.4/manual.html#pdf-xpcall)

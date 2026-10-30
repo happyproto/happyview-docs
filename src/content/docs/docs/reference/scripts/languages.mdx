@@ -284,6 +284,16 @@ export default async function handle(input: unknown, ctx: { job: Job }) {
 }
 ```
 
+## Lua specifics
+
+Lua scripts run in PUC Lua 5.4 with a cut-down standard library:
+
+- **Kept:** `string`, `table`, `math`, `coroutine`, `utf8`, and from `os` only `os.time`, `os.date` and `os.difftime`. The full list is in [Lua standard libraries](/docs/reference/scripts/standard-libraries).
+- **Absent:** `io`, `debug` and `package`, the rest of `os` (including `os.clock`), and the base functions `load`, `loadfile`, `dofile` and `collectgarbage`.
+- **`require` is HappyView's.** Lua's own is replaced by one that loads installed libraries (`happyview.*`) and the built-in `internal.*` modules.
+- **Reading a removed v2 global raises an error naming it**, such as `params` or `db`, with the way to migrate. Any other unknown global is `nil`, as in plain Lua.
+- **Limits can't be caught away.** `pcall` can catch the error a script's instruction or time limit raises, but the run still ends. See [Limits](/docs/reference/scripts/limits).
+
 ## TypeScript specifics
 
 TypeScript is compiled to JavaScript and then run by the same engine as JavaScript, so everything in the [contract](/docs/reference/scripts/contract) applies unchanged. What TypeScript adds:

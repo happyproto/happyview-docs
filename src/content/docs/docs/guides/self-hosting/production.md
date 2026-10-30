@@ -2,7 +2,7 @@
 title: "Production"
 ---
 
-This page covers what to change when taking a HappyView instance from local development to production. For setup instructions, see [Deployment](/docs/guides/self-hosting/railway). This page assumes you already have a working deployment and focuses on hardening and operational concerns.
+This page covers what to change when taking a HappyView instance from local development to production. For setup instructions, see [Docker](/docs/guides/self-hosting/docker) or [the release binaries](/docs/guides/self-hosting/binary). This page assumes you already have a working deployment and focuses on hardening and operational concerns.
 
 ## Session secret
 

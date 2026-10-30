@@ -72,7 +72,6 @@ export const v3Sidebar: Sidebar = [
         label: 'Scripts',
         collapsed: true,
         items: [
-          d('guides/lua-scripting'),
           d('guides/migrating-scripts'),
           d('guides/type-generation'),
           {
@@ -115,7 +114,6 @@ export const v3Sidebar: Sidebar = [
             items: [
               d('guides/self-hosting/docker'),
               d('guides/self-hosting/binary'),
-              d('guides/self-hosting/railway'),
               d('guides/self-hosting/from-source'),
               d('guides/self-hosting/production'),
             ],
@@ -134,18 +132,11 @@ export const v3Sidebar: Sidebar = [
           d('guides/hardening'),
           d('guides/event-logs'),
           d('guides/telemetry'),
-          d('guides/github-actions'),
           d('guides/troubleshooting'),
           d('guides/upgrading-to-v3'),
           d('guides/upgrading-to-v2'),
         ],
       },
-      {
-        label: 'Tutorials',
-        collapsed: true,
-        items: [d('guides/statusphere')],
-      },
-      d('guides/contributing'),
     ],
   },
   {

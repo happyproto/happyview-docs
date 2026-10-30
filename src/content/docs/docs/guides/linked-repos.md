@@ -106,5 +106,5 @@ Deleting the grant on HappyView's side doesn't revoke the authorization at the P
 
 - [Linked Repos admin API](/docs/reference/admin/linked-repos): Drive the whole lifecycle headlessly
 - [Libraries](/docs/reference/scripts/libraries): `happyview.linked_repos` and the other script libraries
-- [Lua Scripting](/docs/guides/lua-scripting): Script contexts and triggers
+- [Scripts](/docs/getting-started/scripts): Script contexts and triggers
 - [Permissions](/docs/guides/permissions): The full permission list

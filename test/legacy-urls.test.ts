@@ -11,8 +11,12 @@ const legacy = readFileSync(new URL('legacy-urls.txt', import.meta.url), 'utf8')
   .filter((line) => line && !line.startsWith('#'));
 const map = redirects as Record<string, string>;
 
+// A target outside the site (HappyView's CONTRIBUTING.md) isn't checked here.
+const external = (url: string) => /^https?:\/\//.test(url);
+
 const built = (url: string) => {
-  const path = url.replace(/^\//, '').replace(/\/$/, '');
+  if (external(url)) return true;
+  const path = url.split('#')[0].replace(/^\//, '').replace(/\/$/, '');
   return existsSync(new URL(path ? `${path}/index.html` : 'index.html', dist)) || existsSync(new URL(path, dist));
 };
 

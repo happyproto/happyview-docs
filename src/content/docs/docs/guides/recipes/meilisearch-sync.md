@@ -47,7 +47,7 @@ end
 
 ## Configuration
 
-This script uses [script variables](/docs/guides/lua-scripting) instead of hardcoded values. Set these via the [admin API](/docs/reference/admin/admin-api) or dashboard:
+This script uses [script variables](/docs/reference/admin/script-variables) instead of hardcoded values. Set these via the [admin API](/docs/reference/admin/admin-api) or dashboard:
 
 | Variable              | Value                                                                          |
 | --------------------- | ------------------------------------------------------------------------------ |
@@ -62,4 +62,4 @@ This record script keeps an external search index in sync with your indexed reco
 
 Meilisearch is a good fit for self-hosted deployments — colocate it alongside HappyView (e.g. on the same Railway project) for sub-millisecond network latency.
 
-Combine this with a [query script](/docs/guides/lua-scripting) that searches Meilisearch instead of the local database for a full-text search experience that goes beyond what `happyview.db`'s `search` offers.
+Combine this with a [query script](/docs/reference/scripts/types-and-triggers#xrpc-scripts) that searches Meilisearch instead of the local database for a full-text search experience that goes beyond what `happyview.db`'s `search` offers.

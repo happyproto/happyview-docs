@@ -4,7 +4,7 @@ title: "Docker"
 
 This guide deploys HappyView from the prebuilt images published to GitHub Container Registry, using one of the two production Compose files in the repository. Nothing is compiled locally — the image already contains the server and the dashboard.
 
-If you want to run the repository's development stack with hot reloading, see [Local Development](/docs/guides/contributing) instead. To run the server directly with `cargo run`, see [From Source](/docs/guides/self-hosting/from-source).
+If you want to run the repository's development stack with hot reloading, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md instead. To run the server directly with `cargo run`, see [From Source](/docs/guides/self-hosting/from-source).
 
 ## Prerequisites
 
@@ -144,7 +144,7 @@ It serves the HTTP→HTTPS redirect *and* the ACME HTTP-01 challenge — which i
 ### Other options
 
 - **A proxy on the host** — leave the default `ports` block and point nginx, Caddy, or Traefik at `127.0.0.1:3000`
-- **Cloudflare Tunnel** — no inbound port needs opening at all. See [Local Development](/docs/guides/contributing#exposing-your-instance-with-a-cloudflare-tunnel) for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname
+- **Cloudflare Tunnel** — no inbound port needs opening at all. See [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname
 - **`HTTP_BIND=0.0.0.0:3000`** — publishes on all interfaces. Only do this if something else is firewalling the port, since `ports` bypasses the host firewall on most Docker installs
 
 Whatever you use, `PUBLIC_URL` must match the resulting public URL exactly. To serve HappyView at a subpath alongside other services, see [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath). `BASE_PATH` is applied at container start, so prebuilt images work at any subpath without a rebuild.
@@ -247,4 +247,4 @@ The SQLite stack keeps everything in the `happyview-data` volume; the Postgres s
 - [Production](/docs/guides/self-hosting/production) — the full hardening and operations checklist
 - [Hardening](/docs/guides/hardening) — locking down a public instance
 - [Configuration](/docs/guides/configuration) — every environment variable
-- [Statusphere tutorial](/docs/guides/statusphere) — upload lexicons, add query logic, index records
+- [Deploying](/docs/getting-started/deploying) — deploy a project to your instance

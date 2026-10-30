@@ -90,4 +90,4 @@ To switch back to Postgres, revert your `DATABASE_URL` to the Postgres connectio
 - [SQLite → Postgres migration](/docs/guides/database/sqlite-to-postgres-migration) — migrate in the opposite direction
 - [Database setup](/docs/guides/database/database-setup) — choose between SQLite and Postgres for new instances
 - [Backfill](/docs/guides/backfill) — re-index records from the network after switching backends
-- [Lua scripting](/docs/guides/lua-scripting) — write SQL that works against either backend
+- [Scripts](/docs/getting-started/scripts) — write SQL that works against either backend

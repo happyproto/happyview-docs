@@ -248,5 +248,5 @@ If you are migrating existing Lua scripts from Postgres SQL syntax to SQLite syn
 
 - [SQLite → Postgres migration](/docs/guides/database/sqlite-to-postgres-migration) — switch an existing instance from SQLite to Postgres
 - [Postgres → SQLite migration](/docs/guides/database/postgres-to-sqlite-migration) — switch an existing instance from Postgres to SQLite
-- [Lua scripting](/docs/guides/lua-scripting) — write queries that target either backend
+- [Scripts](/docs/getting-started/scripts) — write queries that target either backend
 - [Configuration](/docs/guides/configuration) — `DATABASE_URL` and related variables

@@ -41,7 +41,7 @@ The JSON editor provides real-time validation against the atproto Lexicon v1 sch
 
 The Lua editor provides context-aware code completions, including suggestions for the `Record`, `db`, `input`, and `params` APIs as well as Lua keywords, builtins, and standard library functions. It also has snippets for `if`, `for`, `function`, etc.
 
-See [Lua Scripting](/docs/guides/lua-scripting) for the full runtime reference and examples.
+See [Scripts](/docs/getting-started/scripts) for the full runtime reference and examples.
 
 ### Records
 
@@ -116,6 +116,6 @@ The **About** page shows the current HappyView version and instance configuratio
 ## Next steps
 
 - [Lexicons](/docs/getting-started/lexicons) — how lexicons drive HappyView's indexing and routing
-- [Lua Scripting](/docs/guides/lua-scripting) — write custom query and procedure logic
+- [Scripts](/docs/getting-started/scripts) — write custom query and procedure logic
 - [Permissions](/docs/guides/permissions) — manage user access to admin features
 - [Configuration](/docs/guides/configuration) — full list of environment variables

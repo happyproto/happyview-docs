@@ -151,27 +151,27 @@ It also covers reading what is deployed. A deploy can add, change and remove eve
 
 ## Permission templates
 
-Templates are predefined sets of permissions that simplify user creation. Pass a `template` value when creating a user via `POST /admin/users`.
+Templates are predefined sets of permissions that simplify adding an operator. Pass a `template` value when creating one via `POST /admin/users`. A template is named after a level of access, not a kind of person: every one of them is given to an operator, including the **Operator** template.
 
-### Viewer
+### Viewer template
 
 Read-only access. Can browse lexicons, records, scripts, stats, events, dead letters, and user lists but cannot modify anything.
 
 Includes: `lexicons:read`, `records:read`, `scripts:read`, `script-variables:read`, `users:read`, `api-keys:read`, `backfill:read`, `stats:read`, `events:read`, `dead-letters:read`
 
-### Operator
+### Operator template
 
-Everything in Viewer, plus the ability to run backfill jobs, manage API keys, and manage dead letters.
+Everything in the **Viewer** template, plus the ability to run backfill jobs, manage API keys, and manage dead letters.
 
 Adds: `backfill:create`, `api-keys:create`, `api-keys:delete`, `dead-letters:manage`
 
-### Manager
+### Manager template
 
-Everything in Operator, plus the ability to manage and publish lexicons, records, scripts, labelers, settings, plugins, API clients, and spaces, and to deploy the project.
+Everything in the **Operator** template, plus the ability to manage and publish lexicons, records, scripts, labelers, settings, plugins, API clients, and spaces, and to deploy the project.
 
 Adds: `lexicons:create`, `lexicons:delete`, `lexicons:publish`, `scripts:manage`, `project:deploy`, `script-variables:create`, `script-variables:delete`, `records:delete`, `labelers:create`, `labelers:read`, `labelers:delete`, `settings:manage`, `plugins:read`, `plugins:create`, `plugins:delete`, `api-clients:view`, `api-clients:create`, `api-clients:edit`, `api-clients:delete`, `spaces:create`, `spaces:read`, `spaces:update`, `spaces:delete`, `spaces:manage-members`, `spaces:manage-invites`, `spaces:manage-records`, `spaces:manage-credentials`
 
-### Full Access
+### Full Access template
 
 All 52 permissions. Equivalent to granting every permission individually (but still not superadmin).
 

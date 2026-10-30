@@ -15,7 +15,7 @@ You don't write route handlers or database queries; you upload a lexicon and Hap
 | `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint that proxies writes to the user's PDS                                                           |
 | `definitions` | Stored but does not generate routes or subscriptions                                                                                     |
 
-A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint. The [Statusphere tutorial](/docs/guides/statusphere) walks through this pattern end-to-end.
+A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint.
 
 ## Target collection
 
@@ -106,7 +106,7 @@ In short: to serve an XRPC method on your instance, it needs a lexicon there. Ot
 
 ## Next steps
 
-- [Lua Scripting](/docs/guides/lua-scripting): Add custom query and procedure logic to your endpoints
+- [Scripts](/docs/getting-started/scripts): Add custom query and procedure logic to your endpoints
 - [Record & Label Scripts](/docs/getting-started/reacting-to-records): Run scripts when records are indexed or labels arrive
 - [XRPC API](/docs/reference/xrpc): Understand how the generated endpoints behave
 - [Backfill](/docs/guides/backfill): Learn how historical records are indexed

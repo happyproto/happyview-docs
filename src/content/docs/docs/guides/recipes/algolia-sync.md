@@ -59,4 +59,4 @@ Replace the placeholder values:
 
 This record script keeps an external search index in sync with your indexed records in real time. Users searching through Algolia get results that reflect the latest state of the network without polling or scheduled jobs.
 
-Combine this with a [query script](/docs/guides/lua-scripting) that searches Algolia instead of the local database for a full-text search experience that goes beyond what `happyview.db`'s `search` offers.
+Combine this with a [query script](/docs/reference/scripts/types-and-triggers#xrpc-scripts) that searches Algolia instead of the local database for a full-text search experience that goes beyond what `happyview.db`'s `search` offers.

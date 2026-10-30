@@ -2,7 +2,7 @@
 title: "From Source"
 ---
 
-This guide runs HappyView directly with `cargo run`. If you'd rather run the whole stack in containers, see [Local Development](/docs/guides/contributing). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
+This guide runs HappyView directly with `cargo run`. If you'd rather run the whole stack in containers, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md. To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
 
 ## Prerequisites
 
@@ -66,4 +66,4 @@ HappyView starts on port 3000 (configurable via the `PORT` environment variable)
 
 ## Next steps
 
-Your HappyView instance is running. Follow the [Statusphere tutorial](/docs/guides/statusphere) to upload lexicons, add custom query logic, and start indexing records from the network.
+Your HappyView instance is running. Install an interpreter before saving any script: a self-hosted instance ships with none ([Languages](/docs/reference/scripts/languages#install-an-interpreter)). Then [deploy a project](/docs/getting-started/deploying) to it.
