@@ -1,0 +1,189 @@
+---
+title: "Queries and procedures"
+description: "Turn query and procedure lexicons into XRPC endpoints, and decide what they answer."
+type: how-to
+prerequisites:
+  - /docs/getting-started/lexicons
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page adds endpoints to your app. A **query lexicon** becomes a read endpoint your app calls with `GET`; a **procedure lexicon** becomes a write endpoint it calls with `POST`. Both answer at `/xrpc/<NSID>`.
+
+## A query that lists records
+
+The simplest query needs no script. Add a query lexicon next to your record lexicon, say `src/lexicons/xyz/statusphere/listStatuses.json`:
+
+```json
+{
+  "lexicon": 1,
+  "id": "xyz.statusphere.listStatuses",
+  "defs": {
+    "main": {
+      "type": "query",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": { "type": "integer" },
+          "cursor": { "type": "string" },
+          "did": { "type": "string" }
+        }
+      },
+      "output": { "encoding": "application/json" }
+    }
+  }
+}
+```
+
+Then tell HappyView which collection it lists, in `happyview.toml`:
+
+```toml
+[lexicons."xyz.statusphere.listStatuses"]
+target_collection = "xyz.statusphere.status"
+```
+
+Save, and it answers:
+
+```sh
+curl 'http://127.0.0.1:3000/xrpc/xyz.statusphere.listStatuses?limit=5'
+```
+
+Without a script, a query returns records from its `target_collection`, the most recently indexed first:
+
+- `limit`: how many, 20 by default and 100 at most.
+- `cursor`: from the previous page's response, to get the next page. A response has a `cursor` only when there may be more.
+- `did`: only that account's records.
+- `uri`: one record by its URI, answered as `{"record": {…}}`, or a 404.
+
+The response is `{"records": [ … ], "cursor": "…"}`, each record with its `uri` added.
+
+## A query with a script
+
+To answer anything else, put a script beside the lexicon with the same name. The project's `com.example.hello` already has one:
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+-- src/lexicons/com/example/hello.lua
+function handle(input, ctx)
+  return { message = "Hello, " .. (input.name or "world") .. "!" }
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+// src/lexicons/com/example/hello.js
+export default function handle(input, ctx) {
+  return { message: `Hello, ${input.name ?? "world"}!` };
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+// src/lexicons/com/example/hello.ts
+import type { Params, Output } from "happyview:lexicons/com.example.hello";
+import type { QueryCtx } from "happyview:ctx";
+
+export default function handle(input: Params, ctx: QueryCtx): Output {
+  return { message: `Hello, ${input.name ?? "world"}!` };
+}
+```
+
+</TabItem>
+</Tabs>
+
+- `input` is the query's parameters. Integers, numbers and booleans arrive as those types, not strings.
+- `ctx` says who's calling (`ctx.caller_did`, absent for an anonymous call), the `target_collection` (`ctx.collection`), `ctx.env`, and more. [The script contract](/docs/reference/scripts/contract) lists all of it.
+- What `handle` returns is the response, as JSON.
+
+A query can be called anonymously, so a script can't assume a caller. To read records, a script uses the `happyview.db` library; [Plugins and libraries](/docs/getting-started/plugins-and-libraries) adds it and shows a query built on it.
+
+:::caution[Parameters aren't checked against the lexicon yet]
+Today HappyView converts each parameter to its declared type but doesn't enforce the rest of the lexicon, such as `maxLength` or required parameters. [happyview#276](https://github.com/gamesgamesgamesgamesgames/happyview/pull/276) adds that check and is pending. Until it's released, check what your script relies on.
+:::
+
+## A procedure
+
+A procedure changes something, and always runs as a signed-in user. A call with no user gets a `401`. How your app's users sign in is in [Authentication](/docs/getting-started/authentication).
+
+Without a script, a procedure writes its body as a record to the caller's own PDS, in its `target_collection`:
+
+```toml
+[lexicons."xyz.statusphere.setStatus"]
+target_collection = "xyz.statusphere.status"
+```
+
+By default it creates a record, or replaces one when the body has a `uri`. `action = "create"`, `"update"` or `"delete"` under the same table makes it do only that.
+
+With a script, the procedure decides what to write. Writing to the caller's repository uses the `happyview.record` library:
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+-- src/lexicons/xyz/statusphere/setStatus.lua
+local record = require("happyview.record")
+
+function handle(input, ctx)
+  return record.create(ctx.collection, {
+    status = input.status,
+    createdAt = input.createdAt,
+  })
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+// src/lexicons/xyz/statusphere/setStatus.js
+import record from "happyview.record";
+
+export default function handle(input, ctx) {
+  return record.create(ctx.collection, {
+    status: input.status,
+    createdAt: input.createdAt,
+  });
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+// src/lexicons/xyz/statusphere/setStatus.ts
+import record from "happyview.record";
+
+export default function handle(
+  input: { status: string; createdAt: string },
+  ctx: { collection: string },
+) {
+  return record.create(ctx.collection, {
+    status: input.status,
+    createdAt: input.createdAt,
+  });
+}
+```
+
+</TabItem>
+</Tabs>
+
+`record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; writing to repositories you've been granted is [Linked repos](/docs/guides/linked-repos).
+
+## Errors
+
+- **Returning an error.** Return `{ error = "NotFound", message = "…" }` (in Lua; an object in JavaScript) and the response is that object. If the lexicon declares the name under `errors`, the status is `400`; otherwise it's `200`.
+- **A script that fails** answers `500` with the error, its type and its line: `{"error": "script_error", "errorType": "runtime", "message": "…", "line": 4, …}`. A script that runs too long answers `408`.
+- **No interpreter** for the script's language answers `503`.
+
+[The script contract](/docs/reference/scripts/contract#errors) has every case.
+
+## Next steps
+
+- [Scripts](/docs/getting-started/scripts): how scripts run, and the libraries they reach.
+- [XRPC API](/docs/reference/xrpc): every endpoint an instance serves.

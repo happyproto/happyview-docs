@@ -180,7 +180,8 @@ resp, err := http.DefaultClient.Do(req)
 ```sh
 curl http://127.0.0.1:3000/xrpc/app.bsky.actor.getProfile \
   -H "X-Client-Key: $CLIENT_KEY" \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: DPoP $ACCESS_TOKEN" \
+  -H "DPoP: $DPOP_PROOF"
 ```
 
 </TabItem>
@@ -288,7 +289,8 @@ resp, err := http.DefaultClient.Do(req)
 ```sh
 curl -X POST http://127.0.0.1:3000/xrpc/com.atproto.repo.uploadBlob \
   -H "X-Client-Key: $CLIENT_KEY" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: DPoP $ACCESS_TOKEN" \
+  -H "DPoP: $DPOP_PROOF" \
   -H "Content-Type: image/png" \
   --data-binary @image.png
 ```

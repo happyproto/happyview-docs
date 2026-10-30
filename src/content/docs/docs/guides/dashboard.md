@@ -27,7 +27,7 @@ HappyView generates a default Lua script when you first set the type to query or
 
 Toggle **Enable backfill** to index historical records when uploading a record-type lexicon.
 
-**Network** lexicons are fetched from the atproto network. Enter an NSID (e.g. `xyz.statusphere.status`) and HappyView resolves the schema automatically. If found, the lexicon JSON is displayed in a read-only editor. Click **Add** to track it. Network lexicons are kept up to date via the Jetstream subscription. See [Lexicons - Network lexicons](/docs/getting-started/lexicons#network-lexicons) for how resolution works.
+**Network** lexicons are fetched from the atproto network. Enter an NSID (e.g. `xyz.statusphere.status`) and HappyView resolves the schema automatically. If found, the lexicon JSON is displayed in a read-only editor. Click **Add** to track it. Network lexicons are kept up to date via the Jetstream subscription. See [Lexicons - Network lexicons](/docs/reference/lexicons#network-lexicons) for how resolution works.
 
 #### JSON editor
 

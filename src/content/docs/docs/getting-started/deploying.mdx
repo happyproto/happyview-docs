@@ -1,0 +1,138 @@
+---
+title: "Deploying"
+description: "Deploy your project to a HappyView instance, on HappyProto or self-hosted, by hand or from CI."
+type: how-to
+prerequisites:
+  - /docs/getting-started/testing
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page deploys your project to an instance: you sign in to it once with `hpy`, preview what a deploy would change, then deploy. The same steps work for an instance on HappyProto and one you run yourself.
+
+## Before you start
+
+- **An instance running HappyView v3.** A deploy needs an instance on the v3 line.
+- **An operator account on it with the `project:deploy` permission.** The **Manager** template includes it, and superadmin includes everything.
+- **A PDS that supports atproto permission sets.** Signing in asks your PDS to grant `hpy` HappyView's admin permission set; a PDS that can't is refused with a message saying so. To deploy without signing in, use an API key, as [Deploy from CI](#deploy-from-ci) does.
+
+## Sign in to the instance
+
+<Tabs syncKey="hosting">
+<TabItem label="HappyProto">
+
+Your instance's URL is in your HappyProto project, in the HappyProto dashboard.
+
+```sh
+hpy happyview login --url https://<your instance>
+```
+
+</TabItem>
+<TabItem label="Self-hosted">
+
+Use the instance's public URL, the one its `PUBLIC_URL` names.
+
+```sh
+hpy happyview login --url https://happyview.example.com
+```
+
+</TabItem>
+</Tabs>
+
+`hpy` opens your browser to sign in with your atproto account, and remembers the session. `hpy happyview whoami` shows who you're signed in as, and `hpy happyview logout` signs out.
+
+If you're signed in to more than one instance, pass `--url` to each command below to say which.
+
+## Preview the deploy
+
+```sh
+hpy happyview deploy --dry-run
+```
+
+A dry run builds your project on the instance and lists what would change, the plugins it would install, and any backfills it would start, without changing anything. If the project doesn't build there, it lists the problems with their files and lines.
+
+## Deploy
+
+```sh
+hpy happyview deploy
+```
+
+`hpy` shows the same preview and asks you to confirm (`--yes` skips the question). Then it:
+
+1. installs the interpreters and libraries your `happyview.lock` names, at exactly those versions;
+2. sends your project: `happyview.toml` and everything under `src/`;
+3. starts the backfills your lexicons ask for.
+
+The instance builds the project before it switches over. If the build fails, nothing changes: the project that was already there keeps serving, and the deploy prints the problems.
+
+A deploy refuses a `happyview.lock` that doesn't match `happyview.toml`. Run `hpy happyview dev` or `check` once to bring it up to date, and commit it.
+
+### What a deploy changes, and what it doesn't
+
+| A deploy changes | A deploy leaves alone |
+| --- | --- |
+| Lexicons, scripts, modules and tests from `src/` | The instance's HappyView version |
+| Per-lexicon and per-script settings from `happyview.toml` | `[instance]`, `[dev]` and `[jetstream]`, with a warning if they differ |
+| Labeler subscriptions and network lexicons | Operators, permissions, API clients and keys |
+| Plugins, from `happyview.lock` | Plugins the lock doesn't list, unless you pass `--prune-plugins` |
+| | Lexicons and scripts added in the dashboard (where your project has the same one, the project's is used) |
+| | `ctx.env` values: set those under **System > ENV Variables** on the instance |
+
+## Deploy from CI
+
+In CI, `hpy` uses an API key instead of a sign-in. Create one on the instance under **Access > API Keys** with these permissions:
+
+- `project:deploy`
+- `plugins:read` and `plugins:create`
+- `plugins:delete` too, if you deploy with `--prune-plugins`
+
+Then give the job the instance's URL and the key:
+
+| Variable | Value |
+| --- | --- |
+| `HPY_HV_URL` | The instance's URL |
+| `HPY_HV_API_KEY` | The API key |
+
+A GitHub Actions workflow that checks and tests every push, and deploys `main`:
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install hpy
+        run: |
+          curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
+
+      - name: Check
+        run: hpy happyview check --locked
+
+      - name: Test
+        run: hpy happyview test --locked
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        run: hpy happyview deploy --yes
+        env:
+          HPY_HV_URL: ${{ vars.HPY_HV_URL }}
+          HPY_HV_API_KEY: ${{ secrets.HPY_HV_API_KEY }}
+```
+
+- `check` builds the project the way the instance will, and fails on any problem: exit code `0` if it builds, `1` if it doesn't, `2` if it can't run.
+- `test` runs your tests: `0` if they all pass, `1` if any fail or none ran, `2` for a usage, plugin or build problem.
+- `--locked` fails if `happyview.lock` isn't up to date, so CI never runs plugins you didn't commit.
+
+## Next steps
+
+- [Backfill](/docs/guides/backfill): watch the backfills a deploy starts.
+- [Configuration](/docs/guides/configuration): the settings an instance takes from its environment.

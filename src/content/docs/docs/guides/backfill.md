@@ -6,7 +6,7 @@ When you add a new record-type lexicon, HappyView starts indexing new records fr
 
 ## When backfill runs
 
-- **Automatically** when a record-type lexicon is uploaded with `backfill: true` (the default). See [Lexicons - Backfill flag](/docs/getting-started/lexicons#backfill-flag).
+- **Automatically** when a record-type lexicon is uploaded with `backfill: true` (the default). See [Lexicons - Backfill flag](/docs/reference/lexicons#backfill-flag).
 - **Manually** via `POST /admin/backfill` or the [dashboard](/docs/guides/dashboard). You can scope a manual backfill to a specific collection, a specific DID, or both.
 
 See the [admin API](/docs/reference/admin/backfill) for endpoint details.
@@ -141,5 +141,5 @@ Both actions require the `backfill:create` permission.
 
 ## Next steps
 
-- [Lexicons](/docs/getting-started/lexicons#backfill-flag): Control whether lexicons trigger backfill on upload
+- [Lexicons](/docs/reference/lexicons#backfill-flag): Control whether lexicons trigger backfill on upload
 - [Admin API — Backfill](/docs/reference/admin/backfill): Full reference for backfill endpoints

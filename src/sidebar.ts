@@ -160,6 +160,7 @@ export const v3Sidebar: Sidebar = [
           d('reference/scripts/json'),
         ],
       },
+      d('reference/lexicons'),
       d('reference/xrpc'),
       d('reference/authentication'),
       {

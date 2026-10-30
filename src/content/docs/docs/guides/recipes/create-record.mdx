@@ -50,7 +50,8 @@ Writing as the caller needs a PDS session, which a procedure has when its caller
 ```sh
 curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.createRecord \
   -H "X-Client-Key: $CLIENT_KEY" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: DPoP $ACCESS_TOKEN" \
+  -H "DPoP: $DPOP_PROOF" \
   -H "Content-Type: application/json" \
   -d '{ "text": "Hello world", "createdAt": "2025-01-01T00:00:00Z" }'
 ```

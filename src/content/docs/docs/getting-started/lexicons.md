@@ -1,113 +1,82 @@
 ---
 title: "Lexicons"
+description: "Add a record lexicon to your project and start indexing its collection, then decide whether to backfill."
+type: how-to
+prerequisites:
+  - /docs/getting-started/project-structure
 ---
 
-Lexicons are the core building block of HappyView. They're [atproto schema definitions](https://atproto.com/specs/lexicon) that describe your data model, and HappyView uses them to decide which records to index from the network and what XRPC endpoints to serve.
+This page adds a record lexicon to your project, so your instance starts indexing that collection, and shows the other ways a lexicon can reach an instance.
 
-You don't write route handlers or database queries; you upload a lexicon and HappyView generates the infrastructure from it. There are two ways to add lexicons: uploading them via the [admin API](/docs/reference/admin/lexicons) or [dashboard](/docs/guides/dashboard), or fetching them directly from the atproto network via [DNS authority resolution](#network-lexicons).
+A lexicon is a schema, and HappyView reads three kinds:
 
-## Supported lexicon types
+- A **record lexicon** describes a kind of record. HappyView indexes every record of that collection it sees.
+- A **query lexicon** or **procedure lexicon** describes an endpoint. HappyView serves it at `/xrpc/<NSID>`; [Queries and procedures](/docs/getting-started/queries-and-procedures) covers those.
 
-| Type          | Effect                                                                                                                                   |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `record`      | Adds the collection to the Jetstream subscription filter and indexes records into the database. Supports [record scripts](/docs/getting-started/reacting-to-records) |
-| `query`       | Registers a `GET /xrpc/{nsid}` endpoint that queries indexed records                                                                     |
-| `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint that proxies writes to the user's PDS                                                           |
-| `definitions` | Stored but does not generate routes or subscriptions                                                                                     |
+The examples use Statusphere's `xyz.statusphere.status`: a status emoji a user sets on their account.
 
-A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint.
+## Add a record lexicon
 
-## Target collection
+A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexicons/xyz/statusphere/status.json`.
 
-Query and procedure lexicons don't store data themselves. They operate on records stored by a record-type lexicon. The `target_collection` field tells HappyView which record collection to read from or write to. Without it, default queries and procedures won't know which DB records to operate on.
+```json
+{
+  "lexicon": 1,
+  "id": "xyz.statusphere.status",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["status", "createdAt"],
+        "properties": {
+          "status": { "type": "string", "minLength": 1, "maxGraphemes": 1, "maxLength": 32 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}
+```
 
-For example, a query lexicon `xyz.statusphere.listStatuses` would set `target_collection` to `xyz.statusphere.status` to read from that record collection.
+Save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
 
-See the [admin API](/docs/reference/admin/lexicons#upload--upsert-a-lexicon) for how to set `target_collection` when uploading.
+If the `id` doesn't match the path, the build fails and tells you where the file should be.
 
-:::note
-The `target_collection` is available in scripts as `ctx.collection`, but it is not required if your endpoint has a script.
-:::
+## Backfill what came before
 
-## Backfill flag
+Indexing starts from now: records written before your instance started listening aren't fetched unless you ask for a **backfill**. Turn it on for a lexicon in `happyview.toml`:
 
-When a record-type lexicon is uploaded for the first time, HappyView automatically creates a [backfill job](/docs/guides/backfill) to discover existing records. The job appears on the Backfill page like any other, with the same progress, pause, cancel, and retry controls, and the upload response returns its id as `backfill_job_id`.
+```toml
+[lexicons."xyz.statusphere.status"]
+backfill = true
+```
 
-Only the *first* upload starts one. Editing a lexicon afterwards re-saves it without re-crawling the network — if you want to backfill again, start one from the Backfill page. If you only want to index new records going forward, set `backfill` to `false`.
+A backfill finds every account with records in that collection and fetches them from each account's PDS. It runs once per collection: when you deploy, or at an instance's next start, and not again after that. [Backfill](/docs/guides/backfill) covers watching one and running it again.
 
-## Jetstream collection filters
+A local instance doesn't backfill unless you also set `backfill = true` under `[dev]`, so developing doesn't crawl the network every time you start.
 
-When record-type lexicons change (uploaded or deleted), HappyView reconnects to Jetstream with an updated collection filter. HappyView always includes `com.atproto.lexicon.schema` in the filter to track network lexicon updates.
+## Use a lexicon someone else published
 
-Deleting a lexicon stops live indexing for that collection but does **not** remove previously indexed records from the database. If you want to start fresh, you'll need to delete the records separately (e.g. via the admin API or directly in the database) before re-adding the lexicon and running a [backfill](/docs/guides/backfill).
+Many lexicons are already published by their authors, such as Bluesky's `app.bsky.feed.post`. You don't need a copy in your project: list it under `[network_lexicons]` and the instance fetches it from the network and keeps it up to date.
 
-## Network lexicons
+```toml
+[network_lexicons]
+include = ["app.bsky.feed.post"]
+```
 
-If a lexicon has already been published, you don't need to upload the JSON manually. Point HappyView at the NSID and it fetches the lexicon directly from the network. Network lexicons are kept updated automatically via the Jetstream subscription. If the publisher updates their schema, your instance will pick up the change.
+A network lexicon is indexed like your own, but it never backfills on its own; start one from **Data > Backfill** if you want history. Only lexicons in your project can have record scripts beside them, because a script's path names its lexicon.
 
-### NSID authority resolution
+## Lexicons added in the dashboard
 
-Lexicons are stored as records themselves with the `com.atproto.lexicon.schema` NSID and the rkey set to the lexicon's NSID. To find which repo holds a lexicon, HappyView resolves the NSID's authority:
+An operator can also add a lexicon to an instance in the dashboard, under **Data > Lexicons**, or through the admin API. Those **uploaded lexicons** live in that instance's database, not in your project. When a project file and an uploaded lexicon have the same NSID, the project's wins, and the dashboard refuses to change or delete it.
 
-1. Extract the authority from the NSID (all segments except the last). For example, `xyz.statusphere.status` has authority `xyz.statusphere`.
-2. Reverse the authority segments to form a domain: `statusphere.xyz`.
-3. Look up the DNS TXT record at `_lexicon.{domain}` (e.g. `_lexicon.statusphere.xyz`).
-4. Parse the TXT record for a `did=<DID>` value.
-5. Resolve the DID to a PDS endpoint via the PLC directory.
+## Removing a lexicon
 
-:::note
-The spec states that resolution must be **non-hierarchical**. Each authority requires its own explicit TXT record. If you have multiple levels of authority (e.g. `xyz.statusphere.status` and `xyz.statusphere.actor.profile`), each level must have an explicit TXT record.
-:::
-
-### Fetching
-
-Once the authority DID and PDS endpoint are known, HappyView calls `com.atproto.repo.getRecord` with:
-
-- `repo` = the authority DID
-- `collection` = `com.atproto.lexicon.schema`
-- `rkey` = the NSID
-
-The `value` field of the response is the raw lexicon JSON.
-
-### Live updates via Jetstream
-
-HappyView's Jetstream subscription always includes the `com.atproto.lexicon.schema` collection, so it receives real-time events whenever a lexicon schema record is created, updated, or deleted on the network. When an event arrives, HappyView checks whether the record's DID and rkey (the NSID) match any tracked network lexicon:
-
-- **create/update**: The new schema is parsed and upserted into the `happyview_lexicons` table and the in-memory registry. If it's a record-type lexicon, Jetstream collection filters are updated to include the new collection.
-- **delete**: The lexicon is removed from the `happyview_lexicons` table and registry, and collection filters are updated accordingly.
-
-### Startup re-fetch
-
-On every startup, HappyView re-fetches all network lexicons from their respective PDSes. This ensures consistency even if events were missed while offline. Failures are logged as warnings but don't block startup.
-
-## XRPC routing for unknown methods
-
-When a client calls `/xrpc/{method}` and HappyView has a local lexicon for that NSID, the request is handled by the lexicon's script (or HappyView's default behavior if no script is attached). Otherwise the request falls to the XRPC proxy, which **System > XRPC Proxy** in the dashboard configures with two settings ([XRPC proxy](/docs/reference/admin/xrpc-proxy)):
-
-- **Mode** decides whether a method may be proxied at all: `open` (the default), `allowlist`, `blocklist` or `disabled`. A method the mode refuses gets `403` with `NSID not allowed by proxy policy`.
-- **Routing** decides where it goes: `authority` (the default) or `serviceproxy`, which forwards to the caller's own PDS as the caller.
-
-With `authority` routing, HappyView finds the method's **home authority** using the same DNS-based authority resolution described above:
-
-1. Extract the authority from the NSID (all segments except the last). `com.example.foo.getBar` → authority `com.example.foo`.
-2. Reverse it to form a domain: `foo.example.com`.
-3. Look up the `_lexicon.foo.example.com` TXT record for the authority's DID.
-4. Resolve that DID to a PDS endpoint via the PLC directory.
-5. Proxy the request to `{pds_endpoint}/xrpc/{method}`.
-
-A few things to note:
-
-- HappyView does **not** proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record — the actual XRPC request goes to whatever PDS endpoint the authority DID resolves to.
-- `authority` routing forwards the request anonymously, with no credentials of the caller's, for queries and procedures alike. To act as the caller, for example to call `com.atproto.repo.createRecord` on their PDS, switch routing to `serviceproxy`.
-- If authority resolution fails — no TXT record, unresolvable DID, or the target PDS doesn't support the method — the client gets an error back. HappyView does not fall back to the other routing.
-- A query or procedure lexicon you track as a network lexicon is served locally, like one you uploaded.
-
-In short: to serve an XRPC method on your instance, it needs a lexicon there. Otherwise the proxy settings decide what happens to the request.
+Delete the file and the instance stops indexing that collection. The records it already indexed stay; deleting them is a separate step under **Data > Records**.
 
 ## Next steps
 
-- [Scripts](/docs/getting-started/scripts): Add custom query and procedure logic to your endpoints
-- [Record & Label Scripts](/docs/getting-started/reacting-to-records): Run scripts when records are indexed or labels arrive
-- [XRPC API](/docs/reference/xrpc): Understand how the generated endpoints behave
-- [Backfill](/docs/guides/backfill): Learn how historical records are indexed
-- [Admin API](/docs/reference/admin/admin-api): Full reference for lexicon management endpoints
+- [Queries and procedures](/docs/getting-started/queries-and-procedures): serve the records you index.
+- [Lexicons reference](/docs/reference/lexicons): every lexicon type, network resolution, and what happens to methods you don't define.

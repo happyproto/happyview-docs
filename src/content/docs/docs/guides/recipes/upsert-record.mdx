@@ -116,13 +116,13 @@ Writing by a known key like this is also how to keep record scripts idempotent. 
 ```sh
 # Create: no rkey, so a new TID is used
 curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.setStatus \
-  -H "X-Client-Key: $CLIENT_KEY" -H "Authorization: Bearer $TOKEN" \
+  -H "X-Client-Key: $CLIENT_KEY" -H "Authorization: DPoP $ACCESS_TOKEN" \ -H "DPoP: $DPOP_PROOF" \
   -H "Content-Type: application/json" \
   -d '{ "status": "hello" }'
 
 # Update: send the rkey of the existing record
 curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.setStatus \
-  -H "X-Client-Key: $CLIENT_KEY" -H "Authorization: Bearer $TOKEN" \
+  -H "X-Client-Key: $CLIENT_KEY" -H "Authorization: DPoP $ACCESS_TOKEN" \ -H "DPoP: $DPOP_PROOF" \
   -H "Content-Type: application/json" \
   -d '{ "rkey": "3abc123", "status": "updated" }'
 ```
