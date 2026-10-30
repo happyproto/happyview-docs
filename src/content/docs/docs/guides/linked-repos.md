@@ -2,7 +2,7 @@
 title: "Linked Repos"
 ---
 
-Linked repos give your AppView durable write access to a specific atproto repo. Once an admin links a repo, any Lua script can write to it through the `happyview.linked_repos` library. You can think of these repos like service accounts: an account that your AppView may post on behalf of, a partner repo into which you mirror data, or an operator account your instance maintains on its own.
+Linked repos give your AppView durable write access to a specific atproto repo. Once an admin links a repo, any script can write to it through the `happyview.linked_repos` library. You can think of these repos like service accounts: an account that your AppView may post on behalf of, a partner repo into which you mirror data, or an operator account your instance maintains on its own.
 
 This is different from writing on behalf of the user making a request. Those writes use the caller's own OAuth session and only work while that session is live. A linked repo belongs to the instance: HappyView stores the session, handles token refreshes in the background, and allows scripts to act as the linked repo rather than the caller.
 

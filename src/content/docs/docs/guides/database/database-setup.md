@@ -43,7 +43,7 @@ HappyView runs migrations automatically on startup for both backends.
 **When to use Postgres:**
 
 - High write concurrency from many simultaneous users
-- You need Postgres-specific features (e.g., advanced JSON queries in Lua scripts)
+- You need Postgres-specific features (e.g., advanced JSON queries in scripts)
 - You already have a Postgres infrastructure
 
 ## Migrations at startup
@@ -58,7 +58,7 @@ HappyView applies any pending migrations every time it starts, before it serves 
 
 ## The compact record format
 
-This release moves records into a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` become views with the same columns, so `happyview.sql`'s `raw`, Lua scripts and plugin SQL keep reading them, and `record` is still the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
+This release moves records into a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` become views with the same columns, so `happyview.sql`'s `raw`, scripts and plugin SQL keep reading them, and `record` is still the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
 
 Measured on 67,437 Bluesky posts and their 105,095 refs:
 

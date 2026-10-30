@@ -16,7 +16,7 @@ XRPC routes accept several authentication methods:
 - **Service auth JWTs** — `Authorization: Bearer <service_auth_jwt>` (inter-service calls). A token whose `lxm` names a different method than the one called is rejected.
 - **Space credentials** — `Authorization: Atproto-Space <credential>` with an `Atproto-Space-Audience` header and an HTTP Message Signature (space routes only). See [Space credentials](/docs/guides/spaces/credentials#using-a-credential).
 - **Cookie-based session auth** — signed session cookies (used by the dashboard, falls back when no `Authorization` header is present)
-- **Anonymous** — no auth headers (identity is `nil` in Lua scripts)
+- **Anonymous** — no auth headers (identity is `nil` in scripts)
 
 Bearer API keys (`hv_*`) are rejected on XRPC routes — they are only accepted on the [admin API](/docs/reference/admin/admin-api).
 
@@ -766,11 +766,11 @@ All error responses return JSON with an `error` field:
 | `400 Bad Request` | Invalid input | Missing required fields, malformed JSON, invalid AT URI |
 | `401 Unauthorized` | Authentication failed | Missing or invalid client identification or DPoP authentication |
 | `404 Not Found` | Method or record not found | XRPC method has no matching lexicon, or the requested record doesn't exist |
-| `500 Internal Server Error` | Server-side failure | Lua script error, database error, or upstream PDS failure |
+| `500 Internal Server Error` | Server-side failure | Script error, database error, or upstream PDS failure |
 
-### Lua script errors
+### Script errors
 
-When a Lua script fails, the response is a `script_error` body:
+When a script fails, the response is a `script_error` body:
 
 ```json
 { "error": "script_error", "errorType": "runtime", "message": "attempt to index a nil value (local 't')", "method": "xyz.statusphere.getStatus", "line": 3, "file": "src/lib/format.lua" }

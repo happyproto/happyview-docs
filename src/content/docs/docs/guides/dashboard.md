@@ -10,7 +10,7 @@ On a fresh deployment with no users in the database, the first person to log in 
 
 ### Lexicons
 
-Navigate to **Lexicons** to see all uploaded lexicons. Each entry shows the NSID, type (record, query, procedure), and whether a Lua script is attached.
+Navigate to **Lexicons** to see all uploaded lexicons. Each entry shows the NSID, type (record, query, procedure), and whether a script is attached.
 
 #### Adding a lexicon
 
@@ -23,7 +23,7 @@ Click **Add Lexicon** and choose **Local** or **Network**.
 
 The Lua panel only appears when the lexicon's `defs.main.type` is `query` or `procedure`. For record-type lexicons, only the JSON panel is shown.
 
-HappyView generates a default Lua script when you first set the type to query or procedure. The template updates when the type changes, but once you edit the script your changes are preserved.
+HappyView generates a default script when you first set the type to query or procedure. The template updates when the type changes, but once you edit the script your changes are preserved.
 
 Toggle **Enable backfill** to index historical records when uploading a record-type lexicon.
 
@@ -107,7 +107,7 @@ Toggle experimental feature flags for your instance. Flags like `feature.spaces_
 
 ### Scripts
 
-Manage script variables that are injected into Lua scripts at runtime. Variables defined here are available to all scripts and can be used to store shared configuration without hardcoding values in individual scripts.
+Manage script variables that are given to scripts as `ctx.env` at runtime. Variables defined here are available to all scripts and can be used to store shared configuration without hardcoding values in individual scripts.
 
 ## About
 

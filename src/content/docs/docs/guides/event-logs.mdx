@@ -4,7 +4,7 @@ title: "Event Logs"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-HappyView maintains an internal event log that records system activity — lexicon changes, record operations, Lua script executions and errors, user actions, API key events, backfill jobs, and Jetstream connectivity. Events are stored in the database and queryable via the [admin API](/docs/reference/admin/events).
+HappyView maintains an internal event log that records system activity — lexicon changes, record operations, script runs and errors, user actions, API key events, backfill jobs, and Jetstream connectivity. Events are stored in the database and queryable via the [admin API](/docs/reference/admin/events).
 
 ## Event types
 
@@ -45,7 +45,7 @@ Logged when records are received from Jetstream and stored or removed from the l
 | `script.executed` | info     | Method NSID | `method`, `caller_did`, `duration_ms`, `response_size`, `input`, `response` |
 | `script.error`    | error    | Method NSID | `error`, `script_source`, `input`, `caller_did`, `method`                  |
 
-Logged when Lua scripts run for XRPC query or procedure endpoints. `script.executed` is written on every call and stores the full request and response, so it is only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. `script.error` is always logged. Script errors capture the full context needed to reproduce and debug the issue: the error message, the complete Lua script source, the input that triggered it, and the caller's DID.
+Logged when scripts run for XRPC query or procedure endpoints. `script.executed` is written on every call and stores the full request and response, so it is only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. `script.error` is always logged. Script errors capture the full context needed to reproduce and debug the issue: the error message, the complete script source, the input that triggered it, and the caller's DID.
 
 :::note
 For query scripts (unauthenticated), `caller_did` is omitted from the detail and `input` is replaced by `params`, since queries don't have an authenticated user or request body.

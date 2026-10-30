@@ -2,7 +2,7 @@
 title: "Attestation Signing"
 ---
 
-HappyView can sign records with an ECDSA (secp256k1) keypair so their origin can be verified later. Lua scripts call `sign` on `happyview.atproto` to attach an inline signature to a record and `verify_signature` to check one. HappyView's implementation follows the [atproto attestation spec](https://tangled.org/strings/did:plc:cbkjy5n7bk3ax2wplmtjofq2/3m3fy2xuahc22).
+HappyView can sign records with an ECDSA (secp256k1) keypair so their origin can be verified later. Scripts call `sign` on `happyview.atproto` to attach an inline signature to a record and `verify_signature` to check one. HappyView's implementation follows the [atproto attestation spec](https://tangled.org/strings/did:plc:cbkjy5n7bk3ax2wplmtjofq2/3m3fy2xuahc22).
 
 ## How it works
 
@@ -37,7 +37,7 @@ HappyView checks for signing configuration in this order:
 
 If key loading fails for any reason, signing is disabled and both `sign` and `verify_signature` raise `NO_SIGNER`.
 
-## Using in Lua scripts
+## Using in scripts
 
 Both functions live on the [`happyview.atproto`](/docs/reference/scripts/libraries) library, available in every script kind.
 
@@ -123,7 +123,7 @@ Signatures are stored as objects in the record's `signatures` array:
 
 ## Security considerations
 
-`sign` exposes the instance's signing key to Lua scripts. Treat it as a
+`sign` exposes the instance's signing key to scripts. Treat it as a
 privileged capability:
 
 - **It signs exactly what you give it.** A signature only proves *"this HappyView

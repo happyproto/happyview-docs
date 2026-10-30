@@ -4,7 +4,7 @@ title: "Linked Repos"
 
 Admin API endpoints for managing linked repos and their invites. The whole lifecycle is available here, so the feature can be driven headlessly without the dashboard. For a conceptual overview, see [Linked Repos](/docs/guides/linked-repos).
 
-The repo write operations themselves are not part of this API. The admin API manages grants; Lua scripts use them through the [`happyview.linked_repos` library](/docs/reference/scripts/libraries).
+The repo write operations themselves are not part of this API. The admin API manages grants; scripts use them through the [`happyview.linked_repos` library](/docs/reference/scripts/libraries).
 
 ## List grants
 

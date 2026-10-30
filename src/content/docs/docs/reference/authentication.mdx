@@ -176,7 +176,7 @@ curl 'https://happyview.example.com/xrpc/com.example.feed.getHot' \
 
 ### Authenticating users for procedures
 
-Queries that don't care who is calling need nothing more than the client key. Procedures — and queries whose Lua scripts read the caller's DID — need a real atproto OAuth session.
+Queries that don't care who is calling need nothing more than the client key. Procedures — and queries whose scripts read the caller's DID — need a real atproto OAuth session.
 
 XRPC routes accept several auth methods, resolved in this order:
 
@@ -184,7 +184,7 @@ XRPC routes accept several auth methods, resolved in this order:
 2. **Bearer service auth JWT** (`Authorization: Bearer <service_auth_jwt>`) — a standard atproto inter-service JWT signed by a DID's atproto signing key; the caller is identified as the issuer DID. The token's `lxm`, when present, must name the method being called.
 3. **Space credential** (`Authorization: Atproto-Space <credential>`) — a signed JWT granting read access to a specific space, sent with an `Atproto-Space-Audience` header and an HTTP Message Signature by the key the credential is bound to; accepted on space routes. See [Space credentials](/docs/guides/spaces/credentials).
 4. **Cookie session** — when no `Authorization` header is present, HappyView falls back to the signed session cookie set after dashboard login.
-5. **Anonymous** — if none of the above is present, the request proceeds with no identity. The endpoint's Lua script determines whether that is acceptable.
+5. **Anonymous** — if none of the above is present, the request proceeds with no identity. The endpoint's script determines whether that is acceptable.
 
 Bearer API keys (`hv_*`) are **not** accepted on XRPC endpoints — those are for admin API access only.
 

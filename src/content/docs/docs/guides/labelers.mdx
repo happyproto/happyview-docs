@@ -4,7 +4,7 @@ title: "Labelers"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Labelers are external services that apply content labels to records. They operate out-of-band — labeler data does not appear in repos or flow through relays. HappyView can subscribe to labelers and store the labels they emit, making them available on records in the admin dashboard and via Lua scripts.
+Labelers are external services that apply content labels to records. They operate out-of-band — labeler data does not appear in repos or flow through relays. HappyView can subscribe to labelers and store the labels they emit, making them available on records in the admin dashboard and to scripts.
 
 ## How labelers work
 
@@ -262,7 +262,7 @@ Labels appear in the **Labels** column on the Records page as color-coded badges
 
 Self-labels (applied by the record author) use an outline badge style to distinguish them from external labels. Hover over a badge to see the source labeler's DID.
 
-Labels are also available in the records API response and in Lua scripts via `get_labels` and `get_labels_batch` on the [`happyview.atproto`](/docs/reference/scripts/libraries) library.
+Labels are also available in the records API response and in scripts via `get_labels` and `get_labels_batch` on the [`happyview.atproto`](/docs/reference/scripts/libraries) library.
 
 ## Using labels in your AppView
 
@@ -283,5 +283,5 @@ Labeler subscriptions give your AppView access to content moderation signals wit
 ## Next steps
 
 - [Admin API — Labelers](/docs/reference/admin/labelers) — full endpoint documentation
-- [Libraries](/docs/reference/scripts/libraries) — `happyview.atproto`, which exposes `get_labels` and `get_labels_batch` to Lua scripts
+- [Libraries](/docs/reference/scripts/libraries) — `happyview.atproto`, which exposes `get_labels` and `get_labels_batch` to scripts
 - [Permissions](/docs/guides/permissions) — manage user access to labeler operations

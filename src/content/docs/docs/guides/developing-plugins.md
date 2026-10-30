@@ -55,7 +55,7 @@ The manifest's `plugin_type` field decides what the host expects the plugin to e
 | Type | Description |
 | --- | --- |
 | `auth` (default) | An external-auth plugin: OAuth/OpenID/API-key login plus profile lookup. The [Plugin Exports](#plugin-exports) and [Host Functions](#host-functions) below are the `auth` contract. |
-| `library` | A plugin other plugins and Lua scripts call into, via `host_call_library` or `require(namespace)`. See [Library Plugins](#library-plugins) below. |
+| `library` | A plugin other plugins and scripts call into, via `host_call_library` or `require(namespace)`. See [Library Plugins](#library-plugins) below. |
 | `interpreter` | A script runtime. It runs the scripts written in its language. See [Interpreter manifests](#interpreter-manifests) below. |
 
 Every plugin, `auth` included, needs `api_version` `"2"` and a `capabilities` list covering everything its compiled module imports. The loader refuses an older `api_version` with an error naming the plugin type and the version it found, and a manifest with no `api_version` at all as unreadable.
@@ -316,7 +316,7 @@ Plugins can import these host functions:
 
 ## Library Plugins
 
-A `library` plugin exports a callable API surface instead of the `auth` contract above. Other plugins reach it through `host_call_library`; Lua scripts reach it through `require(namespace)`.
+A `library` plugin exports a callable API surface instead of the `auth` contract above. Other plugins reach it through `host_call_library`; scripts reach it through `require(namespace)`.
 
 ### Exports
 
