@@ -2,6 +2,10 @@
 title: "Configuration"
 ---
 
+:::tip[Every variable in one place]
+[Configuration](/docs/reference/configuration) in the reference lists every environment variable, instance setting and `happyview.toml` key, with defaults and accepted values. This guide explains the ones you'll set first.
+:::
+
 HappyView is configured via environment variables. Serving with a plain `happyview` loads a `.env` file on startup, from the working directory or the nearest parent that has one. `happyview check`, `happyview dev`, `happyview test` and `happyview types` do not: under `happyview dev` the project's `.env` supplies script variables (`ctx.env`) only, as [Running locally](#running-locally-happyview-dev) explains, and under `happyview test` they come from `.env.test` instead, as [Testing](/docs/getting-started/testing) explains. See [Running locally](/docs/getting-started/running-locally) for running a project on your machine, [Docker](/docs/guides/self-hosting/docker) for deploying from published images, [Native binary](/docs/guides/self-hosting/binary) for a released binary, or [Production](/docs/guides/self-hosting/production) for the hardening checklist.
 
 ## Environment variables
@@ -18,8 +22,8 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `ZSTD_DICT_TRAIN_AT` | no | `5000` | Records a collection needs before HappyView trains its compression dictionary. `0` or an invalid value uses `5000`. SQLite-only; ignored on Postgres |
 | `RECORD_COMPRESSION_INTERVAL_SECS` | no | `600` | Seconds between the background passes that train dictionaries and compress records stored uncompressed. The first pass runs within 30 seconds of startup. `0` or an invalid value uses `600`; to stop compressing, set `RECORD_COMPRESSION=none`. SQLite-only; ignored on Postgres |
 | `PUBLIC_URL` | yes | --- | Public-facing URL for HappyView (used for OAuth callbacks, e.g. `https://happyview.example.com`). **For local development, use `http://127.0.0.1:3000` — not `localhost`** (see note below). Do **not** include the base path — see `BASE_PATH` |
-| `BASE_PATH` | no | _(none)_ | Subpath prefix for mounting HappyView behind a reverse proxy (e.g. `/hv`). Must start with `/` and have no trailing slash. When set, all routes are served under this prefix and the dashboard is accessible at `https://example.com/hv/`. See [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath) |
-| `SESSION_SECRET` | no | dev default | Secret key for signing session cookies (at least 64 characters). **Must be set in production** |
+| `BASE_PATH` | no | _(none)_ | Subpath prefix for mounting HappyView behind a reverse proxy (e.g. `/hv`). Must start with `/`; a trailing `/` is trimmed, and `/` alone means none. When set, all routes are served under this prefix and the dashboard is accessible at `https://example.com/hv/`. See [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath) |
+| `SESSION_SECRET` | yes, to sign in | --- | Signs the dashboard's session cookies. At least 32 bytes; generate one with `openssl rand -base64 48`. Unset, too short or a placeholder such as `change-me-in-production`, the instance starts but nobody can sign in to the dashboard |
 | `HOST` | no | `0.0.0.0` | Bind host |
 | `PORT` | no | `3000` | Bind port |
 | `JETSTREAM_URL` | no | `wss://jetstream1.us-east.bsky.network` | Jetstream host for real-time record streaming. The scheme can be `ws`, `wss`, `http` or `https`, and a v1 or v2 subscribe path, a trailing slash and a query string are ignored, so all of them name the same host |
@@ -45,12 +49,12 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `JOB_WORKER_CONCURRENCY` | no | `1` | Number of background jobs that run at once. Values below 1 fall back to 1; values above 32 are capped at 32. Each running job uses database connections, so keep this below `DATABASE_MAX_CONNECTIONS`. |
 | `PLATFORM_API_KEY_HASH` | no | — | Hex SHA-256 of a key that a managed-hosting provider uses to administer this instance. Leave unset when self-hosting. See [Platform API](/docs/reference/admin/platform) |
 | `TELEMETRY_MANAGED_BY` | no | --- | Name of the managed-hosting platform that requires this instance to send telemetry. When set, the instance sends a report every day whatever **System > Telemetry** says, the report names the platform in `managed`, and the telemetry settings can't be changed from the dashboard or the API (`409`). The report covers the instance only: the contact address and the lexicon names, structures and documents are left out, and setting keys HappyView doesn't define are counted, not named. Lowercase letters, digits and `-`, starting with a letter or digit, at most 64 characters; any other value refuses boot. Leave unset when self-hosting |
-| `TOKEN_ENCRYPTION_KEY` | no | --- | Base64-encoded 32-byte key for encrypting stored OAuth tokens. **Strongly recommended in production** |
+| `TOKEN_ENCRYPTION_KEY` | no | --- | Base64-encoded 32-byte key for encrypting stored OAuth tokens (`openssl rand -base64 32`). Without a valid one, app sign-in, spaces and service identity don't work; an invalid value is logged and ignored. **Set it in production** |
 | `DEFAULT_RATE_LIMIT_CAPACITY` | no | `100` | Default token bucket capacity used when registering a new API client |
 | `DEFAULT_RATE_LIMIT_REFILL_RATE` | no | `2.0` | Default token bucket refill rate (tokens/second) for new API clients |
 | `ATTESTATION_PRIVATE_KEY` | no | auto-generated | Hex-encoded 32-byte secp256k1 private key for [attestation signing](/docs/guides/attestation-signing). Auto-generated and persisted to database on first run |
-| `ATTESTATION_KEY_ID` | no | `did:web:{host}#attestation` | Key identifier included in attestation signatures. Derived from `PUBLIC_URL` by default |
-| `ATTESTATION_SIG_TYPE` | no | app-specific NSID | `$type` value used in attestation signature objects |
+| `ATTESTATION_KEY_ID` | no | `did:web:{host}#attestation` | Key identifier included in attestation signatures. Derived from `PUBLIC_URL`, except that it's `did:web:localhost#attestation` when `ATTESTATION_PRIVATE_KEY` is set |
+| `ATTESTATION_SIG_TYPE` | no | `games.gamesgamesgamesgames.attestation` | `$type` value used in attestation signature objects |
 | `BACKFILL_CONCURRENT_PDS` | no | `10` | How many PDS servers to fetch from simultaneously during backfill. Overridden by database setting if set via admin API |
 | `BACKFILL_CONCURRENT_DIDS_PER_PDS` | no | `3` | How many repos to fetch concurrently from each PDS during backfill. Overridden by database setting if set via admin API |
 | `BACKFILL_CONCURRENT_RESOLUTION` | no | `100` | How many DID document lookups to run in parallel during PDS resolution. Overridden by database setting if set via admin API |
@@ -80,7 +84,8 @@ atproto OAuth loopback clients are registered with `127.0.0.1`. If you set `PUBL
 # SQLite (default — zero setup required)
 DATABASE_URL=sqlite://data/happyview.db?mode=rwc
 PUBLIC_URL=http://127.0.0.1:3000
-SESSION_SECRET=change-me-in-production
+# Generate with: openssl rand -base64 48
+SESSION_SECRET=
 
 # Or use Postgres instead:
 # DATABASE_URL=postgres://happyview:happyview@localhost/happyview
@@ -130,7 +135,7 @@ SESSION_SECRET=change-me-in-production
 
 ## Project file (`happyview.toml`)
 
-When `HAPPYVIEW_PROJECT` names a directory, HappyView reads `happyview.toml` from it at boot. The file is optional, and **every environment variable wins over it**, including one set to an empty string. Instance settings saved in the dashboard win over both.
+When `HAPPYVIEW_PROJECT` names a directory, HappyView reads `happyview.toml` from it at boot. The file is optional, and **every environment variable wins over it**, including one set to an empty string. Instance settings saved in the dashboard win over both, for the [keys that have one](/docs/reference/configuration#instance-settings).
 
 ```toml
 [happyview]

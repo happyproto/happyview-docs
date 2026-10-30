@@ -6,7 +6,7 @@ This page covers what to change when taking a HappyView instance from local deve
 
 ## Session secret
 
-Set `SESSION_SECRET` to a random string of at least 64 characters. This signs the session cookies issued during OAuth login; rotating it invalidates every existing session.
+Set `SESSION_SECRET` to a random value of at least 32 bytes, such as the output of `openssl rand -base64 48`; a placeholder like `change-me-in-production` is refused and leaves nobody able to sign in. This signs the session cookies issued during OAuth login; rotating it invalidates every existing session.
 
 ```sh
 openssl rand -base64 48

@@ -23,7 +23,8 @@ Edit `.env` to point at your running services:
 # SQLite (default — no setup needed, file created automatically)
 DATABASE_URL=sqlite://data/happyview.db?mode=rwc
 PUBLIC_URL=http://127.0.0.1:3000
-SESSION_SECRET=change-me-in-production
+# Generate with: openssl rand -base64 48
+SESSION_SECRET=
 ```
 
 :::caution[Use 127.0.0.1, not localhost]
