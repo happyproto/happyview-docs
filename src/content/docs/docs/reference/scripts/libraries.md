@@ -16,6 +16,8 @@ A library is a WASM plugin a script loads with `require`. Each has a namespace u
 | `happyview.linked_repos` | `linked_repos:use` | Record writes, blob uploads and XRPC calls through repos an admin has linked | [README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/linked-repos) |
 | `happyview.jobs` | `jobs:create`, `jobs:read`, `jobs:read_any` | Enqueue background jobs, and read them back (reading needs `happyview-jobs` 1.1.0 or later) | [README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/jobs) |
 | `happyview.http` | `network:request:unrestricted` | Outbound HTTP: `get`, `post`, `put`, `patch`, `delete`, `head` | [README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/http) |
+| `happyview.blobs` | `blobs:read`, `blobs:write` | Store and read byte content, addressed by the CID of its contents | [README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/blobs) |
+| `happyview.account` | `caller:email` | The calling user's email address, as their PDS reports it | [README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/account) |
 
 The capability column is what an operator grants when installing the library, and it bounds what any script can do through it: `happyview.sql` with `database:write` can run any statement, `happyview.xrpc` with `caller:call` can invoke any procedure as the user. Install only what your scripts use.
 
