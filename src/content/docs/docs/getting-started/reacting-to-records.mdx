@@ -93,9 +93,9 @@ A script that returns nothing tells HappyView to skip the record, so it is never
 
 Create a record in the collection, for example by posting a status from a Statusphere client, or wait for one to arrive from the network.
 
-Then open **Event Logs** in the dashboard and set **Category** to **Script**. Each `log.info` call appears as a `script.log` event whose subject is the script's trigger, `record.create:xyz.statusphere.status`. `info`, `warn` and `error` lines are recorded here. `debug` lines go to the server log only.
+Then open **Event Logs** in the dashboard and set **Category** to **Script**. Each `log.info` call appears as a `script.log` event whose subject is the script's trigger, `record.create:xyz.statusphere.status`. `info`, `warn` and `error` lines are recorded here. `debug` lines aren't recorded as events.
 
-To see every script run, not just the lines your script logs, turn on **Verbose Event Logging** under **Settings > General**. It logs a `script.executed` event for each run. It writes a lot, so turn it off again when you're done.
+To see every script run, not just the lines your script logs, turn on **Verbose Event Logging** under **System > General**. It logs a `script.executed` event for each run. It writes a lot, so turn it off again when you're done.
 
 If the script fails, HappyView retries it and then moves the event to **Dead Letters**. The record is still indexed, so a broken script never stops indexing.
 
@@ -182,7 +182,7 @@ export default function handle(input: RecordEvent) {
 To change what is stored instead, return a different object. It replaces the record in the index. The full table of return values is in [Script types and triggers](/docs/reference/scripts/types-and-triggers#record-scripts).
 
 :::caution[Record hooks run at least once]
-Record hooks run at least once for each change, not exactly once. If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their hooks run again. On a managed instance, a backfill can also run a create hook over a record whose hook has already run. Write hooks so that running one twice for the same record has the same result as running it once. A hook that only returns a modified record is already safe. A hook with side effects, such as creating a job, writing to another repository or sending a notification, should check whether it has already done that for this record and version (its `uri` and `cid`) before doing it again. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+Record hooks run at least once for each change, not exactly once. If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their hooks run again. Write hooks so that running one twice for the same record has the same result as running it once. A hook that only returns a modified record is already safe. A hook with side effects, such as creating a job, writing to another repository or sending a notification, should check whether it has already done that for this record and version (its `uri` and `cid`) before doing it again. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 :::
 
 ## React to labels

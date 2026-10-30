@@ -39,7 +39,7 @@ Each rule sends lexicons to one of two places.
 
 Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **attach account** mode (see [Service Identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
 
-Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **Settings > Service Identity**, are asked for it. If yours was attached before HappyView could publish lexicons, or was last signed in through the ordinary dashboard login, the target shows as unavailable with what the session was granted: press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
+Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If yours was attached before HappyView could publish lexicons, or was last signed in through the ordinary dashboard login, the target shows as unavailable with what the session was granted: press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
 
 ### A linked repo
 

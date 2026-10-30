@@ -39,7 +39,7 @@ If your app has a backend that can securely store the client secret, use a confi
 
 ### From the dashboard
 
-Go to **Settings > API Clients > New client** and fill in:
+Go to **Access > API Clients > New client** and fill in:
 
 - **Client type** — `confidential` (default) or `public`
 - **Name** — a human-readable label (e.g. "My atproto Client")
@@ -531,7 +531,7 @@ HappyView is not involved in any of this — unless your `client_id_url` documen
 
 ##### Confidential clients: attaching the client assertion
 
-Publishing `token_endpoint_auth_method: "private_key_jwt"` (and a `jwks_uri` pointing back at HappyView) on your `client_id_url` document makes your app a confidential atproto OAuth client, which the PDS trusts with much longer-lived sessions than a public client gets. HappyView can hold the signing key for you — generate one from **Settings > API Clients > (your client) > AT Protocol Client Auth** in the dashboard, or via `POST /admin/api-clients/{id}/auth-key` — and use `POST /oauth/client-assertion` to sign on your behalf.
+Publishing `token_endpoint_auth_method: "private_key_jwt"` (and a `jwks_uri` pointing back at HappyView) on your `client_id_url` document makes your app a confidential atproto OAuth client, which the PDS trusts with much longer-lived sessions than a public client gets. HappyView can hold the signing key for you — generate one from **Access > API Clients > (your client) > AT Protocol Client Auth** in the dashboard, or via `POST /admin/api-clients/{id}/auth-key` — and use `POST /oauth/client-assertion` to sign on your behalf.
 
 :::caution
 The assertion is required **at both the pushed authorization request (PAR) and the token exchange** — these are two separate requests to the PDS's authorization server, each needing its own freshly signed assertion (they expire after 60 seconds). Signing once and reusing it for both calls will be rejected by the PDS.

@@ -15,7 +15,7 @@ Both are convention-driven: what gets deployed, and the trigger each script bind
 
 ## Prerequisites
 
-You need an [API key](/docs/guides/api-keys) with permission to write the resources you deploy. Create one under **Settings > API Keys** in the dashboard with these scopes:
+You need an [API key](/docs/guides/api-keys) with permission to write the resources you deploy. Create one under **Access > API Keys** in the dashboard with these scopes:
 
 - `lexicons:create` — upload lexicons
 - `scripts:manage` — upload route, record, job, and labeler scripts

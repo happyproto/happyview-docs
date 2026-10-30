@@ -217,7 +217,7 @@ For example, if a user with `lexicons:create` and `lexicons:read` creates a key 
 
 ### Via the dashboard
 
-Go to **Settings > Users** to view and manage user permissions. Click on a user to see their current permissions and modify them. You can also assign templates when creating new users.
+Go to **Access > Users** to view and manage user permissions. Click on a user to see their current permissions and modify them. You can also assign templates when creating new users.
 
 ### Via the API
 

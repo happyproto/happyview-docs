@@ -42,7 +42,7 @@ Link your AppView to an existing atproto account you control. HappyView verifies
 
 ## Skipping setup
 
-You can skip service identity configuration during setup. Your AppView will work with HappyView's built-in authentication, but standard atproto service-to-service routing won't be available. You can configure a service identity later from **Settings > Service Identity** in the dashboard.
+You can skip service identity configuration during setup. Your AppView will work with HappyView's built-in authentication, but standard atproto service-to-service routing won't be available. You can configure a service identity later from **System > Service Identity** in the dashboard.
 
 ## Further reading
 

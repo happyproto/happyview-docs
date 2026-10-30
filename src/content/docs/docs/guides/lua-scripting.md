@@ -38,7 +38,7 @@ Lua's own `require` is removed too, but HappyView installs its own in its place:
 
 The `os` module is replaced with a safe subset exposing only `os.time`, `os.date`, `os.difftime`, and `os.clock`. Dangerous functions like `os.execute`, `os.remove`, `os.rename`, and `os.exit` are not available.
 
-An instruction limit prevents runaway scripts, and a query or procedure's `handle` is also held to a wall clock. Both are set in Settings → General and take effect on the next run; `SCRIPT_INSTRUCTION_LIMIT` and `SCRIPT_WALL_CLOCK_SECONDS` in the [configuration](/docs/guides/configuration#environment-variables) apply when no setting is stored, and that table gives the defaults and the range each accepts. Exceeding either terminates the script with an error; `pcall` can catch it but cannot save the run.
+An instruction limit prevents runaway scripts, and a query or procedure's `handle` is also held to a wall clock. Both are set in System > General and take effect on the next run; `SCRIPT_INSTRUCTION_LIMIT` and `SCRIPT_WALL_CLOCK_SECONDS` in the [configuration](/docs/guides/configuration#environment-variables) apply when no setting is stored, and that table gives the defaults and the range each accepts. Exceeding either terminates the script with an error; `pcall` can catch it but cannot save the run.
 
 See the [Standard Libraries](/docs/reference/scripts/standard-libraries) reference for the full list of available Lua modules and builtins.
 

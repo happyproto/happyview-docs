@@ -26,7 +26,7 @@ For example, a query lexicon `xyz.statusphere.listStatuses` would set `target_co
 See the [admin API](/docs/reference/admin/lexicons#upload--upsert-a-lexicon) for how to set `target_collection` when uploading.
 
 :::note
-The `target_collection` is available in Lua scripts as `ctx.collection`, but it is not required if your endpoint uses a Lua script.
+The `target_collection` is available in scripts as `ctx.collection`, but it is not required if your endpoint has a script.
 :::
 
 ## Backfill flag
@@ -82,7 +82,12 @@ On every startup, HappyView re-fetches all network lexicons from their respectiv
 
 ## XRPC routing for unknown methods
 
-When a client calls `/xrpc/{method}` and HappyView has a local lexicon for that NSID, the request is handled by the lexicon's Lua script (or HappyView's default behavior if no script is attached). Otherwise, HappyView attempts to proxy the request to the method's **home authority** using the same DNS-based authority resolution described above:
+When a client calls `/xrpc/{method}` and HappyView has a local lexicon for that NSID, the request is handled by the lexicon's script (or HappyView's default behavior if no script is attached). Otherwise the request falls to the XRPC proxy, which **System > XRPC Proxy** in the dashboard configures with two settings ([XRPC proxy](/docs/reference/admin/xrpc-proxy)):
+
+- **Mode** decides whether a method may be proxied at all: `open` (the default), `allowlist`, `blocklist` or `disabled`. A method the mode refuses gets `403` with `NSID not allowed by proxy policy`.
+- **Routing** decides where it goes: `authority` (the default) or `serviceproxy`, which forwards to the caller's own PDS as the caller.
+
+With `authority` routing, HappyView finds the method's **home authority** using the same DNS-based authority resolution described above:
 
 1. Extract the authority from the NSID (all segments except the last). `com.example.foo.getBar` → authority `com.example.foo`.
 2. Reverse it to form a domain: `foo.example.com`.
@@ -93,16 +98,16 @@ When a client calls `/xrpc/{method}` and HappyView has a local lexicon for that 
 A few things to note:
 
 - HappyView does **not** proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record — the actual XRPC request goes to whatever PDS endpoint the authority DID resolves to.
-- Proxying applies equally to queries and procedures. For procedures, HappyView uses the caller's OAuth session to attach a DPoP-bound access token (see [Authentication](/docs/reference/authentication#proxying-procedures-to-the-users-pds)).
-- If authority resolution fails — no TXT record, unresolvable DID, or the target PDS doesn't support the method — the client gets an error back. HappyView does not fall back to any other routing strategy.
-- Tracking a network lexicon does **not** make HappyView handle requests for that NSID locally. Network lexicons are only about indexing record collections and keeping the schema up to date. If a client calls a query NSID that you've tracked as a network lexicon but haven't uploaded a local query lexicon for, HappyView still proxies the request out — it won't query your local record table. To serve a method locally, upload a local query or procedure lexicon with a matching `target_collection`.
+- `authority` routing forwards the request anonymously, with no credentials of the caller's, for queries and procedures alike. To act as the caller, for example to call `com.atproto.repo.createRecord` on their PDS, switch routing to `serviceproxy`.
+- If authority resolution fails — no TXT record, unresolvable DID, or the target PDS doesn't support the method — the client gets an error back. HappyView does not fall back to the other routing.
+- A query or procedure lexicon you track as a network lexicon is served locally, like one you uploaded.
 
-In short: if you want to serve an XRPC method on your instance, you need a local lexicon for it. Otherwise HappyView attempts to proxy to the method's home authority.
+In short: to serve an XRPC method on your instance, it needs a lexicon there. Otherwise the proxy settings decide what happens to the request.
 
 ## Next steps
 
 - [Lua Scripting](/docs/guides/lua-scripting): Add custom query and procedure logic to your endpoints
-- [Record & Label Scripts](/docs/getting-started/reacting-to-records): Run Lua scripts when records are indexed or labels arrive
+- [Record & Label Scripts](/docs/getting-started/reacting-to-records): Run scripts when records are indexed or labels arrive
 - [XRPC API](/docs/reference/xrpc): Understand how the generated endpoints behave
 - [Backfill](/docs/guides/backfill): Learn how historical records are indexed
 - [Admin API](/docs/reference/admin/admin-api): Full reference for lexicon management endpoints

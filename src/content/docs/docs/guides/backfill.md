@@ -130,7 +130,7 @@ All three sections update in real time via SSE (Server-Sent Events) while the jo
 
 ### Data retention
 
-Per-repo detail data is retained after job completion to support post-mortem analysis. A background task runs daily and deletes the detail rows, and any repos left queued by a cancelled or failed job, of jobs that finished more than 28 days ago (configurable via the `backfill_retention_days` setting in **Settings > General**, or the `BACKFILL_RETENTION_DAYS` environment variable). Set to `0` to keep data indefinitely.
+Per-repo detail data is retained after job completion to support post-mortem analysis. A background task runs daily and deletes the detail rows, and any repos left queued by a cancelled or failed job, of jobs that finished more than 28 days ago (configurable via the `backfill_retention_days` setting in **System > General**, or the `BACKFILL_RETENTION_DAYS` environment variable). Set to `0` to keep data indefinitely.
 
 You can also manually clear detail data:
 

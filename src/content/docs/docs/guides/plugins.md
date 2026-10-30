@@ -12,7 +12,7 @@ Official plugins for Steam, Xbox, itch.io, and other platforms are built in the 
 
 HappyView reads its plugin catalogue from a registry of `software.release` records, `https://api.happyproto.at` by default. Each plugin there is a project: a publisher's DID and a project name, such as `did:plc:mo7vq4jbioxwafy5zkcc3eux` and `happyview-lua`. The catalogue is refreshed every 15 minutes.
 
-1. Go to **Settings > Plugins**
+1. Go to **Integrations > Plugins**
 2. Click **Add plugin** and pick a plugin from the catalogue
 3. Choose a channel, review the plugin details and the capabilities it asks for, and click **Install**
 4. Configure any required secrets using the settings button

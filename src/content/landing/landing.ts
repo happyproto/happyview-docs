@@ -14,7 +14,7 @@ export const hero = {
 	title: 'Write the lexicon. HappyView serves the API.',
 	// 25 words.
 	subline:
-		'An open-source AppView for atproto. Each lexicon becomes an XRPC endpoint, a short Lua, JavaScript or TypeScript script answers it, and HappyView indexes your records.',
+		'An open-source AppView for atproto. Each query or procedure lexicon becomes an XRPC endpoint, a short Lua, JavaScript or TypeScript script answers it, and HappyView indexes your records.',
 	ctas: {
 		primary: { label: 'Get started', href: '/docs/getting-started/installation' },
 		secondary: { label: 'View on GitHub', href: 'https://github.com/gamesgamesgamesgamesgames/happyview' },
@@ -35,7 +35,7 @@ const response = '{"message":"Hello, Ada!"}'
 export const sample = {
 	title: 'Lexicons in, XRPC out',
 	intro:
-		'This is the whole project `hpy happyview create` gives you. The lexicon’s path is its route, and the script beside it answers it.',
+		'This is the heart of the project `hpy happyview create` gives you. The lexicon’s path is its route, and the script beside it answers it.',
 	tabs: [
 		{ label: 'happyview.toml', path: 'happyview.toml', lang: 'toml', code: toml },
 		{ label: 'Lexicon', path: 'src/lexicons/com/example/hello.json', lang: 'json', code: lexicon },

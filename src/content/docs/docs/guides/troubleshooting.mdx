@@ -55,7 +55,7 @@ then retry. Replay the dead letters once it is installed.
 - A script saved before the upgrade fails when it runs, with:
 
   ```
-  the '<global>' global was removed in v3; run the script codemod (Settings → Scripts → Migrate, or happyview-codemod) -- see the Migrating scripts guide
+  the '<global>' global was removed in v3; run the script codemod (Integrations > Scripts → Migrate, or happyview-codemod) -- see the Migrating scripts guide
   ```
 
   To an XRPC caller that is a `500` with `"error": "script_error"` and
@@ -107,7 +107,7 @@ the first two; `ctx.job.should_stop()` is how a job stops.
 **Fix.** Make the script do less per run: page through results, or move bulk
 work into a job. If the work is legitimate, raise the instruction or wall-clock
 limit with the `script_instruction_limit` / `script_wall_clock_seconds`
-settings (System → General), or the `SCRIPT_INSTRUCTION_LIMIT` /
+settings (System > General), or the `SCRIPT_INSTRUCTION_LIMIT` /
 `SCRIPT_WALL_CLOCK_SECONDS` environment variables. The settings win over the
 environment.
 
@@ -177,7 +177,7 @@ An account attached before publishing existed doesn't hold it. Neither does one
 whose last sign-in was an ordinary dashboard login, because that replaces the
 session.
 
-**Fix.** Go to **System → Service Identity**, press **Re-authenticate**, and
+**Fix.** Go to **System > Service Identity**, press **Re-authenticate**, and
 approve the request.
 
 ### "Missing permission: lexicons:publish"
@@ -192,7 +192,7 @@ approve the request.
 template includes it, but users created before v3 didn't get it. Super users
 can always publish.
 
-**Fix.** Grant `lexicons:publish` to the user under **Access → Users**.
+**Fix.** Grant `lexicons:publish` to the user under **Access > Users**.
 
 ## Records
 

@@ -10,7 +10,7 @@ Everything else about running an instance is where you left it: the database upg
 
 This guide covers the operator-facing changes. The script contract itself — the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers — is in [Migrating Scripts to v3](/docs/guides/migrating-scripts).
 
-**v3 is in alpha.** The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only: as of 2026-10-27 each is at `1.0.0-alpha.5`, and neither `latest` nor `beta` resolves to anything. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
+**v3 is in alpha.** The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
 
 ## Architecture changes
 
@@ -52,7 +52,7 @@ To see what is installed:
 curl "http://127.0.0.1:3000/admin/plugins?type=interpreter" -H "$AUTH"
 ```
 
-The scripts list also flags each row: `runnable` is `false` when no installed interpreter claims its `script_type`, and the dashboard marks those rows at **Settings → Scripts**.
+The scripts list also flags each row: `runnable` is `false` when no installed interpreter claims its `script_type`, and the dashboard marks those rows at **Integrations > Scripts**.
 
 ### Which interpreter
 
@@ -68,7 +68,7 @@ An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The 
 
 ### Installing it
 
-Go to **Settings → Plugins**, click **Add plugin**, pick the project from the catalogue, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
+Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the catalogue, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
 
 **It is the `alpha` channel.** A project publishes up to three — `latest`, `beta` and `alpha` — and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has; `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later, once there is somewhere to move it to — see [Channels](/docs/guides/plugins#channels).
 
@@ -89,7 +89,7 @@ A script stored before the upgrade stays in the table untouched and fails the fi
 Two things that matter for the order you do this in:
 
 - **The codemod does not need an interpreter.** It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
-- **`happyview-codemod` is not in the published Docker image.** From a container, use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`, or run the CLI from a source checkout against the same `DATABASE_URL`.
+- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`: run `docker run <image> happyview-codemod …` against the same `DATABASE_URL`, or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
 
 Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception, so a script with markers can be stored once you confirm.
 
@@ -143,7 +143,7 @@ v2 set a one-million-instruction limit and then never enforced it: the hook was 
 
 Jobs are exempt from the first two — running long is what a job is for, and `ctx.job.should_stop()` is its stop.
 
-Both settings resolve database → environment → default, so the **Instruction limit** and **Request wall clock** fields in **Settings → General** take precedence over the environment. A value outside the range is refused on save; an environment value outside it is warned about and the default stands. A change lands in-process and reaches a second instance on the same database within ten seconds.
+Both settings resolve database → environment → default, so the **Instruction limit** and **Request wall clock** fields in **System > General** take precedence over the environment. A value outside the range is refused on save; an environment value outside it is warned about and the default stands. A change lands in-process and reaches a second instance on the same database within ten seconds.
 
 The wall clock counts only time the script itself runs. Waiting on the host — an HTTP request, a database read — is not charged to it.
 
@@ -153,7 +153,7 @@ A run that spends either budget fails with `timeout`; one that exhausts its memo
 
 If you have alerting or log queries over script failures, two columns changed shape.
 
-**Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened — `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text. The old prefixes match nothing.
+**Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened — `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
 
 **An unrecognised `script_type`.** v2 validated the field during deserialisation, so an unknown language was a 422 from the request body. v3 accepts any string there and refuses it in the handler with a 400 naming the language, because what is valid now depends on which interpreters are installed.
 

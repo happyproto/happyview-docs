@@ -24,7 +24,7 @@ HappyView has two distinct authentication surfaces:
 
 Every XRPC request — including unauthenticated `GET` queries — must identify itself with a registered API client. The client key is HappyView's rate-limit bucket key and its way of knowing who is calling. A request without one returns `401 Unauthorized` with `Missing client identification`.
 
-Register a client in the dashboard (**Settings > API Clients > New client**) or via `POST /admin/api-clients`. You'll get back an `hvc_…` client key and an `hvs_…` client secret — **the secret is only shown once**, so capture it immediately.
+Register a client in the dashboard (**Access > API Clients > New client**) or via `POST /admin/api-clients`. You'll get back an `hvc_…` client key and an `hvs_…` client secret — **the secret is only shown once**, so capture it immediately.
 
 HappyView resolves the client key from the first of:
 
@@ -227,7 +227,7 @@ Admin endpoints don't use API clients. They require a real HappyView user, ident
 
 ### Admin API key
 
-For automation — CI/CD, monitoring, cron jobs — create an [admin API key](/docs/guides/api-keys) at **Settings > API Keys** or via `POST /admin/api-keys` and pass it as a bearer token:
+For automation — CI/CD, monitoring, cron jobs — create an [admin API key](/docs/guides/api-keys) at **Access > API Keys** or via `POST /admin/api-keys` and pass it as a bearer token:
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

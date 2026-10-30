@@ -51,7 +51,7 @@ Containment is all-or-nothing per permission entry. An entry listing both your o
 
 Any XRPC method with no lexicon registered on your instance falls through to the proxy. By default the proxy is **open**: it will attempt to serve any NSID a caller names.
 
-Under **Settings → XRPC Proxy** you can change this to:
+Under **System > XRPC Proxy** you can change this to:
 
 - **Disabled** — only locally registered lexicons are served. The strongest setting, and correct if your instance serves only its own lexicons.
 - **Allowlist** — only NSIDs matching a listed pattern are proxied. Patterns may be exact (`com.example.feed.getHot`) or wildcards (`com.example.*`).
