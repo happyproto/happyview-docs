@@ -12,7 +12,7 @@ HappyView v3 is in alpha. These docs describe v3; the [v2 docs](/docs/v2/) are k
 
 ## The idea
 
-- **A record lexicon is a collection to index.** Add one, and HappyView keeps every record of that kind it sees on the network.
+- **A record lexicon names a collection to index.** Add one, and HappyView keeps every record of that collection it sees on the network.
 - **A query or procedure lexicon is an endpoint.** Add one, and it answers at `/xrpc/<NSID>`.
 - **A script decides what happens.** A short program in Lua, JavaScript or TypeScript answers a query or procedure, or runs when a record changes.
 - **A project holds it all.** Lexicons and scripts are files in a directory you run locally and deploy to an instance.
@@ -21,6 +21,6 @@ New to atproto's terms? [How HappyView fits atproto](/docs/getting-started/how-h
 
 ## Where to start
 
-- **Build an app.** Start with [Getting Started](/docs/getting-started/how-happyview-fits-atproto): install `hpy`, create a project, and build it up one piece at a time.
+- **Build an app.** Follow Getting Started in order: [how HappyView fits atproto](/docs/getting-started/how-happyview-fits-atproto), [installation](/docs/getting-started/installation), [running locally](/docs/getting-started/running-locally), then lexicons, queries and procedures, scripts, plugins, authentication and testing, ending at [deploying](/docs/getting-started/deploying).
 - **Run your own instance.** [Self-hosting](/docs/guides/self-hosting/docker) covers Docker, the release binaries and production setup.
 - **Use HappyProto.** [HappyProto](https://happyproto.at) runs HappyView instances for you; you deploy your project to one.

@@ -42,6 +42,8 @@ A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexico
 
 Save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
 
+Records arrive only when someone writes one, so the list can stay empty for a while. To see records straight away, backfill the ones already on the network, as the next section shows, with `backfill = true` under `[dev]` as well.
+
 If the `id` doesn't match the path, the build fails and tells you where the file should be.
 
 ## Backfill what came before
@@ -79,4 +81,5 @@ Delete the file and the instance stops indexing that collection. The records it 
 ## Next steps
 
 - [Queries and procedures](/docs/getting-started/queries-and-procedures): serve the records you index.
+- [Reacting to records](/docs/getting-started/reacting-to-records): run a script when a record in your collection changes.
 - [Lexicons reference](/docs/reference/lexicons): every lexicon type, network resolution, and what happens to methods you don't define.

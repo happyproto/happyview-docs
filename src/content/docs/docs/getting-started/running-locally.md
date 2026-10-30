@@ -46,7 +46,7 @@ curl 'http://127.0.0.1:3000/xrpc/com.example.hello?name=Ada'
 
 ## Change it while it runs
 
-Open `src/lexicons/com/example/hello.lua`, change the greeting, and save. `dev` rebuilds the project and prints what changed:
+Open `src/lexicons/com/example/hello.lua` (or `.js` or `.ts`, if you picked another language), change the greeting, and save. `dev` rebuilds the project and prints what changed:
 
 ```text
 built in 12 ms: …
@@ -67,7 +67,9 @@ What reloads on its own, and what needs a restart:
 
 ## Open the dashboard
 
-Open the `dashboard:` link `dev` printed and sign in with the account whose DID you gave `create` as the superadmin. That account is an operator with the superadmin privilege on your local instance.
+Open the `dashboard:` link `dev` printed and sign in with the account whose DID you gave `create` as the superadmin. You sign in through that account's own PDS, as you would to any atproto app.
+
+A person who signs in to an instance's dashboard to run it is an **operator**. What each operator may do is set by **permissions**, and your account has the **superadmin** privilege: every permission, on your local instance.
 
 While you develop, the dashboard is where you watch what your project does: **Data > Records** for indexed records, **System > Event Logs** for your scripts' log lines, **Data > Jobs** and **Data > Dead Letters** for background work and failed runs.
 
@@ -80,7 +82,7 @@ A local instance doesn't backfill: it indexes records as they arrive and doesn't
 backfill = false
 ```
 
-Set it to `true` and restart `dev` to backfill while you develop. A deployed instance backfills whatever its lexicons ask for, whatever this says.
+Set it to `true` and restart `dev` to backfill while you develop. It applies only locally: a deployed instance backfills whatever its lexicons ask for. [Lexicons](/docs/getting-started/lexicons) shows how a lexicon asks for one.
 
 ## Without the real network
 

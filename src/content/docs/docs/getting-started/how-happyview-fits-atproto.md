@@ -8,14 +8,14 @@ HappyView is an AppView: it reads records from the atproto network, keeps the on
 
 ## The pieces
 
-- **DID**: A permanent id for an account, such as `did:plc:ewvi7nxzyoun6zhxrhs64oiz`. A handle like `alice.bsky.social` points to one.
+- **DID**: A permanent id for an account, such as `did:plc:ewvi7nxzyoun6zhxrhs64oiz`. A handle like `alice.bsky.social` (an account's username, not the `handle` function scripts define) points to one.
 - **PDS**: The server that holds an account's data (its Personal Data Server). Every write to an account goes to its PDS.
 - **Repository**: An account's data on its PDS: a set of records, each with a URI such as `at://did:plc:…/xyz.statusphere.status/3l2k…`.
 - **Record**: One piece of data in a repository, such as a status, a post or a like. Its shape is set by a lexicon.
-- **Lexicon**: A schema document. A record lexicon describes a kind of record; a query or procedure lexicon describes an API method.
+- **Lexicon**: A schema document. A record lexicon describes a kind of record; a query or procedure lexicon describes an endpoint.
 - **NSID**: A lexicon's id, written as a reversed domain plus a name: `xyz.statusphere.status`.
 - **Collection**: All the records of one record lexicon, named by its NSID. HappyView indexes collections.
-- **XRPC**: atproto's HTTP API style. A method is called at `/xrpc/<NSID>`: a **query** with `GET`, a **procedure**, which changes something, with `POST`.
+- **XRPC**: atproto's HTTP API style. An endpoint is called at `/xrpc/<NSID>`: a **query** with `GET`, a **procedure**, which changes something, with `POST`.
 - **Jetstream**: A live feed of record changes across the network, filtered by collection. HappyView listens to it for the collections it indexes.
 - **AppView**: A service that indexes records from many repositories and answers queries about them. A HappyView instance is one.
 - **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app's users sign in to HappyView with it.

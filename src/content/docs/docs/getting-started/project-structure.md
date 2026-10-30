@@ -8,11 +8,14 @@ prerequisites:
 
 A project is a directory with a `happyview.toml` at its root and your code under `src/`. HappyView decides what each file is from its path alone, so there's nothing to register: put a file in the right place and it's part of your app.
 
+A project as it grows, after `create` and the next few pages:
+
 ```text
 my-app/
 ├── happyview.toml         settings, interpreters and libraries
 ├── happyview.lock         exact plugin versions (written by hpy)
 ├── .env                   values for ctx.env while you develop
+├── .luarc.json            editor types for Lua (tsconfig.json for JS/TS)
 ├── src/
 │   ├── lexicons/          lexicons, and the scripts beside them
 │   ├── jobs/              job scripts
@@ -33,7 +36,7 @@ my-app/
 | `src/lib/format.lua`, or any other path | A module, which scripts import | — |
 | `anything.test.lua` | A test, wherever it is | — |
 
-The extension picks the language: `.lua`, `.js` or `.ts`, as long as an interpreter for it is installed. [Script types and triggers](/docs/reference/scripts/types-and-triggers#name-a-script-file) has every rule.
+The extension picks the language: `.lua`, `.js` or `.ts`, as long as an interpreter for it is installed. The following pages write each kind of script; [Script types and triggers](/docs/reference/scripts/types-and-triggers#name-a-script-file) has every rule.
 
 The build refuses a project it can't make sense of, and says which file and why. The usual causes:
 
@@ -64,17 +67,17 @@ backfill = false                # only for hpy happyview dev
 | Table | What it holds | On a deploy |
 | --- | --- | --- |
 | `[happyview]` | The HappyView version | Ignored: an instance keeps its own version |
-| `[instance]` | `app_name`, and `superadmin` (a DID) | Ignored, with a warning if it differs |
+| `[instance]` | `app_name`, and `superadmin` (a DID) | Ignored, with a warning for each key that differs from the instance's |
 | `[interpreters]`, `[libraries]` | Each plugin's publisher `did`, `name`, and a `channel` or exact `version` | Installed from `happyview.lock` |
 | `[lexicons."<NSID>"]` | Per-lexicon settings: `backfill`, `target_collection`, `action`, `indexed`, `token_cost` | Applied |
 | `[scripts."<trigger>"]` | Per-script settings: `description`, `outbound_xrpcs` | Applied |
 | `[network_lexicons]` | `include`: NSIDs to track from the network | Applied |
 | `[labels]` | `subscribe`: labeler DIDs to subscribe to | Applied |
-| `[dev]` | `port`, `backfill` | Ignored, with a warning |
-| `[jetstream]` | `protocol`, `compression` | Ignored, with a warning |
+| `[dev]` | `port`, `backfill` | Ignored, with a warning when set |
+| `[jetstream]` | `protocol`, `compression` | Ignored, with a warning when set |
 | `[modules."<name>"]` | A compiled Rust script module | Applied |
 
-An unknown key anywhere is an error, as is a `[lexicons."<NSID>"]` that names no lexicon file.
+An unknown key anywhere is an error, as is a `[lexicons."<NSID>"]` that names no lexicon in `src/lexicons/`.
 
 Don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` changes them and `happyview.lock` together. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
 

@@ -12,9 +12,10 @@ This page deploys your project to an instance: you sign in to it once with `hpy`
 
 ## Before you start
 
-- **An instance running HappyView v3.** A deploy needs an instance on the v3 line.
-- **An operator account on it with the `project:deploy` permission.** The **Manager** template includes it, and superadmin includes everything.
-- **A PDS that supports atproto permission sets.** Signing in asks your PDS to grant `hpy` HappyView's admin permission set; a PDS that can't is refused with a message saying so. To deploy without signing in, use an API key, as [Deploy from CI](#deploy-from-ci) does.
+- **Run your checks.** `hpy happyview check` builds the project the way an instance will, and `hpy happyview test` runs your [tests](/docs/getting-started/testing). Fix what they report first.
+- **An instance running HappyView v3.** On HappyProto, your instance is part of your HappyProto project; HappyProto is [in beta, by invite](https://happyproto.at). To run your own, follow [Self-hosting](/docs/guides/self-hosting/docker).
+- **An operator account on it with the `project:deploy` permission.** On a self-hosted instance, the first account to sign in to its dashboard, or the one its `SUPERADMIN_DID` names, has every permission and can give other accounts permissions under **Access > Users**. The **Manager** [template](/docs/guides/permissions#permission-templates) includes `project:deploy`.
+- **A PDS that supports atproto permission sets**, a recent part of atproto OAuth that lets an app ask for a named bundle of permissions. Signing in asks your PDS to grant `hpy` HappyView's admin permissions; a PDS that can't is refused with a message saying so. To deploy without signing in, use an API key, as [Deploy from CI](#deploy-from-ci) does.
 
 ## Sign in to the instance
 
@@ -65,18 +66,31 @@ hpy happyview deploy
 
 The instance builds the project before it switches over. If the build fails, nothing changes: the project that was already there keeps serving, and the deploy prints the problems.
 
+When it's done, call your endpoint on the instance:
+
+```sh
+curl 'https://<your instance>/xrpc/com.example.hello?name=Ada'
+```
+
 A deploy refuses a `happyview.lock` that doesn't match `happyview.toml`. Run `hpy happyview dev` or `check` once to bring it up to date, and commit it.
 
 ### What a deploy changes, and what it doesn't
 
-| A deploy changes | A deploy leaves alone |
-| --- | --- |
-| Lexicons, scripts, modules and tests from `src/` | The instance's HappyView version |
-| Per-lexicon and per-script settings from `happyview.toml` | `[instance]`, `[dev]` and `[jetstream]`, with a warning if they differ |
-| Labeler subscriptions and network lexicons | Operators, permissions, API clients and keys |
-| Plugins, from `happyview.lock` | Plugins the lock doesn't list, unless you pass `--prune-plugins` |
-| | Lexicons and scripts added in the dashboard (where your project has the same one, the project's is used) |
-| | `ctx.env` values: set those under **System > ENV Variables** on the instance |
+A deploy changes:
+
+- lexicons, scripts, modules and tests from `src/`;
+- per-lexicon and per-script settings from `happyview.toml`;
+- labeler subscriptions and network lexicons;
+- plugins, from `happyview.lock`.
+
+A deploy leaves alone:
+
+- the instance's HappyView version;
+- `[instance]`, `[dev]` and `[jetstream]` (it warns about `[instance]` keys that differ from the instance's, and about `[dev]` and `[jetstream]` when they're set);
+- operators, permissions, API clients and keys;
+- plugins the lock doesn't list, unless you pass `--prune-plugins`;
+- lexicons and scripts added in the dashboard (where your project has the same one, the project's is used);
+- `ctx.env` values: set those under **System > ENV Variables** on the instance.
 
 ## Deploy from CI
 
@@ -93,7 +107,7 @@ Then give the job the instance's URL and the key:
 | `HPY_HV_URL` | The instance's URL |
 | `HPY_HV_API_KEY` | The API key |
 
-A GitHub Actions workflow that checks and tests every push, and deploys `main`:
+In GitHub, set `HPY_HV_URL` as a repository variable and `HPY_HV_API_KEY` as a repository secret, under **Settings > Secrets and variables > Actions**. This workflow checks and tests every push, and deploys `main`:
 
 ```yaml
 name: Deploy

@@ -26,7 +26,8 @@ The simplest query needs no script. Add a query lexicon next to your record lexi
         "properties": {
           "limit": { "type": "integer" },
           "cursor": { "type": "string" },
-          "did": { "type": "string" }
+          "did": { "type": "string" },
+          "uri": { "type": "string" }
         }
       },
       "output": { "encoding": "application/json" }
@@ -103,13 +104,39 @@ export default function handle(input: Params, ctx: QueryCtx): Output {
 
 A query can be called anonymously, so a script can't assume a caller. To read records, a script uses the `happyview.db` library; [Plugins and libraries](/docs/getting-started/plugins-and-libraries) adds it and shows a query built on it.
 
-:::caution[Parameters aren't checked against the lexicon yet]
-Today HappyView converts each parameter to its declared type but doesn't enforce the rest of the lexicon, such as `maxLength` or required parameters. [happyview#276](https://github.com/gamesgamesgamesgamesgames/happyview/pull/276) adds that check and is pending. Until it's released, check what your script relies on.
+:::caution[Check parameters in your script]
+HappyView converts each parameter to its declared type, but doesn't enforce the rest of the lexicon, such as `maxLength` or required parameters. Check what your script relies on. [happyview#276](https://github.com/gamesgamesgamesgamesgames/happyview/pull/276) proposes enforcing them.
 :::
 
 ## A procedure
 
 A procedure changes something, and always runs as a signed-in user. A call with no user gets a `401`. How your app's users sign in is in [Authentication](/docs/getting-started/authentication).
+
+A procedure lexicon declares the body it takes as `input`. Here is `src/lexicons/xyz/statusphere/setStatus.json`:
+
+```json
+{
+  "lexicon": 1,
+  "id": "xyz.statusphere.setStatus",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["status", "createdAt"],
+          "properties": {
+            "status": { "type": "string" },
+            "createdAt": { "type": "string", "format": "datetime" }
+          }
+        }
+      },
+      "output": { "encoding": "application/json" }
+    }
+  }
+}
+```
 
 Without a script, a procedure writes its body as a record to the caller's own PDS, in its `target_collection`:
 
@@ -173,7 +200,9 @@ export default function handle(
 </TabItem>
 </Tabs>
 
-`record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; writing to repositories you've been granted is [Linked repos](/docs/guides/linked-repos).
+The script needs the `happyview.record` library: `hpy happyview add happyview.record`, then restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; writing to repositories you've been granted is [Linked repos](/docs/guides/linked-repos).
+
+To try a procedure before your app can sign users in, call it from a test, which can act as any user: see [Testing](/docs/getting-started/testing#act-as-a-user).
 
 ## Errors
 
@@ -186,4 +215,5 @@ export default function handle(
 ## Next steps
 
 - [Scripts](/docs/getting-started/scripts): how scripts run, and the libraries they reach.
+- [Authentication](/docs/getting-started/authentication): sign your app's users in, so they can call procedures.
 - [XRPC API](/docs/reference/xrpc): every endpoint an instance serves.

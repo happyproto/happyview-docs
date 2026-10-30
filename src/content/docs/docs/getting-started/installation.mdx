@@ -38,7 +38,7 @@ curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
 </TabItem>
 </Tabs>
 
-Check that it worked:
+The install script puts `hpy` in `~/.cargo/bin`; open a new terminal if it isn't on your `PATH` yet. Check that it worked:
 
 ```sh
 hpy --version
@@ -52,16 +52,18 @@ hpy --version
 hpy happyview create --name my-app
 ```
 
-`create` asks four things:
+`--name` is the directory to create. `create` then asks four things:
 
 | Prompt | What to answer |
 | --- | --- |
-| **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account gets the superadmin privilege on your local instance. If you've signed in with `hpy registry login`, its DID is offered. |
+| **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account will be able to do everything on your local instance. To find an account's DID, look its handle up at [pdsls.dev](https://pdsls.dev). |
 | **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected to start with. |
 | **Libraries** | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`. |
-| **App name** | Your app's name. It defaults to the directory's name. |
+| **App name** | Your app's name, shown in the dashboard. It defaults to the directory's name. |
 
 It creates `my-app/` and downloads nothing yet.
+
+An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both; for now, Lua and no libraries is enough.
 
 ## What you get
 
