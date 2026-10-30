@@ -1,0 +1,192 @@
+---
+pagefind: false
+banner:
+  content: You are reading the HappyView v2 docs, which are no longer updated. <a href="/docs">Read the v3 docs</a>.
+title: "Overview"
+---
+
+The admin API lets you manage lexicons, monitor records, run backfill jobs, and control user access. All endpoints live under `/admin` and require authentication from a DID that exists in the `happyview_users` table, with the appropriate [permissions](/docs/v2/guides/permissions) for the endpoint being called. You can also manage all of this through the [web dashboard](/docs/v2/getting-started/dashboard).
+
+## Auth
+
+The admin API supports three authentication methods:
+
+1. **API keys** — read/write tokens starting with `hv_`, passed as `Authorization: Bearer hv_...`. See the [API Keys guide](/docs/v2/guides/api-keys) for details.
+2. **Service auth JWT** — atproto inter-service authentication via signed JWTs.
+3. **Cookie-based session auth** — signed session cookies set during the dashboard OAuth login flow. The [web dashboard](/docs/v2/getting-started/dashboard) uses this method.
+
+In all cases the resolved DID is checked against the `happyview_users` table, and the user's permissions are loaded to authorize the request.
+
+**Auto-bootstrap**: If the `happyview_users` table is empty, the first authenticated request automatically creates the caller as the **super user** with all permissions granted.
+
+Non-user DIDs receive a `403 Forbidden` response. Users without the required permission for a specific endpoint also receive `403 Forbidden`.
+
+## Errors
+
+All error responses return JSON with an `error` field:
+
+```json
+{
+  "error": "description of what went wrong"
+}
+```
+
+| Status             | Meaning                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `400 Bad Request`  | Invalid input (missing required fields, malformed lexicon JSON)                        |
+| `401 Unauthorized` | Missing or invalid API key or service auth JWT                                         |
+| `403 Forbidden`    | Authenticated DID is not in the users table, or user lacks the required permission     |
+| `404 Not Found`    | Lexicon, user, or backfill job not found                                               |
+
+```sh
+# All examples assume $TOKEN is an API key (hv_...)
+AUTH="Authorization: Bearer $TOKEN"
+```
+
+## Endpoint groups
+
+| Group | Description |
+| ----- | ----------- |
+| [Lexicons](/docs/v2/api-reference/admin/lexicons) | Upload, list, get, and delete lexicons and network lexicons |
+| [Stats](/docs/v2/api-reference/admin/stats) | Record counts by collection |
+| [Backfill](/docs/v2/api-reference/admin/backfill) | Create and monitor historical backfill jobs |
+| [Event Logs](/docs/v2/api-reference/admin/events) | Query the audit trail of system events |
+| [API Keys](/docs/v2/api-reference/admin/api-keys) | Create, list, and revoke API keys |
+| [Users](/docs/v2/api-reference/admin/users) | Create, list, update, and delete admin users |
+| [Labelers](/docs/v2/api-reference/admin/labelers) | Manage external labeler subscriptions |
+| [Records](/docs/v2/api-reference/admin/records) | List and delete indexed records |
+| [Instance Settings](/docs/v2/api-reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
+| [Domains](/docs/v2/api-reference/admin/domains) | Manage domains and their OAuth client identities |
+| [OAuth Keys](/docs/v2/api-reference/admin/oauth-keys) | Rotate and revoke the instance's OAuth client-assertion signing key |
+| [Scripts](/docs/v2/api-reference/admin/scripts) | Create, list, update, and delete Lua scripts |
+| [Script Variables](/docs/v2/api-reference/admin/script-variables) | Encrypted key/value pairs for Lua scripts |
+| [API Clients](/docs/v2/api-reference/admin/api-clients) | Register and manage third-party XRPC clients |
+| [Plugins](/docs/v2/api-reference/admin/plugins) | Install, configure, and manage WASM plugins |
+| [Dead Letters](/docs/v2/api-reference/admin/dead-letters) | List, inspect, dismiss, retry, and reindex dead-lettered events |
+| [Service Identity](/docs/v2/api-reference/admin/service-identity) | Get and update service identity configuration |
+| [Service Entries](/docs/v2/api-reference/admin/service-entries) | Manage service entries and their XRPC bindings |
+| [Verification Methods](/docs/v2/api-reference/admin/verification-methods) | Create, list, and delete DID verification methods |
+| [Feature Flags](/docs/v2/api-reference/admin/feature-flags) | List feature flag status |
+| [Permissions](/docs/v2/api-reference/admin/permissions) | List available permission definitions |
+
+## Permissions
+
+Each admin API endpoint requires a specific permission. See the [Permissions guide](/docs/v2/guides/permissions) for the full list of permissions and templates.
+
+| Endpoint                                 | Required Permission        |
+| ---------------------------------------- | -------------------------- |
+| `POST /admin/lexicons`                   | `lexicons:create`          |
+| `GET /admin/lexicons`                    | `lexicons:read`            |
+| `GET /admin/lexicons/{id}`               | `lexicons:read`            |
+| `DELETE /admin/lexicons/{id}`            | `lexicons:delete`          |
+| `POST /admin/network-lexicons`           | `lexicons:create`          |
+| `GET /admin/network-lexicons`            | `lexicons:read`            |
+| `DELETE /admin/network-lexicons/{id}`    | `lexicons:delete`          |
+| `GET /admin/stats`                       | `stats:read`               |
+| `POST /admin/backfill`                   | `backfill:create`          |
+| `GET /admin/backfill/status`             | `backfill:read`            |
+| `POST /admin/backfill/{id}/cancel`       | `backfill:create`          |
+| `POST /admin/backfill/{id}/pause`        | `backfill:create`          |
+| `POST /admin/backfill/{id}/resume`       | `backfill:create`          |
+| `GET /admin/backfill/{id}/events`        | `backfill:read`            |
+| `GET /admin/backfill/{id}/repos`         | `backfill:read`            |
+| `GET /admin/backfill/{id}/pds-summary`   | `backfill:read`            |
+| `DELETE /admin/backfill/{id}/details`    | `backfill:create`          |
+| `DELETE /admin/backfill/details`         | `backfill:create`          |
+| `GET /admin/events`                      | `events:read`              |
+| `POST /admin/api-keys`                   | `api-keys:create`          |
+| `GET /admin/api-keys`                    | `api-keys:read`            |
+| `DELETE /admin/api-keys/{id}`            | `api-keys:delete`          |
+| `POST /admin/users`                      | `users:create`             |
+| `GET /admin/users`                       | `users:read`               |
+| `GET /admin/users/{id}`                  | `users:read`               |
+| `PATCH /admin/users/{id}/permissions`    | `users:update`             |
+| `DELETE /admin/users/{id}`               | `users:delete`             |
+| `POST /admin/users/transfer-super`       | Super user only            |
+| `GET /admin/script-variables`            | `script-variables:read`    |
+| `POST /admin/script-variables`           | `script-variables:create`  |
+| `DELETE /admin/script-variables/{key}`   | `script-variables:delete`  |
+| `GET /admin/scripts`                     | `scripts:read`             |
+| `POST /admin/scripts`                    | `scripts:manage`           |
+| `GET /admin/scripts/{id}`                | `scripts:read`             |
+| `PATCH /admin/scripts/{id}`              | `scripts:manage`           |
+| `DELETE /admin/scripts/{id}`             | `scripts:manage`           |
+| `POST /admin/labelers`                   | `labelers:create`          |
+| `GET /admin/labelers`                    | `labelers:read`            |
+| `PATCH /admin/labelers/{did}`            | `labelers:create`          |
+| `DELETE /admin/labelers/{did}`           | `labelers:delete`          |
+| `GET /admin/records`                     | `records:read`             |
+| `GET /admin/records/collections`         | `records:read`             |
+| `DELETE /admin/records`                  | `records:delete`           |
+| `DELETE /admin/records/collection`       | `records:delete-collection`|
+| `GET /admin/database/status`             | `settings:manage`          |
+| `POST /admin/database/vacuum/schedule`   | `settings:manage`          |
+| `DELETE /admin/database/vacuum/schedule` | `settings:manage`          |
+| `GET /admin/settings`                    | `settings:manage`          |
+| `GET /admin/settings/db-info`            | `settings:manage`          |
+| `PUT /admin/settings/{key}`              | `settings:manage`          |
+| `DELETE /admin/settings/{key}`           | `settings:manage`          |
+| `PUT /admin/settings/logo`              | `settings:manage`          |
+| `DELETE /admin/settings/logo`           | `settings:manage`          |
+| `GET /admin/plugins`                     | `plugins:read`             |
+| `POST /admin/plugins`                    | `plugins:create`           |
+| `POST /admin/plugins/preview`            | `plugins:read`             |
+| `GET /admin/plugins/official`            | `plugins:read`             |
+| `DELETE /admin/plugins/{id}`             | `plugins:delete`           |
+| `POST /admin/plugins/{id}/reload`        | `plugins:create`           |
+| `POST /admin/plugins/{id}/check-update`  | `plugins:read`             |
+| `GET /admin/plugins/{id}/secrets`        | `plugins:read`             |
+| `PUT /admin/plugins/{id}/secrets`        | `plugins:create`           |
+| `GET /admin/domains`                     | `settings:manage`          |
+| `POST /admin/domains`                    | `settings:manage`          |
+| `DELETE /admin/domains/{id}`             | `settings:manage`          |
+| `POST /admin/domains/{id}/primary`       | `settings:manage`          |
+| `GET /admin/oauth/instance-key`          | `settings:manage`          |
+| `POST /admin/oauth/instance-key/rotate`  | `settings:manage`          |
+| `DELETE /admin/oauth/instance-key/{kid}` | `settings:manage`          |
+| `GET /admin/api-clients`                 | `api-clients:view`         |
+| `POST /admin/api-clients`                | `api-clients:create`       |
+| `GET /admin/api-clients/{id}`            | `api-clients:view`         |
+| `PUT /admin/api-clients/{id}`            | `api-clients:edit`         |
+| `DELETE /admin/api-clients/{id}`         | `api-clients:delete`       |
+| `POST /admin/api-clients/{id}/auth-key`  | `api-clients:edit`         |
+| `GET /admin/api-clients/{id}/auth-key`   | `api-clients:view`         |
+| `GET /admin/api-clients/{id}/auth-keys`  | `api-clients:view`         |
+| `POST /admin/api-clients/{id}/auth-key/recheck` | `api-clients:edit`  |
+| `POST /admin/api-clients/{id}/auth-key/rotate`  | `api-clients:edit`  |
+| `DELETE /admin/api-clients/{id}/auth-key/{kid}` | `api-clients:edit`  |
+| `DELETE /admin/api-clients/{id}/auth-keys` | `api-clients:edit`       |
+| `GET /admin/dead-letters`                | `dead-letters:read`        |
+| `GET /admin/dead-letters/count`          | `dead-letters:read`        |
+| `GET /admin/dead-letters/{id}`           | `dead-letters:read`        |
+| `POST /admin/dead-letters/{id}/dismiss`  | `dead-letters:manage`      |
+| `POST /admin/dead-letters/{id}/retry`    | `dead-letters:manage`      |
+| `POST /admin/dead-letters/{id}/reindex`  | `dead-letters:manage`      |
+| `POST /admin/dead-letters/bulk/dismiss`  | `dead-letters:manage`      |
+| `POST /admin/dead-letters/bulk/retry`    | `dead-letters:manage`      |
+| `POST /admin/dead-letters/bulk/reindex`  | `dead-letters:manage`      |
+| `GET /admin/service-identity`            | `settings:manage`          |
+| `PUT /admin/service-identity`            | `settings:manage`          |
+| `GET /admin/service-entries`             | `settings:manage`          |
+| `POST /admin/service-entries`            | `settings:manage`          |
+| `PUT /admin/service-entries/{id}`        | `settings:manage`          |
+| `DELETE /admin/service-entries/{id}`     | `settings:manage`          |
+| `GET /admin/service-entries/{id}/xrpcs`  | `settings:manage`          |
+| `POST /admin/service-entries/{id}/xrpcs` | `settings:manage`          |
+| `DELETE /admin/service-entries/{id}/xrpcs`| `settings:manage`         |
+| `POST /admin/service-entries/sync-plc`   | `settings:manage`          |
+| `POST /admin/service-entries/sync-plc/request` | `settings:manage`    |
+| `POST /admin/service-entries/sync-plc/submit`  | `settings:manage`    |
+| `GET /admin/lexicons/{id}/services`      | `settings:manage`          |
+| `GET /admin/verification-methods`        | `settings:manage`          |
+| `POST /admin/verification-methods`       | `settings:manage`          |
+| `DELETE /admin/verification-methods/{fragment_id}` | `settings:manage` |
+| `GET /admin/feature-flags`               | `settings:manage`          |
+| `GET /admin/network-lexicons/resolve/{nsid}` | `lexicons:read`        |
+| `GET /admin/permissions`                 | `users:read`               |
+| `GET /admin/settings/xrpc-proxy`         | `settings:manage`          |
+| `PUT /admin/settings/xrpc-proxy`         | `settings:manage`          |
+
+### Database disk usage and vacuum
+
+`GET /admin/database/status` reports the database and write-ahead log size, free disk space, and the status of the one-time SQLite vacuum described in [Configuration](/docs/v2/getting-started/configuration). `POST /admin/database/vacuum/schedule` arms the vacuum to run at the next restart; `DELETE /admin/database/vacuum/schedule` disarms it. These only apply to SQLite — on a Postgres-backed instance, scheduling returns `400 Bad Request` rather than silently doing nothing.

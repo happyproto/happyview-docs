@@ -1,0 +1,141 @@
+---
+pagefind: false
+banner:
+  content: You are reading the HappyView v2 docs, which are no longer updated. <a href="/docs">Read the v3 docs</a>.
+title: "Script Variables"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Script variables are encrypted key/value pairs available to Lua scripts via the `env` global. Use them for secrets like API tokens.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+# All examples assume $TOKEN is an API key (hv_...)
+AUTH="Authorization: Bearer $TOKEN"
+```
+
+</TabItem>
+</Tabs>
+
+## List script variables
+
+```
+GET /admin/script-variables
+```
+
+Requires `script-variables:read`. Returns a list of variable keys (values are not returned).
+
+## Upsert a script variable
+
+```
+POST /admin/script-variables
+```
+
+Requires `script-variables:create`.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/script-variables", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ key: "ALGOLIA_API_KEY", value: "..." }),
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/script-variables", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ key: "ALGOLIA_API_KEY", value: "..." }),
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let response = client
+    .post("http://127.0.0.1:3000/admin/script-variables")
+    .bearer_auth(token)
+    .json(&serde_json::json!({ "key": "ALGOLIA_API_KEY", "value": "..." }))
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{ "key": "ALGOLIA_API_KEY", "value": "..." }`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/script-variables", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl -X POST http://127.0.0.1:3000/admin/script-variables \
+  -H "$AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "ALGOLIA_API_KEY", "value": "..." }'
+```
+
+</TabItem>
+</Tabs>
+
+The value is encrypted at rest using `TOKEN_ENCRYPTION_KEY`.
+
+## Delete a script variable
+
+```
+DELETE /admin/script-variables/{key}
+```
+
+Requires `script-variables:delete`.

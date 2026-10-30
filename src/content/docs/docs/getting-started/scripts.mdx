@@ -1,0 +1,45 @@
+---
+title: Scripts
+description: What HappyView scripts are, where they run, and how the pieces fit together.
+---
+
+A script is a small program HappyView runs when something happens: an XRPC request arrives, a record is created, a label is applied, or a background job is picked up. Without scripts, query endpoints return raw records and procedures proxy simple creates and updates. With them, you decide what an endpoint returns and what happens to each record before it is indexed.
+
+## Scripts run in interpreter plugins
+
+HappyView does not run scripts itself. A script runs inside an **interpreter plugin**, a WASM plugin that knows one language. Three are published:
+
+| Language | `script_type` | Plugin |
+| --- | --- | --- |
+| Lua 5.4 | `lua` | `happyview-lua` |
+| JavaScript (QuickJS-ng) | `javascript` | `happyview-javascript` |
+| TypeScript (SWC, then QuickJS-ng) | `typescript` | `happyview-typescript` |
+
+A self-hosted instance starts with no interpreter. Until one is installed, no script can be saved or run, and the server logs this at boot:
+
+```
+no interpreter plugin is installed, so no script can be saved or run; install one from the plugins page in the dashboard
+```
+
+Hosts can preinstall interpreters with `HAPPYVIEW_DEFAULT_PLUGINS`, which installs them in the background on the instance's first boot. On HappyProto, Lua is preinstalled this way.
+
+You can install more than one interpreter and mix languages on the same instance. Each script stores the language it is written in as its `script_type`. See [Languages](/docs/reference/scripts/languages) for installing interpreters and choosing a language.
+
+## Everything else is a module
+
+A script reaches HappyView only through its two arguments, `input` and `ctx`, and through modules it loads:
+
+- **Built-in modules** under `internal.`: logging, time, TIDs and JSON. They come with the interpreter, so nothing extra needs installing.
+- **Library plugins** under `happyview.`: records, SQL, HTTP, XRPC, jobs, spaces and more. Each one is a separate plugin you install. A script that loads a library that isn't installed fails when it loads.
+
+Lua loads modules with `require`. JavaScript and TypeScript use `import`.
+
+## The pieces
+
+- [The script contract](/docs/reference/scripts/contract): `handle(input, ctx)` in each language, and what `input` and `ctx` carry.
+- [Script types and triggers](/docs/reference/scripts/types-and-triggers): the trigger string that binds a script to an event, and what each type's return value does.
+- [Languages](/docs/reference/scripts/languages): installing interpreters, the dashboard language picker, and the starter scripts.
+- [Limits](/docs/reference/scripts/limits): the instruction, time and memory budgets a script runs under.
+- [Create scripts may run more than once](/docs/reference/scripts/idempotency): why record scripts must be idempotent.
+- [Migrating from v2](/docs/guides/migrating-scripts): the removed Lua globals and the codemod that rewrites them.
+- Examples: [get a record](/docs/guides/recipes/get-record), [paginated list](/docs/guides/recipes/paginated-list), [create a record](/docs/guides/recipes/create-record), [upsert a record](/docs/guides/recipes/upsert-record), [sync records to a webhook](/docs/guides/recipes/record-webhook), and [a background job](/docs/guides/recipes/job).

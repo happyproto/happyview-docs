@@ -1,0 +1,138 @@
+---
+pagefind: false
+banner:
+  content: You are reading the HappyView v2 docs, which are no longer updated. <a href="/docs">Read the v3 docs</a>.
+title: "Feature Flags"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+# All examples assume $TOKEN is an API key (hv_...)
+AUTH="Authorization: Bearer $TOKEN"
+```
+
+</TabItem>
+</Tabs>
+
+## List feature flags
+
+```
+GET /admin/feature-flags
+```
+
+Returns all feature flags and their current status. Flags are backed by the `happyview_instance_settings` table — a flag is enabled when its key is set to `"true"`.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+interface FeatureFlag {
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+const response = await fetch("http://127.0.0.1:3000/admin/feature-flags", {
+  headers,
+});
+const data: FeatureFlag[] = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/feature-flags", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/feature-flags")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/feature-flags", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/feature-flags -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+[
+  {
+    "key": "feature.spaces_enabled",
+    "name": "Permissioned Spaces",
+    "description": "Collaborative data spaces with granular permissions, membership, and invites.",
+    "enabled": false
+  }
+]
+```
+
+| Field         | Type    | Description                                  |
+| ------------- | ------- | -------------------------------------------- |
+| `key`         | string  | Settings key for the flag                    |
+| `name`        | string  | Human-readable name                          |
+| `description` | string  | What the flag controls                       |
+| `enabled`     | boolean | Whether the flag is currently enabled        |
+
+To toggle a flag, use `PUT /admin/settings/{key}` with the value `"true"` or `"false"`. See [Instance Settings](/docs/v2/api-reference/admin/settings) for details.

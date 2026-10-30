@@ -1,0 +1,117 @@
+---
+pagefind: false
+banner:
+  content: You are reading the HappyView v2 docs, which are no longer updated. <a href="/docs">Read the v3 docs</a>.
+title: "Verify Signed Record"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Fetch a record and verify its attestation signature.
+
+**Lexicon type:** query
+
+```lua
+function handle()
+  local record = db.get(params.uri)
+  if not record then
+    return { error = "not found" }
+  end
+
+  local verified = false
+  if atproto.verify_signature and record.signature then
+    local ok, result = pcall(
+      atproto.verify_signature,
+      { text = record.text, createdAt = record.createdAt },
+      record.signature,
+      params.did
+    )
+    if not ok then
+      -- We could not check. Say so — don't report it as a bad signature.
+      return { record = record, verified = nil, error = tostring(result) }
+    end
+    verified = result
+  end
+
+  return { record = record, verified = verified }
+end
+```
+
+## How it works
+
+1. Fetch the record by AT URI.
+2. If a signature is present, rebuild the same field table that was signed and verify it with [`atproto.verify_signature()`](/docs/v2/api-reference/lua/atproto-api#atprotoverify_signature).
+3. Return `verified = true` if the signature is valid, `false` if it's missing, doesn't match, or the signer isn't configured.
+
+The `pcall` matters. `verify_signature` returns `false` only when it checked and the signature didn't match; it *raises* when it couldn't check at all — unparseable signature bytes, a missing field. Assigning that to `verified` would report a decode bug as a forged record.
+
+## Usage
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch(
+  "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123&did=did:plc:abc",
+);
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch(
+  "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123&did=did:plc:abc",
+);
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let response = client
+    .get("http://127.0.0.1:3000/xrpc/xyz.example.getPost")
+    .query(&[
+        ("uri", "at://did:plc:abc/xyz.example.post/3abc123"),
+        ("did", "did:plc:abc"),
+    ])
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123&did=did:plc:abc", nil)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123&did=did:plc:abc"
+```
+
+</TabItem>
+</Tabs>
+
+```json
+{
+  "record": {
+    "uri": "at://did:plc:abc/xyz.example.post/3abc123",
+    "text": "Hello world",
+    "createdAt": "2026-04-30T12:00:00Z"
+  },
+  "verified": true
+}
+```
+
+## Use case
+
+Pair this with the [Signed Record](/docs/v2/reference/script-examples/signed-record) procedure to create a write-then-verify flow. The query re-derives the CID from the same fields that were originally signed, so any tampering between write and read is caught.
+
+See [Attestation Signing](/docs/v2/guides/attestation-signing) for setup and configuration.
