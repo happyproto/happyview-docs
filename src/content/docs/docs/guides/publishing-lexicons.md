@@ -123,7 +123,7 @@ Unpublishing also withdraws the lexicon from auto-publish: its status becomes `w
 
 Reading the publishing page needs `lexicons:read`. Creating, changing, or deleting rules, and publishing or unpublishing, needs `lexicons:publish`. Pointing a rule at a linked repo also needs `linked-repos:read`; without it, the page shows linked-repo destinations only as "A linked repo".
 
-The **Manager** template includes `lexicons:publish` for users created from it going forward. Existing non-super users don't get it automatically: grant it to them explicitly from **Access > Users**. Super users can always publish.
+The **Manager** template includes `lexicons:publish` for users created from it going forward. Existing operators without superadmin don't get it automatically: grant it to them explicitly from **Access > Users**. An operator with superadmin can always publish.
 
 ## See also
 

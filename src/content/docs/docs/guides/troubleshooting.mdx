@@ -189,8 +189,8 @@ approve the request.
 ```
 
 **Why.** Publishing needs the `lexicons:publish` permission. The Manager
-template includes it, but users created before v3 didn't get it. Super users
-can always publish.
+template includes it, but users created before v3 didn't get it. An operator with
+superadmin can always publish.
 
 **Fix.** Grant `lexicons:publish` to the user under **Access > Users**.
 

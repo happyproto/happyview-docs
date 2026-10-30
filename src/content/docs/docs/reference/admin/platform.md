@@ -25,13 +25,13 @@ The platform principal can:
 
 Every other admin endpoint refuses it with `403`.
 
-## Set the super user
+## Set the superadmin
 
 ```
 PUT /admin/platform/super-user
 ```
 
-Makes `did` the instance's only super user, creating the user if needed and demoting any previous super user. Safe to repeat.
+Makes `did` the only operator with superadmin, creating the operator if needed and taking superadmin from anyone else who holds it. Safe to repeat.
 
 | Field | Type   | Required | Description         |
 | ----- | ------ | -------- | ------------------- |
@@ -52,4 +52,4 @@ curl -X PUT http://127.0.0.1:3000/admin/platform/super-user \
 
 Returns `400` if `did` isn't a DID and `403` for any caller other than the platform principal.
 
-Once a super user exists, the first person to sign in is no longer made super user automatically. A provider should call this endpoint before the instance is publicly reachable.
+Once an operator holds superadmin, the first person to sign in is no longer given superadmin automatically. A provider should call this endpoint before the instance is publicly reachable.

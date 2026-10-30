@@ -37,6 +37,6 @@ Building an AppView from scratch means wiring up real-time event streams, record
 - [Lua Scripting](/docs/guides/lua-scripting): Write custom query and procedure logic
 - [Record & Label Scripts](/docs/getting-started/reacting-to-records): React to record changes and label events in real time
 - [Labelers](/docs/guides/labelers): Subscribe to external labelers and manage content labels
-- [Plugins](/docs/guides/plugins): Integrate with external platforms using WASM plugins
+- [Plugins](/docs/guides/plugins): Integrate with external platforms using plugins
 - [Permissioned Spaces](/docs/guides/spaces): Create membership-gated data containers with the atproto spaces API
 - [Event Logs](/docs/guides/event-logs): Monitor system activity, debug script errors, and audit admin actions

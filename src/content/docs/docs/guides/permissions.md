@@ -173,18 +173,18 @@ Adds: `lexicons:create`, `lexicons:delete`, `lexicons:publish`, `scripts:manage`
 
 ### Full Access
 
-All 52 permissions. Equivalent to granting every permission individually (but still not a super user).
+All 52 permissions. Equivalent to granting every permission individually (but still not superadmin).
 
-## Super user
+## Superadmin
 
-The super user is a special user created automatically when the first person logs in to a fresh HappyView instance. The super user:
+Superadmin is a privilege one operator holds. On a fresh instance, the first person to sign in becomes an operator with it, unless `SUPERADMIN_DID` names someone else. The dashboard marks that operator **Owner**. The operator with superadmin:
 
 - Has unrestricted access to all endpoints, regardless of which permissions are assigned
-- Is the only user who can call `POST /admin/users/transfer-super`
+- Is the only operator who can call `POST /admin/users/transfer-super`
 - Cannot be deleted
-- Cannot have their permissions modified by other users
+- Cannot have their permissions modified by other operators
 
-There is always exactly one super user. Super status can be transferred to another user via the dashboard or transfer endpoint in the Admin API.
+Usually one operator holds superadmin. A transfer, from the dashboard or the transfer endpoint in the Admin API, moves it to another operator and takes it from the previous holder. `SUPERADMIN_DID` only adds: the configured account gets superadmin at every boot, and anyone else who holds it keeps it.
 
 ## Escalation guards
 
@@ -223,7 +223,7 @@ Go to **Access > Users** to view and manage user permissions. Click on a user to
 
 - `POST /admin/users` — create a user with a template or explicit permissions
 - `PATCH /admin/users/{id}/permissions` — grant or revoke individual permissions
-- `POST /admin/users/transfer-super` — transfer super user status (super user only)
+- `POST /admin/users/transfer-super` — pass superadmin to another operator (superadmin only)
 
 See the [Admin API — Users](/docs/reference/admin/users) for full details.
 

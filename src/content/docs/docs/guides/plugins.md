@@ -2,7 +2,7 @@
 title: "Plugins"
 ---
 
-HappyView uses WASM plugins to extend its functionality. Auth plugins let users link accounts from platforms like Steam, Xbox, and itch.io; library plugins expose functions to scripts.
+HappyView uses plugins, which are WebAssembly modules, to extend its functionality. Auth plugins let users link accounts from platforms like Steam, Xbox, and itch.io; library plugins expose functions to scripts.
 
 Official plugins for Steam, Xbox, itch.io, and other platforms are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
@@ -133,7 +133,7 @@ These are only necessary if you can't configure variables via the dashboard. Das
 
 ## Next steps
 
-- [Developing Plugins](/docs/guides/developing-plugins) — create your own plugins with the WASM plugin API
+- [Developing Plugins](/docs/guides/developing-plugins) — create your own plugins with the plugin API
 - [Official plugins repository](https://github.com/happyproto/plugins) — the source of the plugins for Steam, Xbox, itch.io, and more
 - [Plugins admin API](/docs/reference/admin/plugins) — install, update and switch plugins by registry project
 - [API Keys](/docs/guides/api-keys) — authenticate programmatic access to admin endpoints

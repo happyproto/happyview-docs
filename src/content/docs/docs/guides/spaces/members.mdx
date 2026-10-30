@@ -15,7 +15,7 @@ The member list records who can read and write within a space. Each member has t
 
 A member can hold either flag, both, or neither. The space's [policies](/docs/guides/spaces/managing-spaces#policies) decide whether the member list is consulted at all.
 
-Only the space's creator or a HappyView super admin can change the member list.
+Only the space's creator or an operator with superadmin can change the member list.
 
 ## Setting a member
 
@@ -347,7 +347,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.simplespace.listMembers?spa
 </TabItem>
 </Tabs>
 
-Only the space's creator or a HappyView super admin can list its members. Other accounts receive `403 Forbidden` and unauthenticated callers `401 Unauthorized`, whatever the space's `membership_public` setting.
+Only the space's creator or an operator with superadmin can list its members. Other accounts receive `403 Forbidden` and unauthenticated callers `401 Unauthorized`, whatever the space's `membership_public` setting.
 
 The response returns the **resolved** member list, with delegation chains traversed and flattened:
 

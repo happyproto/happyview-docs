@@ -29,7 +29,7 @@ After deploying the template, you'll need to configure a few things before the s
    Your instance can use a custom domain or Railway's generated URL with no additional configuration.
    :::
 
-4. Access your HappyView dashboard at the instance's public URL. The first user to log in is automatically bootstrapped as the super user.
+4. Access your HappyView dashboard at the instance's public URL. The first user to log in is automatically made an operator with the superadmin privilege.
 
 ## Next steps
 

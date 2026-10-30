@@ -121,10 +121,12 @@ A starting set of [permissions](#permission) for a new user: **Viewer**,
 **Operator**, **Manager** or **Full Access**. Each includes everything in the
 one before it.
 
-### Super user
+### Superadmin
 
-The instance's owner. The super user holds every permission and can't be
-restricted, and is the only user who can hand ownership to someone else.
+A privilege an operator holds: every permission, unrestricted. Usually one
+operator has it; only an operator who holds it can transfer it to another, and
+the dashboard marks them **Owner**. On a fresh instance it goes to the first
+person to sign in, unless `SUPERADMIN_DID` names someone else.
 
 ### Permission set
 
@@ -165,7 +167,7 @@ yourself, it doesn't apply to you.
 
 {/* BEGIN generated: permissions (generate-permissions.mjs) */}
 
-HappyView has **52 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (10), **Operator** (14), **Manager** (41) and **Full Access** (all 52). The super user holds every permission and can't be restricted.
+HappyView has **52 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (10), **Operator** (14), **Manager** (41) and **Full Access** (all 52). The operator with superadmin holds every permission and can't be restricted.
 
 | Permission | What it allows | Lowest template that grants it |
 |---|---|---|

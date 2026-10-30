@@ -133,7 +133,7 @@ The official auth plugins — Steam, Xbox, Microsoft and itch.io — are publish
 
 ## 5. Script limits now apply
 
-v2 set a one-million-instruction limit and then never enforced it: the hook was installed on the wrong thread, so the coroutine `handle` ran on never saw it. v3 enforces it, and adds two limits v2 had none of. A script that quietly ran long in v2 can fail in v3.
+v2 set a one-million-instruction limit and then never enforced it: the instruction counter was installed on the wrong thread, so the coroutine `handle` ran on never saw it. v3 enforces it, and adds two limits v2 had none of. A script that quietly ran long in v2 can fail in v3.
 
 | Limit | Default | Applies to | Setting |
 |-------|---------|------------|---------|

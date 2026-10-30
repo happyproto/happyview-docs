@@ -61,10 +61,10 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `BACKFILL_REPLAY_MARKER_TAIL_HOURS` | no | `12` | How many of the archive's newest hours a collection replay sweeps for account and sync events. Jetstream's compaction has already removed what deletions and resyncs supersede in the older part. `0` sweeps the whole archive, for a Jetstream with compaction turned off. Takedowns and suspensions older than this aren't applied. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl) |
 | `BACKFILL_REPLAY_DIR` | no | system temp dir + `/happyview-replay` | Where replay jobs spool archive segments, one at a time per job. A segment is capped at 1 GiB. Files older than 24 hours are removed when a replay job starts |
 | `BACKFILL_DATABASE_MAX_CONNECTIONS` | no | auto-calculated | Override the backfill connection pool size. Auto-calculated from concurrency settings if not set, capped at 16 on SQLite and 256 on Postgres |
-| `VERBOSE_EVENT_LOGGING` | no | `false` | Log every record index, hook execution, and hook skip to the event log. High write volume — recommended only for debugging. Overridden by database setting if set via admin API |
+| `VERBOSE_EVENT_LOGGING` | no | `false` | Log every record index, record script run, and record script skip to the event log. High write volume — recommended only for debugging. Overridden by database setting if set via admin API |
 | `RUST_LOG` | no | `happyview=debug,tower_http=debug,sqlx=warn` | Log filter (uses `tracing_subscriber::EnvFilter`) |
 | `APP_NAME` | no | --- | Application name shown on OAuth authorization screens. Overridden by database setting if set via admin API |
-| `SUPERADMIN_DID` | no | --- | DID seeded as a super user at every boot, before the server accepts requests. Setting it turns off the first-sign-in admin bootstrap, even if seeding fails (restart to retry). A value that is not a valid DID refuses boot. Additive: other super users keep their role, and removing it later demotes nobody. A platform super-user transfer demotes the other super users, and the configured superadmin is promoted again at the next boot |
+| `SUPERADMIN_DID` | no | --- | DID given superadmin at every boot, before the server accepts requests. Setting it turns off the first-sign-in admin bootstrap, even if seeding fails (restart to retry). A value that is not a valid DID refuses boot. Additive: other operators with superadmin keep it, and removing the variable later takes it from nobody. A platform superadmin transfer takes it from everyone else, and the configured DID gets it again at the next boot |
 | `HAPPYVIEW_PROJECT` | no | --- | Path to a project directory. Its `happyview.toml` is read at boot; see [Project file](#project-file-happyviewtoml). A path that does not exist stops boot |
 | `LOGO_URI` | no | --- | URL to application logo for OAuth screens. Overridden by database setting or logo upload |
 | `TOS_URI` | no | --- | URL to terms of service. Overridden by database setting if set via admin API |
@@ -264,6 +264,6 @@ Precedence is the same as everywhere: environment variables, then `happyview.tom
 
 ## Next steps
 
-- [Authentication](/docs/getting-started/authentication) — set up OAuth and admin users
+- [Authentication](/docs/getting-started/authentication) — set up OAuth and operators
 - [Dashboard](/docs/guides/dashboard) — explore the admin dashboard
 - [Production deployment](/docs/guides/self-hosting/production) — deploy HappyView to production

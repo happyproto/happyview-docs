@@ -58,7 +58,7 @@ Script variables are stored in the `happyview_script_variables` table and access
 
 ## Use case
 
-This hook keeps an external search index in sync with your indexed records in real time. Users searching through Meilisearch get results that reflect the latest state of the network without polling or scheduled jobs.
+This record script keeps an external search index in sync with your indexed records in real time. Users searching through Meilisearch get results that reflect the latest state of the network without polling or scheduled jobs.
 
 Meilisearch is a good fit for self-hosted deployments — colocate it alongside HappyView (e.g. on the same Railway project) for sub-millisecond network latency.
 

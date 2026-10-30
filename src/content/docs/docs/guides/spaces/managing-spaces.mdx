@@ -16,7 +16,7 @@ Every space has an **authority**: the DID that other services resolve to find th
 at://did:web:happyview.example.com/space/com.example.forum/main
 ```
 
-The account that creates the space is its **creator**. The creator administers the space: only the creator, or a HappyView super admin, can update or delete it, change its member list, and manage its invites.
+The account that creates the space is its **creator**. The creator administers the space: only the creator, or an operator with superadmin, can update or delete it, change its member list, and manage its invites.
 
 Because every space on an instance shares the instance's DID, a space key is unique per space type across the whole instance. A second account creating a space with the same type and `skey` gets `409 Conflict`.
 
@@ -350,7 +350,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.simplespace.getSpace?space=
 }
 ```
 
-Only the space's creator, a HappyView super admin, or a caller presenting a [space credential](/docs/guides/spaces/credentials) for the space can read it. Other accounts, members included, receive `404 Not Found`, and unauthenticated callers `401 Unauthorized`.
+Only the space's creator, an operator with superadmin, or a caller presenting a [space credential](/docs/guides/spaces/credentials) for the space can read it. Other accounts, members included, receive `404 Not Found`, and unauthenticated callers `401 Unauthorized`.
 
 `dev.happyview.space.getSpace` is a deprecated alias, kept until v3.
 
@@ -468,7 +468,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20' 
 
 ## Updating a space
 
-Only the space's creator or a HappyView super admin can update a space.
+Only the space's creator or an operator with superadmin can update a space.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -571,7 +571,7 @@ The response contains the space URI and the updated space object, in the same sh
 
 ## Deleting a space
 
-Only the space's creator or a HappyView super admin can delete a space.
+Only the space's creator or an operator with superadmin can delete a space.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

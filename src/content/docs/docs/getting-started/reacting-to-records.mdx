@@ -181,8 +181,8 @@ export default function handle(input: RecordEvent) {
 
 To change what is stored instead, return a different object. It replaces the record in the index. The full table of return values is in [Script types and triggers](/docs/reference/scripts/types-and-triggers#record-scripts).
 
-:::caution[Record hooks run at least once]
-Record hooks run at least once for each change, not exactly once. If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their hooks run again. Write hooks so that running one twice for the same record has the same result as running it once. A hook that only returns a modified record is already safe. A hook with side effects, such as creating a job, writing to another repository or sending a notification, should check whether it has already done that for this record and version (its `uri` and `cid`) before doing it again. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+:::caution[Record scripts run at least once]
+Record scripts run at least once for each change, not exactly once. If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their record scripts run again. Write record scripts so that running one twice for the same record has the same result as running it once. A record script that only returns a modified record is already safe. A record script with side effects, such as creating a job, writing to another repository or sending a notification, should check whether it has already done that for this record and version (its `uri` and `cid`) before doing it again. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 :::
 
 ## React to labels

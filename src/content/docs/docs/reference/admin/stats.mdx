@@ -128,7 +128,7 @@ curl http://127.0.0.1:3000/admin/stats -H "$AUTH"
 GET /admin/stats/counts
 ```
 
-Returns the number of admin users (seats, including the super user) and registered API clients. It is cheap to call often, unlike the record counts above. Requires `stats:read`.
+Returns the number of operators (seats, including those with superadmin) and registered API clients. It is cheap to call often, unlike the record counts above. Requires `stats:read`.
 
 <Tabs syncKey="lang">
 <TabItem label="cURL">

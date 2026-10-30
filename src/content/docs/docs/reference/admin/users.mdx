@@ -4,7 +4,7 @@ title: "Users"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage admin users and their permissions. See the [Permissions guide](/docs/guides/permissions) for available permissions and templates.
+Manage operators and their permissions. See the [Permissions guide](/docs/guides/permissions) for available permissions and templates.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -315,7 +315,7 @@ curl http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-446655440000 -H "
 PATCH /admin/users/{id}/permissions
 ```
 
-Requires `users:update` permission. You cannot grant permissions you don't have yourself, and you cannot modify the super user's permissions.
+Requires `users:update` permission. You cannot grant permissions you don't have yourself, and you cannot modify the permissions of an operator with superadmin.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -412,13 +412,13 @@ curl -X PATCH http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-44665544
 
 **Response**: `200 OK` with the updated user object.
 
-## Transfer super user
+## Transfer superadmin
 
 ```
 POST /admin/users/transfer-super
 ```
 
-Only the current super user can call this endpoint. Transfers super user status to another existing user.
+Only an operator with superadmin can call this endpoint. It gives superadmin to another existing operator and takes it from the caller.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -502,7 +502,7 @@ curl -X POST http://127.0.0.1:3000/admin/users/transfer-super \
 DELETE /admin/users/{id}
 ```
 
-Requires `users:delete` permission. You cannot delete the super user or yourself.
+Requires `users:delete` permission. You cannot delete an operator with superadmin, or yourself.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

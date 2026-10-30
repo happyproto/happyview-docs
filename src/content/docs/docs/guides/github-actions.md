@@ -131,6 +131,6 @@ By default the action only creates and updates, but never deletes. Set `prune: t
 Pruning is destructive and operates on the whole instance. A misconfigured path pattern can delete lexicons and scripts you meant to keep. Combine it with `dry-run: true` first to preview exactly what would be removed. Pruning always uses the full repository scan as its baseline, so it is safe to combine with `changed-files` — the incremental filter limits uploads, never deletions.
 :::
 
-## Marketplace and versioning
+## GitHub Marketplace and versioning
 
 The actions are consumed by path reference (`owner/happyview-actions/deploy@v1`), like other subdirectory actions. Pin to the major tag `@v1` to receive non-breaking updates automatically, or pin to an exact release tag if you prefer to upgrade deliberately.

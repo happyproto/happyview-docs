@@ -4,7 +4,7 @@ title: "Dead Letters"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: legacy index hooks (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). Both tables are surfaced through a single unified API.
+Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: the legacy record-index path (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). Both tables are surfaced through a single unified API.
 
 Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/guides/configuration)). Unresolved ones are kept until someone deals with them.
 

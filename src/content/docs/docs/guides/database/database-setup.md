@@ -116,7 +116,7 @@ Some rows are copied differently, with a warning in the log:
 
 ### After the upgrade
 
-**Page cursors.** A pagination cursor issued before the upgrade is refused once with `400` and `invalid cursor: request the first page again`. Clients that start again from the first page get cursors in the new form. A WASM plugin that pages records with `host_records_query` gets an `INVALID_SPEC` error for such a cursor and chooses the status it answers with.
+**Page cursors.** A pagination cursor issued before the upgrade is refused once with `400` and `invalid cursor: request the first page again`. Clients that start again from the first page get cursors in the new form. A plugin that pages records with `host_records_query` gets an `INVALID_SPEC` error for such a cursor and chooses the status it answers with.
 
 **Compression on SQLite.** A collection's bodies are compressed once it holds `ZSTD_DICT_TRAIN_AT` records (5,000 by default). A background task, which runs within 30 seconds of startup and then every `RECORD_COMPRESSION_INTERVAL_SECS` seconds (600 by default), trains a dictionary for the collection from up to 20,000 of its most recently stored records. From then on new records in that collection are compressed as they are written, and the task compresses the existing ones in batches of 1,000. Bodies under 64 bytes or over 16 MiB, and bodies that compression would not make smaller, stay as they are. `RECORD_COMPRESSION=none` turns compression off; bodies already compressed stay readable. [`POST /admin/storage/retrain`](/docs/reference/admin/admin-api#record-compression) trains a new dictionary for one collection, and records keep the dictionary they were compressed with. See [Configuration](/docs/guides/configuration) for the settings.
 

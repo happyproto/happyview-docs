@@ -55,7 +55,7 @@ AUTH="Authorization: Bearer $TOKEN"
 | [Backfill](/docs/reference/admin/backfill) | Create and monitor historical backfill jobs |
 | [Event Logs](/docs/reference/admin/events) | Query the audit trail of system events |
 | [API Keys](/docs/reference/admin/api-keys) | Create, list, and revoke API keys |
-| [Users](/docs/reference/admin/users) | Create, list, update, and delete admin users |
+| [Users](/docs/reference/admin/users) | Create, list, update, and delete operators |
 | [Labelers](/docs/reference/admin/labelers) | Manage external labeler subscriptions |
 | [Records](/docs/reference/admin/records) | List and delete indexed records |
 | [Spaces](/docs/reference/admin/spaces) | Browse spaces and their records for moderation |
@@ -65,7 +65,7 @@ AUTH="Authorization: Bearer $TOKEN"
 | [Scripts](/docs/reference/admin/scripts) | Create, list, update, and delete Lua scripts |
 | [Script Variables](/docs/reference/admin/script-variables) | Encrypted key/value pairs for Lua scripts |
 | [API Clients](/docs/reference/admin/api-clients) | Register and manage third-party XRPC clients |
-| [Plugins](/docs/reference/admin/plugins) | Install, configure, and manage WASM plugins |
+| [Plugins](/docs/reference/admin/plugins) | Install, configure, and manage plugins |
 | [Dead Letters](/docs/reference/admin/dead-letters) | List, inspect, dismiss, retry, and reindex dead-lettered events |
 | [Service Identity](/docs/reference/admin/service-identity) | Get and update service identity configuration |
 | [Service Entries](/docs/reference/admin/service-entries) | Manage service entries and their XRPC bindings |
@@ -115,7 +115,7 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/users/{id}`                  | `users:read`               |
 | `PATCH /admin/users/{id}/permissions`    | `users:update`             |
 | `DELETE /admin/users/{id}`               | `users:delete`             |
-| `POST /admin/users/transfer-super`       | Super user only            |
+| `POST /admin/users/transfer-super`       | Superadmin only            |
 | `GET /admin/script-variables`            | `script-variables:read`    |
 | `POST /admin/script-variables`           | `script-variables:create`  |
 | `DELETE /admin/script-variables/{key}`   | `script-variables:delete`  |

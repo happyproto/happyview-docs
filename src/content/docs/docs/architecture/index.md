@@ -259,7 +259,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | -------------- | ------------- | ------------------------------------------------ |
 | `id`           | uuid (PK)     |                                                  |
 | `did`          | text (unique) | User's atproto DID                           |
-| `is_super`     | boolean       | Whether this is the super user (only one allowed)|
+| `is_super`     | boolean       | Whether this operator holds superadmin|
 | `created_at`   | timestamptz   |                                                  |
 | `last_used_at` | timestamptz   | Updated on each authenticated request            |
 

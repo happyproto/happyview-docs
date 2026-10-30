@@ -59,9 +59,9 @@ For query scripts (unauthenticated), `caller_did` is omitted from the detail and
 | `user.deleted`             | info     | Removed user ID       | —                    |
 | `user.bootstrapped`        | info     | Bootstrapped user DID | —                    |
 | `user.permissions_updated` | info     | User ID               | `granted`, `revoked` |
-| `user.super_transferred`   | warn     | New super user ID     | `from_user_id`       |
+| `user.super_transferred`   | warn     | New superadmin's user ID | `from_user_id`       |
 
-The `user.bootstrapped` event is logged when the first user is auto-promoted to super user (see [Auth - Auto-bootstrap](/docs/reference/admin/admin-api#auth)).
+The `user.bootstrapped` event is logged when the first user is given superadmin automatically (see [Auth - Auto-bootstrap](/docs/reference/admin/admin-api#auth)).
 
 ### Auth events
 
@@ -93,7 +93,7 @@ Logged when an admin reads a space's records or blobs through the [admin spaces 
 | `script_variable.upserted` | info     | Variable key | —      |
 | `script_variable.deleted`  | info     | Variable key | —      |
 
-### Hook events
+### Script events
 
 | Event Type             | Severity | Subject                | Detail                                        |
 | ---------------------- | -------- | ---------------------- | --------------------------------------------- |

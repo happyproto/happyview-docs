@@ -4,7 +4,7 @@ title: "Dashboard"
 
 HappyView ships with a web dashboard that provides a visual interface for everything the [admin API](/docs/reference/admin/admin-api) offers. It runs as a separate Next.js application alongside the Rust backend and authenticates via atproto OAuth.
 
-On a fresh deployment with no users in the database, the first person to log in to the dashboard is automatically bootstrapped as the super user with all permissions — so log in with the handle you want to own the instance first.
+On a fresh deployment with no users in the database, the first person to log in to the dashboard is automatically made an operator with the superadmin privilege and every permission — so log in with the handle you want to own the instance first.
 
 ## Data
 
@@ -59,7 +59,7 @@ Navigate to **Dead Letters** to view records that failed to index. Each entry sh
 
 ### Users
 
-Navigate to **Users** to manage who can access the admin API and dashboard. You can add users by DID, assign permissions individually or via a template (`viewer`, `operator`, `manager`, `full_access`), and remove users. The super user is highlighted and has all permissions by default. See [Permissions](/docs/guides/permissions) for what each permission grants.
+Navigate to **Users** to manage who can access the admin API and dashboard. You can add users by DID, assign permissions individually or via a template (`viewer`, `operator`, `manager`, `full_access`), and remove users. The operator with superadmin is marked **Owner** and has every permission. See [Permissions](/docs/guides/permissions) for what each permission grants.
 
 ### API Keys
 

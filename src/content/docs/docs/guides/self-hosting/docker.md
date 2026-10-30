@@ -151,7 +151,7 @@ Whatever you use, `PUBLIC_URL` must match the resulting public URL exactly. To s
 
 ## 5. Log in
 
-Open `PUBLIC_URL` in a browser. The image serves the dashboard at the root, and the first handle to authenticate on a fresh instance is automatically bootstrapped as the [super user](/docs/guides/permissions) with all permissions — so use the handle you want to own the instance.
+Open `PUBLIC_URL` in a browser. The image serves the dashboard at the root, and the first handle to authenticate on a fresh instance becomes an operator with the [superadmin](/docs/guides/permissions#superadmin) privilege and every permission, so use the handle you want to run the instance.
 
 From there, follow the [Quickstart](/docs/getting-started/installation) from step 3 to add your first lexicon.
 

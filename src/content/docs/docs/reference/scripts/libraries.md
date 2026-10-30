@@ -2,7 +2,7 @@
 title: "Libraries"
 ---
 
-A library is a WASM plugin a script loads with `require`. Each has a namespace under `happyview.`, declares the [capabilities](/docs/guides/developing-plugins#capabilities) it needs, and documents its own surface in its README. HappyView ships none of them: every library is installed from the [plugins repository](https://github.com/happyproto/plugins) through **Integrations > Plugins** or the [admin API](/docs/reference/admin/plugins), and a script that requires one that is not installed fails to load.
+A library is a plugin a script loads with `require`. Each has a namespace under `happyview.`, declares the [capabilities](/docs/guides/developing-plugins#capabilities) it needs, and documents its own surface in its README. HappyView ships none of them: every library is installed from the [plugins repository](https://github.com/happyproto/plugins) through **Integrations > Plugins** or the [admin API](/docs/reference/admin/plugins), and a script that requires one that is not installed fails to load.
 
 | `require` | Capabilities | Purpose | Surface |
 | --- | --- | --- | --- |

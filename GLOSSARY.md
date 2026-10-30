@@ -9,8 +9,11 @@ One running HappyView server, self-hosted or on HappyProto.
 _Avoid_: server, tenant, deployment, AppView (for the server)
 
 **Project**:
-On HappyView's side, the directory holding `happyview.toml` and `src/` that is deployed to an instance. On HappyProto's side, a container in the HappyProto dashboard that holds one instance today and other services later; write "HappyProto project" for that one.
-_Avoid_: app (for either), workspace
+The directory holding `happyview.toml` and `src/` that is deployed to an instance.
+_Avoid_: app, workspace, project (for a HappyProto project)
+
+**HappyProto project**:
+A container in the HappyProto dashboard that holds one instance today and other services later. Always written with "HappyProto"; your project deploys to the instance in a HappyProto project.
 
 **App**:
 The reader's own product, which talks to an instance.
@@ -23,7 +26,11 @@ The atproto role an instance plays: a service that indexes records from the netw
 
 **Operator**:
 A person who signs in to an instance's dashboard or admin API to run it.
-_Avoid_: super user, superadmin (for a person), owner, admin user
+_Avoid_: super user, superadmin (for a person), owner (for a person running an instance), admin user, user (for an operator)
+
+**User**:
+A person signed in to an app with their atproto account. The dashboard's **Users** page lists operators, not users.
+_Avoid_: user (for an operator), end user, member (outside spaces)
 
 **Permission**:
 One named thing an operator is allowed to do on an instance, such as `lexicons:create`.
@@ -32,7 +39,7 @@ One named thing an operator is allowed to do on an instance, such as `lexicons:c
 A named starting set of permissions an operator can be given.
 
 **Superadmin**:
-The privilege of holding every permission, which can't be restricted. One operator holds it at a time, and it passes from one operator to another rather than being shared.
+The privilege of holding every permission, which can't be restricted. Usually one operator holds it; a transfer moves it from one operator to another.
 _Avoid_: super user, owner, root
 
 ## Data
