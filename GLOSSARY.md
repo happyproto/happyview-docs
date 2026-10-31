@@ -69,6 +69,23 @@ _Avoid_: local lexicon, manual lexicon (except quoting the dashboard's **Local**
 The set of records of one record lexicon, named by that lexicon's NSID.
 _Avoid_: collection (for the lexicon itself), table
 
+## Backfills
+
+**Backfill**:
+Indexing the records a collection already has on the network, rather than waiting for new ones to arrive.
+_Avoid_: store pass, import, sync
+
+**Crawl**:
+A backfill that lists accounts from the relay and fetches each account's records from its PDS.
+
+**Replay**:
+A backfill that reads the Jetstream archive.
+_Avoid_: rewind
+
+**Network store**:
+The shared copy of public atproto records every HappyProto instance reads from.
+_Avoid_: shared store, record store
+
 ## Scripts
 
 **Script**:

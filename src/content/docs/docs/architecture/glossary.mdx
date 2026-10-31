@@ -157,11 +157,26 @@ own database. HappyView still runs record scripts, serves reads and handles
 writes for those collections. If the storage can't be reached, record reads
 answer `503` "the record store is unavailable" rather than an empty result.
 
+### Backfill
+
+Indexing the records a collection already has on the network, rather than
+waiting for new ones to arrive. A backfill is a **crawl** or a **replay**, or
+on HappyProto, runs your record scripts over the network store's copy.
+
+### Crawl
+
+A backfill that lists accounts from the relay and fetches each account's
+records from its PDS.
+
+### Replay
+
+A backfill that reads the Jetstream archive.
+
 ### Network store
 
-HappyProto's hosted instances share one copy of public network records,
-through a record source and storage of HappyProto's own. If you run HappyView
-yourself, it doesn't apply to you.
+The shared copy of public atproto records every HappyProto instance reads
+from, through a record source and storage of HappyProto's own. If you run
+HappyView yourself, it doesn't apply to you.
 
 ## Permissions
 
