@@ -167,7 +167,7 @@ yourself, it doesn't apply to you.
 
 {/* BEGIN generated: permissions (generate-permissions.mjs) */}
 
-HappyView has **52 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (10), **Maintainer** (14), **Manager** (41) and **Full Access** (all 52). The operator with superadmin holds every permission and can't be restricted.
+HappyView has **53 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (11), **Maintainer** (15), **Manager** (42) and **Full Access** (all 53). The operator with superadmin holds every permission and can't be restricted.
 
 | Permission | What it allows | Lowest template that grants it |
 |---|---|---|
@@ -181,7 +181,7 @@ HappyView has **52 permissions**. A user holds any mix of them; the four built-i
 | `records:delete` | Delete individual records from the index | Manager |
 | `records:delete-collection` | Bulk-delete all records in a collection | Full Access |
 | **Script Variables** | | |
-| `script-variables:create` | Add or update environment variables for Lua scripts | Manager |
+| `script-variables:create` | Add or update environment variables for scripts | Manager |
 | `script-variables:read` | View script environment variable keys and values | Viewer |
 | `script-variables:delete` | Remove script environment variables | Manager |
 | **Users** | | |
@@ -200,6 +200,7 @@ HappyView has **52 permissions**. A user holds any mix of them; the four built-i
 | `stats:read` | View collection statistics and record counts | Viewer |
 | `events:read` | View the event log | Viewer |
 | `events:purge` | Bulk-delete event log entries matching a filter | Full Access |
+| `metrics:read` | View script run counts, latency, errors and resource use | Viewer |
 | **Labelers** | | |
 | `labelers:create` | Subscribe to external labeler services | Manager |
 | `labelers:read` | View subscribed labeler services | Manager |

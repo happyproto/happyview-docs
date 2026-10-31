@@ -147,6 +147,7 @@ It also covers reading what is deployed. A deploy can add, change and remove eve
 | ------------ | ---------------------------------------- |
 | `stats:read` | View collection statistics and record counts |
 | `events:read` | View the event log                      |
+| `metrics:read` | View script run counts, latency, errors and resource use |
 | `events:purge` | Bulk-delete event log entries matching a filter |
 
 ## Permission templates
@@ -157,7 +158,7 @@ Templates are predefined sets of permissions that simplify adding an operator. P
 
 Read-only access. Can browse lexicons, records, scripts, stats, events, dead letters, and user lists but cannot modify anything.
 
-Includes: `lexicons:read`, `records:read`, `scripts:read`, `script-variables:read`, `users:read`, `api-keys:read`, `backfill:read`, `stats:read`, `events:read`, `dead-letters:read`
+Includes: `lexicons:read`, `records:read`, `scripts:read`, `script-variables:read`, `users:read`, `api-keys:read`, `backfill:read`, `stats:read`, `events:read`, `metrics:read`, `dead-letters:read`
 
 ### Maintainer template
 
@@ -175,7 +176,7 @@ Adds: `lexicons:create`, `lexicons:delete`, `lexicons:publish`, `scripts:manage`
 
 ### Full Access template
 
-All 52 permissions. Equivalent to granting every permission individually (but still not superadmin).
+All 53 permissions. Equivalent to granting every permission individually (but still not superadmin).
 
 ## Superadmin
 
