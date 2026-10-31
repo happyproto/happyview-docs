@@ -36,7 +36,8 @@ _Avoid_: user (for an operator), end user, member (outside spaces)
 One named thing an operator is allowed to do on an instance, such as `lexicons:create`.
 
 **Template**:
-A named starting set of permissions an operator can be given: Viewer, Operator, Manager or Full Access. Always written with "template" ("the **Operator** template"), because every template is given to an operator.
+A named starting set of permissions an operator can be given: Viewer, Maintainer, Manager or Full Access. Written with "template" ("the **Maintainer** template"). Maintainer was called Operator, which clashed with the person; the admin API still accepts `operator`.
+_Avoid_: the Operator template
 
 **Superadmin**:
 The privilege of holding every permission, which can't be restricted. Usually one operator holds it; a transfer moves it from one operator to another.
