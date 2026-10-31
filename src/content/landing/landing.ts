@@ -96,7 +96,7 @@ export const capabilities: Tile[] = [
 export const alternates: Tile[] = [
 	{
 		title: 'Access you can delegate',
-		blurb: '52 permissions, four templates from Viewer to Full Access, and atproto OAuth sign-in for the dashboard.',
+		blurb: 'Named permissions, four templates from Viewer to Full Access, and atproto OAuth sign-in for the dashboard.',
 		href: '/docs/guides/permissions',
 	},
 	{

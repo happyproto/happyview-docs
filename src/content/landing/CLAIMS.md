@@ -51,7 +51,7 @@ rather than "the next request".
 | Plugins are WebAssembly and declare capabilities, checked against imports | `src/plugin/loader.rs:65,71`; `src/plugin/capabilities.rs:1-3` |
 | Capabilities are shown before you install | `web/src/app/dashboard/settings/plugins/add/[id]/catalogue-plugin.tsx:17,145` (`visibleCapabilities` on the install page); `CapabilityConsent` on update and channel switch |
 | `hpy happyview test` fires queries, procedures, record events and jobs in process, with no network | `guides/testing.md` ("Firing triggers", "What stands in for the outside world"); the run above |
-| 52 permissions, four templates (alternate tile) | Generated table in `../glossary.mdx` |
+| Named permissions, four templates (alternate tile) | Generated table in `../glossary.mdx` |
 | atproto OAuth sign-in for the dashboard (alternate tile) | `src/auth/`; dashboard login |
 | SQLite or Postgres; migrations on startup; Postgres for replicas (alternate tile) | `getting-started/deployment/docker.md` (Compose-file table) |
 | Binary for macOS, Linux, Windows | `getting-started/deployment/binary.md`; release v3.0.0-alpha.42 has macOS (arm64, x86_64), Linux (arm64, x86_64; gnu and musl) and Windows (x86_64) archives |
