@@ -9,6 +9,7 @@ bun install
 bun run dev        # http://localhost:4321
 bun run build      # builds dist/, and fails on a broken internal link or anchor
 bun test           # the frozen-URL and link-style tests; run after a build
+bun run test:browser  # types in search on the built site; run after a build
 ```
 
 ## Where things are
