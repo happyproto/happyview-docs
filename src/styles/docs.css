@@ -128,7 +128,8 @@ main .content-panel + .content-panel {
 }
 
 /* Previous and next: hairlines, as everywhere else on the site. */
-.pagination-links a {
+.pagination-links a,
+.sl-link-card {
   box-shadow: none;
 }
 .pagination-links a:hover {
@@ -146,8 +147,9 @@ main .content-panel + .content-panel {
 }
 
 /* Tables. rehype-tables wraps each in a scroller; the edge shadows appear
-   only while there is more to scroll to. Under 40rem a table stacks, each row
-   a block and each cell naming its column. */
+   only while there is more to scroll to. In a column under 40rem a table
+   stacks, each row a block and each cell naming its column. The width that
+   counts is the column's, which a sidebar narrows at any screen size. */
 .table-scroll,
 pre.mermaid {
   overflow-x: auto;
@@ -156,6 +158,9 @@ pre.mermaid {
     linear-gradient(to left, var(--hp-color-bg) 40%, transparent) right / 2rem 100% no-repeat local,
     linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
     linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+}
+.table-scroll {
+  container-type: inline-size;
 }
 .sl-markdown-content .table-scroll > table {
   display: table;
@@ -166,12 +171,13 @@ pre.mermaid {
 .sl-markdown-content td code {
   overflow-wrap: anywhere;
 }
-@media (min-width: 40rem) {
-  .sl-markdown-content td:first-child code {
-    white-space: nowrap;
-  }
+.sl-markdown-content td code.name {
+  white-space: nowrap;
 }
-@media (max-width: 39.99rem) {
+.sl-markdown-content table.stack td:last-child {
+  inline-size: 40%;
+}
+@container (max-width: 40rem) {
   .sl-markdown-content table.stack,
   .sl-markdown-content table.stack :is(tbody, tr, td) {
     display: block;
@@ -188,9 +194,14 @@ pre.mermaid {
     padding-block: var(--hp-space-3);
     border-block-end: 1px solid var(--hp-color-border);
   }
-  .sl-markdown-content table.stack td {
+  .sl-markdown-content table.stack td,
+  .sl-markdown-content table.stack td:last-child {
+    inline-size: auto;
     padding: 0;
     border: 0;
+  }
+  .sl-markdown-content td code.name {
+    white-space: normal;
   }
   .sl-markdown-content table.stack td + td {
     margin-block-start: var(--hp-space-2);
@@ -224,11 +235,62 @@ pre.mermaid {
 pre.mermaid svg {
   min-inline-size: var(--diagram-floor, auto);
 }
+pre.mermaid small {
+  font-size: 1em;
+}
 @media (scripting: enabled) {
-  pre.mermaid:not([data-processed]) {
+  pre.mermaid:not([data-processed], [data-failed]) {
     min-block-size: 18rem;
     color: transparent;
   }
+}
+.diagram-expand {
+  margin-block-start: var(--hp-space-2);
+}
+.diagram-dialog {
+  inline-size: min(100vw - 2rem, 96rem);
+  max-inline-size: none;
+  max-block-size: calc(100dvh - 2rem);
+  padding: var(--hp-space-4);
+  border: 1px solid var(--hp-color-border);
+  border-radius: var(--hp-radius-md);
+  background: var(--hp-color-bg);
+  color: var(--hp-color-fg);
+}
+.diagram-dialog::backdrop {
+  background: color-mix(in oklab, var(--hp-color-bg) 70%, transparent);
+}
+.diagram-dialog form {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: var(--hp-space-2);
+}
+.diagram-full {
+  overflow: auto;
+}
+.diagram-full svg {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: calc(var(--diagram-floor) * 0.66);
+  max-inline-size: none !important;
+  block-size: auto;
+}
+
+/* Search. */
+.search-scope {
+  margin: 0 0 var(--hp-space-3);
+  color: var(--hp-color-fg-muted);
+  font-size: var(--hp-text-sm);
+}
+.pagefind-ui__results > .pagefind-ui__result:first-child .pagefind-ui__result-title {
+  background: var(--sl-color-accent-low);
+}
+.search-status {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 
 /* Splash pages have no column to hold their measure. */
@@ -263,8 +325,13 @@ pre.mermaid svg {
   starlight-tabs a[role='tab'] {
     display: flex;
   }
-  #starlight__sidebar .large {
+  #starlight__sidebar :is(a, .large) {
     font-size: var(--hp-text-sm);
+  }
+  .pagefind-ui__result-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
   }
   #starlight__sidebar a {
     display: flex;

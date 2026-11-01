@@ -3,11 +3,21 @@ title: "Introduction"
 description: "What HappyView is, the idea it's built on, and where to start."
 ---
 
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
 HappyView is an open-source AppView for atproto. You describe your app's data and API with lexicons, and HappyView indexes the matching records from the network and serves your API from them.
 
 You write the parts only your app knows: which records matter, what each query returns, what a procedure does. HappyView runs the rest: following the network, backfilling history, signing users in, and writing to their accounts on their behalf.
 
 HappyView v3 is in alpha. These docs describe v3; the [v2 docs](/docs/v2/) are kept for instances still on v2.
+
+## Where to start
+
+<CardGrid>
+  <LinkCard title="Build an app" href="/docs/getting-started/how-happyview-fits-atproto" description="Follow Getting started in order, from how HappyView fits atproto through to deploying." />
+  <LinkCard title="Run your own instance" href="/docs/guides/self-hosting/docker" description="Self-hosting covers Docker, the release binaries and production setup." />
+  <LinkCard title="Use HappyProto" href="https://happyproto.at" description="HappyProto runs HappyView instances for you; you deploy your project to one." />
+</CardGrid>
 
 ## The idea
 
@@ -17,9 +27,3 @@ HappyView v3 is in alpha. These docs describe v3; the [v2 docs](/docs/v2/) are k
 - **A project holds it all.** Lexicons and scripts are files in a directory you run locally and deploy to an instance.
 
 New to atproto's terms? [How HappyView fits atproto](/docs/getting-started/how-happyview-fits-atproto) explains each one in a sentence.
-
-## Where to start
-
-- **Build an app.** Follow Getting Started in order: [how HappyView fits atproto](/docs/getting-started/how-happyview-fits-atproto), [installation](/docs/getting-started/installation), [running locally](/docs/getting-started/running-locally), then lexicons, queries and procedures, scripts, plugins, authentication and testing, ending at [deploying](/docs/getting-started/deploying).
-- **Run your own instance.** [Self-hosting](/docs/guides/self-hosting/docker) covers Docker, the release binaries and production setup.
-- **Use HappyProto.** [HappyProto](https://happyproto.at) runs HappyView instances for you; you deploy your project to one.

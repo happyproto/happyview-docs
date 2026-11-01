@@ -97,13 +97,17 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
     }
   }, [session, pendingAction, handleAction]);
 
-  const handleLogin = async (handle: string) => {
+  // Resolves with a message if sign-in couldn't start; otherwise the page redirects.
+  const handleLogin = async (handle: string): Promise<string | undefined> => {
     const client = clientRef.current;
-    if (!client) return;
-    setShowLogin(false);
-    await client.signInRedirect(handle, {
-      state: window.location.href,
-    });
+    if (!client) return undefined;
+    try {
+      await client.signInRedirect(handle, {
+        state: window.location.href,
+      });
+    } catch {
+      return "Couldn't find an account for that handle. Check it and try again.";
+    }
   };
 
   const handleLogout = async () => {
@@ -270,12 +274,13 @@ function InlineLogin({
   visible,
 }: {
   action: string;
-  onSubmit: (handle: string) => void;
+  onSubmit: (handle: string) => Promise<string | undefined>;
   onClose: () => void;
   visible: boolean;
 }) {
   const [handle, setHandle] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [pending, setPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // A post shows these controls twice, above and below the article.
   const inputId = useId();
@@ -297,7 +302,7 @@ function InlineLogin({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [visible, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = handle.trim();
     if (!trimmed) return;
@@ -308,13 +313,16 @@ function InlineLogin({
     }
 
     setValidationError('');
-    onSubmit(trimmed);
+    setPending(true);
+    const failure = await onSubmit(trimmed);
+    setPending(false);
+    if (failure) setValidationError(failure);
   };
 
   return (
     <div className="pt-4">
       <p className="text-sm mb-3" style={{ color: 'var(--hp-color-fg-muted)' }}>
-        Sign in with Bluesky to {action}.
+        Sign in with your atproto account to {action}.
       </p>
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[200px]">
@@ -343,7 +351,7 @@ function InlineLogin({
         </div>
         <button
           type="submit"
-          disabled={!handle.trim()}
+          disabled={!handle.trim() || pending}
           tabIndex={visible ? 0 : -1}
           className="hp-button hp-button-primary"
         >

@@ -1,4 +1,4 @@
-// The v3 sidebar. Getting Started is in learning order; every other group is
+// The v3 sidebar. Getting started is in learning order; every other group is
 // ordered for scanning. A page that isn't listed here builds, but is reachable
 // only by link, so add new pages here.
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
@@ -10,7 +10,7 @@ const d = (slug: string) => (slug ? `docs/${slug}` : 'docs');
 export const v3Sidebar: Sidebar = [
   d(''),
   {
-    label: 'Getting Started',
+    label: 'Getting started',
     items: [
       d('getting-started/how-happyview-fits-atproto'),
       d('getting-started/installation'),

@@ -1,6 +1,6 @@
 // Wraps each Markdown table in a scroller that names itself after the heading
 // above it, and labels each cell with its column so that CSS can stack a table
-// on a phone. Stacking changes the display of every
+// when its column is narrow. Stacking changes the display of every
 // table part, which drops their table semantics, so those tables state their
 // roles outright.
 import type { Element, ElementContent, Root } from 'hast';
@@ -11,6 +11,23 @@ const text = (node: ElementContent | Element): string =>
 
 const elements = (node: Element, ...tags: string[]) =>
   node.children.filter((child): child is Element => child.type === 'element' && tags.includes(child.tagName));
+
+// A name in the first column stays whole, except that a long variable name
+// may break after an underscore.
+function holdName(cell: Element) {
+  for (const code of elements(cell, 'code')) {
+    const [only] = code.children;
+    if (code.children.length !== 1 || only.type !== 'text' || /\s/.test(only.value)) continue;
+    if (only.value.includes('_')) {
+      code.children = only.value.split(/(?<=_)/).flatMap((part, i): ElementContent[] => [
+        ...(i ? [{ type: 'element', tagName: 'wbr', properties: {}, children: [] } as Element] : []),
+        { type: 'text', value: part },
+      ]);
+    } else {
+      code.properties.className = ['name'];
+    }
+  }
+}
 
 function labelCells(table: Element) {
   const thead = elements(table, 'thead')[0];
@@ -27,6 +44,7 @@ function labelCells(table: Element) {
       elements(row, 'th', 'td').forEach((cell, i) => {
         cell.properties.role = cell.tagName === 'th' ? 'columnheader' : 'cell';
         if (cell.tagName === 'td' && columns[i]) cell.properties.dataLabel = columns[i];
+        if (cell.tagName === 'td' && i === 0) holdName(cell);
       });
     }
   }

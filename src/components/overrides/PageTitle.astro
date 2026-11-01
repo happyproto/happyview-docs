@@ -3,6 +3,7 @@
 // Markdown source, then what to read first.
 import { getCollection, getEntry } from 'astro:content';
 import type { StarlightRouteData } from '@astrojs/starlight/route-data';
+import redirects from '../../redirects.json';
 
 // Starlight's PAGE_TITLE_ID, which the package does not export.
 const PAGE_TITLE_ID = '_top';
@@ -33,10 +34,16 @@ const trail = (entries: Entry[]): Crumb[] | null => {
 const crumbs = trail(sidebar) ?? [];
 const searchTitle = crumbs.length ? `${title} · ${crumbs[crumbs.length - 1].label}` : title;
 
-// The same page in the other version, for the version switch to land on.
+// The same page in the other version, for the version switch to land on: the
+// same path, or failing that the redirect map, whose old paths are v2's.
 const pageIds = new Set((await getCollection('docs')).map((page) => page.id));
-const counterpartId = isV2 ? entry.id.replace(/^docs\/v2/, 'docs') : entry.id.replace(/^docs/, 'docs/v2');
-const counterpart = pageIds.has(counterpartId) ? `/${counterpartId}/` : undefined;
+const moved = Object.entries(redirects as Record<string, string>).map(
+  ([from, to]) => [`docs/v2${from}`, to.replace(/^\//, '')] as const,
+);
+const counterpartId = isV2
+  ? (moved.find(([v2]) => v2 === entry.id)?.[1] ?? entry.id.replace(/^docs\/v2/, 'docs'))
+  : (moved.find(([, v3]) => v3 === entry.id)?.[0] ?? entry.id.replace(/^docs/, 'docs/v2'));
+const counterpart = entry.id.startsWith('docs') && pageIds.has(counterpartId) ? `/${counterpartId}/` : undefined;
 
 const prereqs = await Promise.all(
   (prerequisites ?? []).map(async (href) => {
@@ -112,26 +119,33 @@ const prereqs = await Promise.all(
     const switchTo = counterpart.startsWith('/docs/v2/') ? '/docs/v2/' : '/docs/';
     const topic = sidebar?.querySelector<HTMLAnchorElement>(`.starlight-sidebar-topics a[href="${switchTo}"]`);
     if (topic) topic.href = counterpart;
+    const banner = document.querySelector<HTMLAnchorElement>('.sl-banner a');
+    if (banner) banner.href = counterpart;
   }
 
-  // A scroller is a tab stop, and a landmark, only while it has somewhere to
-  // scroll.
+  // A scroller is a tab stop, and a named landmark, only while it has somewhere
+  // to scroll.
+  const scrollerLabels = new WeakMap<Element, string>();
   const syncScroller = (el: Element) => {
+    const label = el.getAttribute('aria-label');
+    if (label) scrollerLabels.set(el, label);
     if (el.scrollWidth > el.clientWidth + 1) {
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'region');
+      el.setAttribute('aria-label', scrollerLabels.get(el) ?? 'Scrollable content');
     } else {
       el.removeAttribute('tabindex');
       el.removeAttribute('role');
+      el.removeAttribute('aria-label');
     }
   };
   const scrollers = new ResizeObserver((entries) => entries.forEach((entry) => syncScroller(entry.target)));
   document.querySelectorAll('.table-scroll').forEach((el) => scrollers.observe(el));
 
   // Expressive Code makes an overflowing block a region but gives it no name.
-  document.querySelectorAll('.expressive-code pre[role="region"]').forEach((pre) => {
+  document.querySelectorAll('.expressive-code pre[role="region"]').forEach((pre, i) => {
     const language = pre.getAttribute('data-language');
-    pre.setAttribute('aria-label', language ? `Code: ${language}` : 'Code');
+    pre.setAttribute('aria-label', `Code ${i + 1}${language ? `: ${language}` : ''}`);
   });
 
   // Pagefind builds its search field after this runs. Its results take Tab
@@ -140,6 +154,29 @@ const prereqs = await Promise.all(
   search?.addEventListener('focusin', () => {
     document.querySelector('.pagefind-ui__search-input')?.setAttribute('aria-label', 'Search the docs');
   });
+
+  // Pagefind's result count isn't announced, and it rewrites that element, so
+  // a status region of ours repeats it. The v2 docs are kept out of search.
+  if (search) {
+    const announcer = document.createElement('p');
+    announcer.className = 'search-status';
+    announcer.setAttribute('role', 'status');
+    search.append(announcer);
+    new MutationObserver(() => {
+      announcer.textContent = search.querySelector('.pagefind-ui__message')?.textContent ?? '';
+    }).observe(search, { childList: true, subtree: true, characterData: true });
+    if (location.pathname.startsWith('/docs/v2/')) {
+      const scope = document.createElement('p');
+      scope.className = 'search-scope';
+      scope.textContent = 'Search covers the v3 docs only; the v2 docs aren’t indexed.';
+      search.querySelector('.dialog-frame')?.prepend(scope);
+    }
+  }
+
+  // Other pages send the search shortcut here.
+  if (new URLSearchParams(location.search).has('search')) {
+    document.querySelector<HTMLElement>('site-search button')?.click();
+  }
   search?.addEventListener('keydown', (event) => {
     const { key, target } = event as KeyboardEvent;
     if (key !== 'ArrowDown' && key !== 'ArrowUp' && key !== 'Enter') return;
@@ -159,10 +196,9 @@ const prereqs = await Promise.all(
   // Diagrams: load mermaid only on pages that have one, and draw them from
   // the site's tokens, again whenever the theme changes. On a narrow screen a
   // left-to-right flowchart runs top to bottom instead. Theme changes arriving
-  // mid-render collapse into one more.
+  // mid-render collapse into one more. If mermaid can't load, the source stays.
   const diagrams = [...document.querySelectorAll<HTMLElement>('pre.mermaid')];
   if (diagrams.length) {
-    const { default: mermaid } = await import('mermaid');
     const narrow = matchMedia('(max-width: 49.99rem)').matches;
     const sources = new Map(
       diagrams.map((el) => {
@@ -170,9 +206,41 @@ const prereqs = await Promise.all(
         return [el, narrow ? source.replace(/^(\s*(?:flowchart|graph)) LR\b/m, '$1 TD') : source];
       }),
     );
+
+    // A diagram wider than its column can also open at the size of the screen.
+    const dialog = document.createElement('dialog');
+    dialog.className = 'diagram-dialog';
+    dialog.innerHTML =
+      '<form method="dialog"><button class="hp-button hp-button-small">Close</button></form><div class="diagram-full"></div>';
+    document.body.append(dialog);
+    const full = dialog.querySelector<HTMLElement>('.diagram-full')!;
+    const expanders = new Map<HTMLElement, HTMLButtonElement>();
+    const syncExpander = (el: HTMLElement) => {
+      const scrolls = el.scrollWidth > el.clientWidth + 1;
+      let button = expanders.get(el);
+      if (scrolls && !button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'hp-button hp-button-small diagram-expand not-content';
+        button.textContent = 'View full size';
+        button.addEventListener('click', () => {
+          const svg = el.querySelector('svg');
+          if (!svg) return;
+          full.style.setProperty('--diagram-floor', el.style.getPropertyValue('--diagram-floor'));
+          full.replaceChildren(svg.cloneNode(true));
+          dialog.setAttribute('aria-label', el.getAttribute('aria-label') ?? 'Diagram');
+          dialog.showModal();
+        });
+        el.after(button);
+        expanders.set(el, button);
+      }
+      if (button) button.hidden = !scrolls;
+    };
+
     // Mermaid can't parse the tokens' oklch, so read each back as hex.
     const paint = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
     const render = async () => {
+      const { default: mermaid } = await import('mermaid');
       const css = getComputedStyle(document.documentElement);
       const token = (name: string) => {
         paint.fillStyle = css.getPropertyValue(`--hp-color-${name}`).trim();
@@ -183,6 +251,8 @@ const prereqs = await Promise.all(
       mermaid.initialize({
         startOnLoad: false,
         theme: 'base',
+        flowchart: { nodeSpacing: 30, rankSpacing: 40 },
+        sequence: { actorMargin: 20, width: 110 },
         themeVariables: {
           background: token('bg'),
           primaryColor: token('surface-raised'),
@@ -199,7 +269,9 @@ const prereqs = await Promise.all(
           fontFamily: css.getPropertyValue('--hp-font-sans').trim(),
         },
       });
+      const scrolled = new Map(diagrams.map((el) => [el, el.scrollLeft]));
       for (const [el, source] of sources) {
+        el.style.minBlockSize = `${el.offsetHeight}px`;
         el.removeAttribute('data-processed');
         el.textContent = source;
       }
@@ -208,8 +280,11 @@ const prereqs = await Promise.all(
         const svg = el.querySelector('svg');
         if (!svg) continue;
         el.style.setProperty('--diagram-floor', `${0.75 * svg.viewBox.baseVal.width}px`);
+        el.style.minBlockSize = '';
         el.setAttribute('aria-label', svg.querySelector('title')?.textContent || 'Diagram');
+        el.scrollLeft = scrolled.get(el) ?? 0;
         syncScroller(el);
+        syncExpander(el);
       }
     };
     let rendering = false;
@@ -218,12 +293,21 @@ const prereqs = await Promise.all(
       again = rendering;
       if (rendering) return;
       rendering = true;
-      await render();
+      try {
+        await render();
+      } catch {
+        for (const el of diagrams) {
+          el.dataset.failed = '';
+          el.style.minBlockSize = '';
+        }
+      }
       rendering = false;
       if (again) rerender();
     };
     await rerender();
     new MutationObserver(rerender).observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    const expanderSizes = new ResizeObserver((entries) => entries.forEach((entry) => syncExpander(entry.target as HTMLElement)));
+    diagrams.forEach((el) => expanderSizes.observe(el));
     diagrams.forEach((el) => scrollers.observe(el));
   }
 </script>
