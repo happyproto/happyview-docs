@@ -135,7 +135,7 @@ const prereqs = await Promise.all(
   const syncScroller = (el: Element) => {
     const label = el.getAttribute('aria-label');
     if (label) scrollerLabels.set(el, label);
-    if (el.scrollWidth > el.clientWidth + 1) {
+    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
       el.setAttribute('tabindex', '0');
       el.setAttribute('role', 'region');
       el.setAttribute('aria-label', scrollerLabels.get(el) ?? 'Scrollable content');
@@ -183,11 +183,19 @@ const prereqs = await Promise.all(
     search.querySelector('.dialog-frame')?.append(none);
     new MutationObserver(() => {
       const query = search.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.value.trim() ?? '';
-      const marks = [...search.querySelectorAll('.pagefind-ui__result mark')].map(
-        (mark) => mark.textContent?.replace(/[^\p{L}\p{N}]/gu, '').length ?? 0,
+      // A match shares most of the query's opening letters with a highlight,
+      // so a typo or a word ending still counts and a chance prefix doesn't.
+      const word = query.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/)[0] ?? '';
+      const shared = (mark: string) => {
+        let i = 0;
+        while (i < word.length && word[i] === mark[i]) i++;
+        return i;
+      };
+      const marks = [...search.querySelectorAll('.pagefind-ui__result mark')].map((mark) =>
+        (mark.textContent ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''),
       );
-      const noMatch = marks.length > 0 && Math.max(...marks) < Math.min(3, query.length);
-      const text = `No matches for “${query}”.`;
+      const noMatch = marks.length > 0 && Math.max(...marks.map(shared)) < Math.ceil(Math.min(word.length, 5) * 0.6);
+      const text = `No matches for “${query}”. Try a shorter term, or browse the sidebar.`;
       if (noMatch && none.textContent !== text) none.textContent = text;
       search.toggleAttribute('data-no-match', noMatch);
       const message = noMatch ? text : (search.querySelector('.pagefind-ui__message')?.textContent ?? '');
@@ -244,9 +252,18 @@ const prereqs = await Promise.all(
     dialog.className = 'diagram-dialog';
     dialog.setAttribute('closedby', 'any');
     dialog.innerHTML =
-      '<form method="dialog"><button class="hp-button hp-button-small">Close</button></form><div class="diagram-full"></div>';
+      '<div class="diagram-bar"><button type="button" class="hp-button hp-button-small" data-size-toggle></button><form method="dialog"><button class="hp-button hp-button-small">Close</button></form></div><div class="diagram-full"></div>';
     document.body.append(dialog);
     const full = dialog.querySelector<HTMLElement>('.diagram-full')!;
+    // Fitted shows the whole shape; actual size is readable. Wide screens have
+    // room to open readable, and everything else opens on the whole shape.
+    const sizeToggle = dialog.querySelector<HTMLButtonElement>('[data-size-toggle]')!;
+    const setFitted = (fitted: boolean) => {
+      dialog.toggleAttribute('data-fitted', fitted);
+      sizeToggle.textContent = fitted ? 'Actual size' : 'Fit to screen';
+      syncScroller(full);
+    };
+    sizeToggle.addEventListener('click', () => setFitted(!dialog.hasAttribute('data-fitted')));
     let showing: HTMLElement | undefined;
     const fillDialog = (el: HTMLElement) => {
       const svg = el.querySelector('svg')?.cloneNode(true) as SVGSVGElement | undefined;
@@ -267,7 +284,9 @@ const prereqs = await Promise.all(
     const expanders = new Map<HTMLElement, HTMLButtonElement>();
     const syncExpander = (el: HTMLElement) => {
       if (!el.querySelector('svg')) return;
-      const scrolls = el.scrollWidth > el.clientWidth + 1;
+      const svg = el.querySelector('svg')!;
+      const shrunk = svg.getBoundingClientRect().width < 0.85 * svg.viewBox.baseVal.width;
+      const scrolls = el.scrollWidth > el.clientWidth + 1 || shrunk;
       let button = expanders.get(el);
       if (scrolls && !button) {
         button = document.createElement('button');
@@ -279,7 +298,7 @@ const prereqs = await Promise.all(
           showing = el;
           fillDialog(el);
           dialog.showModal();
-          syncScroller(full);
+          setFitted(!matchMedia('(min-width: 72rem)').matches);
         });
         el.before(button);
         expanders.set(el, button);
@@ -356,6 +375,9 @@ const prereqs = await Promise.all(
           el.dataset.failed = '';
           el.style.minBlockSize = '';
           el.removeAttribute('aria-busy');
+          if (!el.previousElementSibling?.matches('.diagram-note')) {
+            el.insertAdjacentHTML('beforebegin', '<p class="diagram-note">This diagram couldn’t be drawn. Its source is below.</p>');
+          }
         }
       }
       rendering = false;
@@ -366,6 +388,7 @@ const prereqs = await Promise.all(
     const expanderSizes = new ResizeObserver((entries) => entries.forEach((entry) => syncExpander(entry.target as HTMLElement)));
     diagrams.forEach((el) => expanderSizes.observe(el));
     diagrams.forEach((el) => scrollers.observe(el));
+    scrollers.observe(full);
   }
 </script>
 

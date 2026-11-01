@@ -87,6 +87,9 @@ function buildMarkdown(changelog, releases) {
   const lines = [
     `---`,
     `title: "${changelog.title ?? `${changelog.name} changelog`}"`,
+    `pagefind: false`,
+    `tableOfContents:`,
+    `  maxHeadingLevel: 2`,
     `---`,
     "",
     `<!-- Generated automatically from GitHub releases. Do not edit by hand. -->`,
@@ -140,6 +143,9 @@ function placeholder(changelog, text) {
   return [
     `---`,
     `title: "${changelog.title ?? `${changelog.name} changelog`}"`,
+    `pagefind: false`,
+    `tableOfContents:`,
+    `  maxHeadingLevel: 2`,
     `---`,
     "",
     text,
