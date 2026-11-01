@@ -45,6 +45,13 @@ jobs:
       - name: Tests
         run: bun test
 
+      # Search has no index in dev, so only a built site can show it working.
+      - name: Install Chromium
+        run: ./node_modules/.bin/playwright-core install --with-deps chromium
+
+      - name: Search in a browser
+        run: bun run test:browser
+
       - name: File count
         # wisp.place takes at most 1000 files per site.
         run: |
