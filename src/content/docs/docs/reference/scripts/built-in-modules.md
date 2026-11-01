@@ -1,8 +1,9 @@
 ---
 title: Built-in modules
+description: "The internal.* modules every interpreter provides without a plugin: logging, time, TIDs, JSON and, in Lua, async."
 ---
 
-`require` serves two kinds of module, and `import` serves the same two in JavaScript and TypeScript. Installed [libraries](/docs/reference/scripts/libraries) are plugins. Built-in modules come with every interpreter under the `internal.` prefix and need nothing installed. A plugin cannot claim a namespace starting with `internal.`.
+`require` loads installed libraries and built-in modules, and `import` loads the same two in JavaScript and TypeScript. [Libraries](/docs/reference/scripts/libraries) are plugins. Built-in modules come with every interpreter under the `internal.` prefix and need nothing installed. A plugin cannot claim a namespace starting with `internal.`.
 
 The examples are in Lua. JavaScript and TypeScript use the same names through `import`, such as `import log from "internal.logging"`.
 
@@ -56,7 +57,7 @@ A TID is atproto's 13-character sortable record key. `tids.create()` is the rkey
 local json = require("internal.json")
 json.encode(value)       -- Lua value -> JSON string
 json.decode(string)      -- JSON string -> Lua value
-json.to_array(table)     -- marks a table as a JSON array, so an empty one encodes as [] rather than {}
+json.to_array(table)     -- a copy marked as a JSON array, so an empty one encodes as [] rather than {}
 ```
 
 Encoding rules and examples: [JSON](/docs/reference/scripts/json). `to_array` exists only in Lua, because a Lua table can't say on its own whether it's an empty array or an empty object.
@@ -67,13 +68,21 @@ Lua only. A library call blocks until it answers, so `all` is how a Lua script r
 
 ```lua
 local async = require("internal.async")
-local posts, profile = async.all(
-  function() return db.records("app.example.post"):limit(10):run() end,
-  function() return http.get("https://example.com/" .. input.did) end
-)
+local db = require("happyview.db")
+local http = require("happyview.http")
+
+function handle(input, ctx)
+  local posts, profile = async.all(
+    function() return db.records("app.example.post"):limit(10):run() end,
+    function() return http.get("https://example.com/" .. input.did) end
+  )
+  return { posts = posts, profile = profile }
+end
 ```
+
+Every function runs to its end before `all` returns. If any of them raised, `all` then raises the error of the first one in argument order.
 
 ## Next steps
 
 - [The script contract](/docs/reference/scripts/contract): `handle(input, ctx)` and what `ctx` carries
-- [Libraries](/docs/reference/scripts/libraries): the `happyview.*` modules, reached the same way via `require`
+- [Libraries](/docs/reference/scripts/libraries): the `happyview.*` libraries, reached the same way via `require`

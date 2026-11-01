@@ -167,9 +167,9 @@ Queuing a job whose type has no job script doesn't fail. The job fails when the 
 
 By default a job can't write to anyone's PDS: `ctx.has_pds_auth` is `false`, and library calls that write as the caller, such as `record.create`, fail with `NO_SESSION`. Reads, HTTP and local index writes all work.
 
-To let the job write as the user who queued it, pass `{ auth = true }` (Lua) or `{ auth: true }` (JavaScript and TypeScript) as the third argument. The queuing script must itself have a session to pass on, such as a procedure called by an authenticated client. If the session is no longer usable when the job runs, the job fails.
+To let the job write as the user who queued it, pass `{ auth = true }` (Lua) or `{ auth: true }` (JavaScript and TypeScript) as the third argument. The queuing script must itself have an app's DPoP session to pass on, such as a procedure an app calls for a signed-in user; without one, `create` fails with `NO_SESSION`. If that session has ended by the time the job runs, the job's writes as the user fail.
 
-## What `ctx.job` carries
+## The `ctx.job` object
 
 Inside a job script, `ctx.job` has the job's id and three functions that act on the running job:
 
@@ -184,7 +184,7 @@ Inside a job script, `ctx.job` has the job's id and three functions that act on 
 
 ## Try it in a test
 
-To run a job script without queuing anything, fire it from a test file with `job(type, input)`. It runs the script once, to the end, and returns the job's `status`, `result` and `error`. No job worker runs during a test, so a job that a script queues stays pending until you fire it this way. See [Testing](/docs/getting-started/testing).
+To run a job script without queuing anything, fire it from a test file with `test.job(type, input)`. It runs the script once, to the end, and returns the job's `status`, `result` and `error`. No job worker runs during a test, so a job that a script queues stays pending until you fire it this way. See [Testing](/docs/getting-started/testing).
 
 ## Watch a job
 
@@ -207,10 +207,10 @@ A script can read back a job it queued with `get(id)` from `happyview.jobs`. It 
 
 A job moves from `pending` to `running`, then ends as `completed` or `failed`.
 
-Cancelling or pausing is cooperative. **Cancel** or **Pause** in the dashboard, or `POST /admin/jobs/{id}/cancel` and `/pause`, set the job to `cancelling` or `pausing`. The next time the script calls `ctx.job.should_stop()` it gets `true`, and when the script returns the job becomes `cancelled` or `paused`. A pending or paused job is cancelled at once. A script that never checks `should_stop` runs to the end.
+Cancelling or pausing is cooperative. **Cancel Job** or **Pause Job** in the dashboard, or `POST /admin/jobs/{id}/cancel` and `/pause`, set the job to `cancelling` or `pausing`. The next time the script calls `ctx.job.should_stop()` it gets `true`, and when the script returns the job becomes `cancelled` or `paused`. A pending or paused job is cancelled at once. A script that never checks `should_stop` runs to the end.
 
 :::caution[A job can run from the start more than once]
-**Resume** (`POST /admin/jobs/{id}/resume`) puts a paused job back to `pending`, and the script runs again **from the beginning** with the same input. A job that was running when the server stopped is also queued again and starts over. If its worker stops three times before it finishes, the job fails instead. Save enough in `ctx.job.progress` to skip finished work, read it back with `get(ctx.job.id)`, and make each step safe to repeat.
+**Resume Job** (`POST /admin/jobs/{id}/resume`) puts a paused job back to `pending`, and the script runs again **from the beginning** with the same input. A job that was running when the instance stopped is also queued again and starts over. If its worker stops three times before it finishes, the job fails instead. Save enough in `ctx.job.progress` to skip finished work, read it back with `get(ctx.job.id)`, and make each step safe to repeat.
 :::
 
 Cancelling, pausing and resuming need the `jobs:manage` permission. Viewing jobs needs `jobs:read`.

@@ -66,8 +66,8 @@ backfill = false                # only for hpy happyview dev
 | Table | What it holds | On a deploy |
 | --- | --- | --- |
 | `[happyview]` | The HappyView version | Ignored: an instance keeps its own version |
-| `[instance]` | `app_name`, and `superadmin` (a DID) | Ignored, with a warning for each key that differs from the instance's |
-| `[interpreters]`, `[libraries]` | Each plugin's publisher `did`, `name`, and a `channel` or exact `version` | Installed from `happyview.lock` |
+| `[instance]` | `app_name`, and `superadmin` (a DID) | Ignored, with one warning naming the keys that differ from the instance's |
+| `[interpreters]`, `[libraries]` | Each plugin's publisher `did`, `name`, and a `channel` or exact `version` | Installed by `hpy happyview deploy` from `happyview.lock`; the instance ignores the tables |
 | `[lexicons."<NSID>"]` | Per-lexicon settings: `backfill`, `target_collection`, `action`, `indexed`, `token_cost` | Applied |
 | `[scripts."<trigger>"]` | Per-script settings: `description`, `outbound_xrpcs` | Applied |
 | `[network_lexicons]` | `include`: NSIDs to track from the network | Applied |

@@ -17,7 +17,7 @@ A script is identified by its **trigger string**. The trigger is the script's `i
 | `labeler.apply:_actor` | A label arrives whose subject is a bare DID | The literal `_actor` |
 | `job.run:<type>` | A background job of type `<type>` is picked up by the worker | A job type |
 
-Any other prefix is refused. The suffix can't be empty. A job type may not end in `.test`, because in a project `src/jobs/<type>.test.<ext>` is a test file.
+Any other prefix is refused. The suffix can't be empty, and every suffix except a job type and `_actor` must be a valid NSID. A job type is 1 to 128 characters of lowercase letters, digits, `.`, `_` and `-`, starting with a letter or digit. The `happyview.` prefix is reserved for built-in jobs. A job type may not end in `.test`, because in a project `src/jobs/<type>.test.<ext>` is a test file.
 
 ## Name a script file
 
@@ -43,7 +43,7 @@ A file that names a trigger it can't have fails the build, with a message saying
 - `src/jobs/` and `src/labels/` are flat: a file in a subdirectory is an error. A name the trigger grammar refuses, such as `src/jobs/Nightly.lua`, is an error too.
 - A script in an extension no installed interpreter claims is an error that lists the extensions that are claimed.
 
-`*.test.<ext>` is a test file wherever it sits. Any other file with a claimed extension is a module that scripts can import. A `.md`, `.markdown` or `.txt` file where a script would go is ignored, so a README can sit next to the code it describes.
+`*.test.<ext>` is a test file wherever it sits. Any other file with a claimed extension is a module that scripts can import. A `.md`, `.markdown` or `.txt` file where a script would go is ignored, and so is a `.json` file in `src/jobs/` or `src/labels/`, so a README can sit next to the code it describes.
 
 ## Record triggers fall back to `record.index`
 
@@ -68,7 +68,7 @@ A record script runs before the record is indexed, so it can skip the record, re
 | Anything else, such as `true` | The record is stored as it arrived |
 | (no script) | The record is stored as it arrived |
 
-A delete event carries no record, so returning `input.record` on a delete returns nothing and skips the delete. Return `true` to let a delete through.
+A delete event carries no record: `input.record` is `null`. In JavaScript and TypeScript, returning it returns nothing and skips the delete. In Lua it is a sentinel value rather than `nil`, so returning it lets the delete through. Return `true` to let a delete through in any language.
 
 There is no caller session in a record script, so a library call that writes to a PDS as the caller fails. Reads, HTTP, and local index writes work. Record scripts can also run more than once for the same record; see [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 
@@ -87,7 +87,7 @@ A label script runs when a label arrives from a subscribed labeler, before the l
 
 ## Job scripts
 
-A job script runs when the background worker picks up a job of its type. Any script can create a job with `create(job_type, input[, opts])` from the `happyview.jobs` library. Passing `{ auth: true }` (`{ auth = true }` in Lua) carries the caller's PDS session into the job.
+A job script runs when the background worker picks up a job of its type. A script with a caller can create a job with `create(job_type, input[, opts])` from the `happyview.jobs` library; a label script or an anonymous query has none, so it can't. Passing `{ auth: true }` (`{ auth = true }` in Lua) carries the caller's PDS session into the job.
 
 The return value becomes the job's result. A job is not held to the instruction limit or the wall clock; it should check `ctx.job.should_stop()` and return when asked. See [Limits](/docs/reference/scripts/limits).
 
@@ -97,7 +97,7 @@ The return value becomes the job's result. A job is not held to the instruction 
 | --- | --- |
 | Query, procedure | One attempt. The caller gets the error |
 | Record, label | Up to 4 attempts in total, with 1, 2 and 4 second delays between them. After the last one, the event is written to the dead-letter table and the record or label is stored as it arrived |
-| Job | The job's status becomes `failed`, with the error message as its error |
+| Job | The job's status becomes `failed`, with the error type and the interpreter's error text as its error |
 
 Record and label scripts fail open so a broken script can't stop indexing. They run before indexing, so a slow or failing script holds up the events behind it: a script that fails every time spends about 7 seconds per event on backoff.
 
@@ -109,9 +109,13 @@ Create the file at the path for its trigger, as in [Name a script file](#name-a-
 
 ### From the dashboard
 
-Open **Integrations > Scripts** and click **New script**. Pick the trigger, the target, and, if more than one interpreter is installed, the [language](/docs/reference/scripts/languages#pick-a-language-in-the-dashboard). Then click **Create script**.
+1. Open **Integrations > Scripts**.
+2. Click **New script**.
+3. Pick the trigger and the target.
+4. If more than one interpreter is installed, pick the [language](/docs/reference/scripts/languages#pick-a-language-in-the-dashboard).
+5. Click **Create script**.
 
-With the admin API, `POST /admin/scripts` with the trigger as `id`:
+With the admin API, send `POST /admin/scripts` with the trigger as `id`:
 
 ```sh
 curl -X POST "http://127.0.0.1:3000/admin/scripts" \
@@ -125,7 +129,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts" \
   }'
 ```
 
-`script_type` defaults to `lua` when left out. The body is checked by the interpreter for that language when you save, and a language no installed interpreter claims is refused with a `400`. A `description` can be up to 300 characters.
+`script_type` defaults to `lua` when left out. The body is checked by the interpreter for that language when you save, and a language no installed interpreter claims is refused with a `400`. A `description` can be up to 300 bytes.
 
 ## Next steps
 

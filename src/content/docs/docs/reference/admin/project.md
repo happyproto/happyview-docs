@@ -1,5 +1,6 @@
 ---
 title: "Project"
+description: "Admin API endpoints for deploying a project bundle to an instance and reading which one it serves."
 ---
 
 Admin API endpoints for deploying a project: the `happyview.toml`, `src/` and compiled modules `hpy deploy` sends. A deploy is built by the same loader that builds `HAPPYVIEW_PROJECT` at boot, so a bundle that deploys is one that would boot. Both endpoints need `project:deploy`.
@@ -16,8 +17,10 @@ An instance started with `HAPPYVIEW_PROJECT` takes its project from that directo
 ## Deploy a project
 
 ```
-PUT /admin/project?dry_run=true|false
+PUT /admin/project?dry_run=true
 ```
+
+`dry_run` is optional and defaults to `false`.
 
 The body is a tar.gz (`Content-Type: application/gzip`) of paths relative to the project root:
 
@@ -25,14 +28,14 @@ The body is a tar.gz (`Content-Type: application/gzip`) of paths relative to the
 - files under `src/`; tests are accepted and never served
 - `.happyview/build/<name>.wasm` for each `[modules.<name>]`
 
-Anything else, an absolute path, a `..` component, a link, or a path given twice is refused with `422` and nothing is applied. So is a bundle that expands past 200 MiB or holds more than 10,000 entries. A body over 50 MiB is refused with `413`.
+Anything else, an absolute path, a backslash, a `..` component, a link, or a path given twice is refused with `422` and nothing is applied. So is a bundle that expands past 200 MiB or holds more than 10,000 entries. A body over 50 MiB is refused with `413`.
 
 The bundle is built against the plugins installed now, so install the project's interpreters and libraries first. With `dry_run=true` everything is checked and reported and nothing is stored or served. Otherwise the bundle is stored in the database and served in one atomic swap; requests already running finish on the project they started with. The stored bundle is served again at every boot.
 
 Send `If-Match` with the `sha256` from [`GET /admin/project`](#get-the-deployed-project) to make sure a deploy only replaces the project you saw. A mismatch answers `412`. Without the header the deploy replaces whatever is there.
 
 ```sh
-curl -X PUT "http://localhost:3000/admin/project?dry_run=true" \
+curl -X PUT "http://localhost:3000/admin/project" \
   -H "$AUTH" -H "Content-Type: application/gzip" \
   -H 'If-Match: "9f2c…"' \
   --data-binary @project.tar.gz
@@ -77,7 +80,7 @@ curl -X PUT "http://localhost:3000/admin/project?dry_run=true" \
 | `network_lexicons` | NSID in `[network_lexicons] include`. Never `changed`; a removed one is no longer declared and stays as a dashboard row |
 | `labelers`         | DID in `[labels] subscribe`, on the same terms                                                                      |
 
-A backfill starts only for a record lexicon declared with `[lexicons."<nsid>"] backfill = true`, only if it is indexed, and only if its collection has never been backfilled on this instance, which is the rule `HAPPYVIEW_PROJECT` follows at boot. `project:deploy` is enough to start it.
+A backfill starts only for a record lexicon declared with `[lexicons."<nsid>"] backfill = true`, only if it is indexed, and only if its collection has never been backfilled on this instance. `HAPPYVIEW_PROJECT` follows the same rule at boot. `project:deploy` is enough to start it.
 
 `[instance]`, `[dev]` and `[jetstream]` configure the instance rather than the project. A deploy ignores them and says so in `warnings`. For `[instance]` it warns only when a key differs from what the instance runs with, and names those keys. `[interpreters]`, `[libraries]` and `[happyview] version` are ignored without a warning: the plugins have to be installed before the deploy, and the deploying client checks the version.
 
@@ -85,6 +88,7 @@ A backfill starts only for a record lexicon declared with `[lexicons."<nsid>"] b
 
 | Status | `error`              | When                                                                                     |
 | ------ | -------------------- | ---------------------------------------------------------------------------------------- |
+| 400    | the reason, as text  | The body could not be read                                                               |
 | 403    | `InsufficientPermissions` | The caller lacks `project:deploy`; the message names it                             |
 | 409    | `ProjectFromFile`    | The instance serves `HAPPYVIEW_PROJECT`                                                  |
 | 412    | `PreconditionFailed` | `If-Match` does not name the deployed project. `current` holds its `sha256`, or `null` |
@@ -145,6 +149,6 @@ When the stored project did not build at boot, for example because an interprete
 }
 ```
 
-Nothing deployed yet answers `404` with `{"error": "NoProject"}`.
+An instance with nothing deployed yet answers `404` with `{"error": "NoProject"}`.
 
 A deploy reaches the instance that received it. Other instances sharing the database serve it from their next restart.

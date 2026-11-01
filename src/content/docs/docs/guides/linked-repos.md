@@ -1,5 +1,6 @@
 ---
 title: Linked repos
+description: Give your instance durable write access to an atproto repo, and write to it from any script.
 ---
 
 Linked repos give your instance durable write access to a specific atproto repo. Once an operator links a repo, any script can write to it through the `happyview.linked_repos` library. These repos work like service accounts: an account your instance posts on behalf of, a partner repo you mirror data into, or an account your instance maintains on its own.
@@ -16,16 +17,16 @@ This is different from writing on behalf of the user making a request. Those wri
 
 In the dashboard, go to **Access > Linked Repos** and choose **Link a repo** to open the side panel.
 
-The **handle or DID** is optional, but it decides who is allowed to complete the authorization:
+The **Handle or DID** is optional, but it decides who is allowed to complete the authorization:
 
 - If a handle or DID is set, the grant is **pinned**: that is the only account that can be connected.
 - If a handle or DID is **not set**, the grant is **open**. Whoever follows the invite gets to decide which account is linked.
 
 Set the identifier unless you have a reason not to, so that someone who gets hold of the link can't connect a different account.
 
-The **reason** explains why you're asking for access. It's shown to whoever opens the invite link, who uses it to decide whether to complete the authorization.
+The **Reason** explains why you're asking for access. It's shown to whoever opens the invite link, who uses it to decide whether to complete the authorization.
 
-The **scopes** are what the authorization asks for. Request only the ones your scripts need.
+The **Scopes** are what the authorization asks for. Request only the ones your scripts need.
 
 Scopes are **immutable**. To change what a grant can do, delete it and create a new one.
 
@@ -33,19 +34,19 @@ Scopes are **immutable**. To change what a grant can do, delete it and create a 
 
 ### Inline
 
-If the grant names a handle or DID, **Authorize** takes you straight to the OAuth flow. Afterward it returns you to the Linked Repos page. Use this for accounts you control.
+If the grant names a handle or DID, **Authorize now** takes you straight to the OAuth flow. Afterward it returns you to the Linked Repos page. Use this for accounts you control. A grant that has stopped working offers **Re-authorize** in the same place, on its detail panel.
 
 ### By invite link
 
-**Copy link** mints an invite and puts the URL in your clipboard. Send it to whoever has credentials for the repo.
+**Create link** mints an invite and shows its URL, with a button to copy it. On an existing grant, **Create a new invite link** in its detail panel mints one and copies it to your clipboard. Send the URL to whoever has credentials for the repo.
 
-The URL is shown **once** and can't be recovered. If you lose it, revoke the invite and mint another. The dashboard shows outstanding invites and their expiry in the **Invite links** column, so you can check whether one is still live and revoke it if you sent it to the wrong person.
+The URL is shown **once** and can't be recovered. If you lose it, revoke the invite and mint another. The **Invite links** column counts each grant's outstanding invites, and the grant's detail panel lists them with their expiry. Revoke one there if you sent it to the wrong person. An invite expires after seven days unless the [admin API](/docs/reference/admin/linked-repos) set another lifetime.
 
 An invite stays usable until it expires or a repo is linked, so someone who closes the tab at the consent screen can use the same link again. Once a repo is linked, every outstanding invite for that grant is cleared.
 
 ### What the recipient sees
 
-The recipient of an invite link **is not required** to be added to your HappyView instance, and they never see your dashboard. They get a page naming your instance, your stated reason, and the access being requested in plain language, then a prompt for their handle (or, for a pinned grant, confirmation of which account the link is for). After approving at their own PDS they land on a result page confirming what was linked and reminding them they can revoke it from their own account settings at any time.
+The recipient of an invite link **is not required** to be added to your HappyView instance, and they never see your dashboard. They get a page naming your instance, your stated reason, and the access being requested in plain language. It then asks for their handle, or for a pinned grant, confirms which account the link is for. After approving at their own PDS they land on a result page confirming what was linked and reminding them they can revoke it from their own account settings at any time.
 
 ## Grant status
 
@@ -80,7 +81,7 @@ end
 
 Every method re-reads the grant from the database. If a grant is revoked or flips to `needs_reauth` while a long-running script is working, the next call it makes is refused.
 
-`linked_repos.get(did)` never fails on its own; an unlinked or revoked DID surfaces as `NOT_LINKED` on the first method called on it. The full surface is in the [library's README](https://github.com/happyproto/plugins/tree/main/plugins/happyview/linked-repos); see [Libraries](/docs/reference/scripts/libraries) for the capability it needs.
+`linked_repos.get(did)` never fails on its own; an unlinked or revoked DID surfaces as `NOT_LINKED` on the first method called on it. The full surface is in the [library's README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/linked-repos); see [Libraries](/docs/reference/scripts/libraries) for the capability it needs.
 
 :::caution
 Any script can use any linked repo. Scripts are already operator-authored code with database, HTTP, and environment access, and linked repos sit at the same trust level. Be deliberate about scripts that write to a linked repo in response to unauthenticated requests.

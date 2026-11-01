@@ -1,10 +1,11 @@
 ---
 title: OAuth client
+description: "The platform-agnostic core of the HappyView SDK: DPoP key provisioning, client assertions, session registration, restoration and logout."
 ---
 
 The core OAuth client handles DPoP key provisioning, session registration, and session restoration against a HappyView instance. It's platform-agnostic: it uses the Web Crypto API and `fetch`, so it runs wherever those exist, and you provide a `StorageAdapter` for your environment.
 
-If you're building a browser app, use the [Browser Client](/docs/reference/sdk/oauth-client-browser) instead. It wraps this package with Web Crypto, localStorage, and a complete OAuth redirect flow.
+If you're building a browser app, use the [browser client](/docs/reference/sdk/oauth-client-browser) instead. It wraps this package with Web Crypto, localStorage, and a complete OAuth redirect flow.
 
 ## Installation
 
@@ -51,7 +52,7 @@ Use the returned `dpopKey`, a `Key` object, as your DPoP keypair during your atp
 
 ## Client assertions
 
-If your app is a confidential atproto OAuth client, its `client_id_url` document publishes `token_endpoint_auth_method: "private_key_jwt"` and a `jwks_uri` pointing back at HappyView, and the PDS requires a signed `private_key_jwt` assertion at two points during the OAuth flow: the pushed authorization request (PAR) and the token exchange. HappyView holds the signing key on your behalf, so ask it to sign each one:
+If your app is a confidential atproto OAuth client, its `client_id_url` document publishes `token_endpoint_auth_method: "private_key_jwt"` and a `jwks_uri` pointing back at HappyView. The PDS then requires a signed `private_key_jwt` assertion at two points during the OAuth flow: the pushed authorization request (PAR) and the token exchange. HappyView holds the signing key on your behalf, so ask it to sign each one:
 
 ```typescript
 const { clientAssertion, clientAssertionType } =
@@ -86,7 +87,7 @@ const session = await client.registerSession({
   did: "did:plc:abc123",
   accessToken: tokens.access_token,
   refreshToken: tokens.refresh_token,
-  scopes: "atproto",
+  scopes: "atproto transition:generic",
   pdsUrl: "https://bsky.social",
   issuer: tokens.iss,
   dpopKey: rawJwk,
@@ -95,7 +96,7 @@ const session = await client.registerSession({
 
 The returned `HappyViewSession` is ready to make authenticated requests. The session data is also persisted to the `StorageAdapter` for later restoration.
 
-The scopes you pass are available on the session:
+The scopes you pass, as one space-separated string, are available on the session as a list:
 
 ```typescript
 console.log(session.scopes);
@@ -104,7 +105,7 @@ console.log(session.scopes);
 
 ## Retrieving session info
 
-To fetch the current session's approved scopes from the server (e.g., after restoring from storage):
+To fetch the current session's approved scopes from HappyView (e.g., after restoring from storage):
 
 ```typescript
 const info = await client.getSession("did:plc:abc123");
@@ -114,7 +115,7 @@ console.log(info.scopes);
 
 ## Making authenticated requests
 
-`HappyViewSession.fetchHandler` works like `fetch` but automatically attaches DPoP proof, authorization, and client key headers:
+`HappyViewSession.fetchHandler` works like `fetch` but automatically attaches DPoP proof, authorization, and client key headers to every request, whatever its URL, so pass it only URLs on your HappyView instance:
 
 ```typescript
 // Relative path — prepends the HappyView instance URL
@@ -124,8 +125,8 @@ const response = await session.fetchHandler(
 );
 
 // Absolute URL — used as-is
-const response = await session.fetchHandler(
-  "https://other-service.example.com/xrpc/test.method",
+const sameResponse = await session.fetchHandler(
+  "https://happyview.example.com/xrpc/com.example.getStuff",
   { method: "GET" },
 );
 ```
@@ -139,7 +140,7 @@ Restore a previously stored session without re-authenticating:
 const session = await client.restore();
 
 // Restore a specific user's session
-const session = await client.restoreSession("did:plc:abc123");
+const userSession = await client.restoreSession("did:plc:abc123");
 ```
 
 Returns `null` if no stored session is found.
@@ -160,9 +161,9 @@ Each login runs a full OAuth authorization and so creates a *new* session on the
 
 `registerSession` therefore retires this client's previous session for the same account as part of completing a login, revoking it at the PDS while the credentials to do so still exist. It is scoped to the account being signed into, so sessions for other accounts, and sessions belonging to the same account on other devices, are untouched. `onSessionDelete` doesn't fire: the user is signing in, not out.
 
-### When the server refuses
+### When HappyView refuses
 
-**The local cleanup always happens.** A `404`, `401`, or `403` from the server is treated as a completed logout, because the session is either already gone or the credential is no longer usable. A `5xx` or a network error still throws, because the server may genuinely still hold a live session and you should know that, but it throws *after* the local session has been cleared. Either way the user ends up logged out on this device, and calling `deleteSession` again is safe.
+**The local cleanup always happens.** A `404`, `401`, or `403` from HappyView is treated as a completed logout, because the session is either already gone or the credential is no longer usable. A `5xx` or a network error still throws, because HappyView may still hold a live session and you should know that, but it throws *after* the local session has been cleared. Either way the user ends up logged out on this device, and calling `deleteSession` again is safe.
 
 ### Forgetting a session locally
 
@@ -170,7 +171,7 @@ Each login runs a full OAuth authorization and so creates a *new* session on the
 await client.forgetSession("did:plc:abc123");
 ```
 
-Clears the stored session without contacting the server. Use it when revocation is impossible, such as an unreachable instance or a credential the server has already rejected. Nothing is revoked, so the instance may still consider the session live until it expires naturally.
+Clears the stored session without contacting HappyView. Use it when revocation is impossible, such as an unreachable instance or a credential HappyView has already rejected. Nothing is revoked, so the instance may still consider the session live until it expires naturally.
 
 ### Storage keys
 
@@ -205,8 +206,8 @@ The built-in `MemoryStorage` is exported for testing. In production, always prov
 | Export | What it is |
 | --- | --- |
 | `HappyViewOAuthClient.fetchMetadata({ clientId, fetch?, signal? })` | A static method that fetches and checks your OAuth client metadata document. |
-| `session.getTokenInfo()` | Returns `{ scope, iss, aud, sub }` for the session. |
-| `importJwk(jwk)` | Imports a JWK as a `Key`. |
+| `session.getTokenInfo()` | Returns `{ scope, iss, aud, sub }` for the session, where `aud` is the PDS URL. |
+| `importJwk(jwk)` | Imports a private ES256 JWK, such as `rawJwk`, as a `Key`. |
 | `jwkThumbprint(jwk)` | Computes a JWK's thumbprint. |
 | `@atproto/jwk`, `@atproto/jwk-webcrypto` | Re-exported in full. |
 

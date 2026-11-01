@@ -1,5 +1,6 @@
 ---
 title: "Plugins"
+description: "Admin API endpoints for previewing, installing, reloading and removing plugins, listing what the registry offers, and configuring plugin secrets and hosts."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -53,7 +54,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/plugins
 ```
 
-Requires `plugins:read`. Returns every loaded plugin with its source, required secrets, configuration status, capability report, and any pending updates from the official registry cache. Pass `?type=library|interpreter|auth` to list only plugins of one `plugin_type`; omit it to list every type.
+Requires `plugins:read`. Returns every loaded plugin with its source, required secrets, configuration status, capability report, and any pending updates from the cached registry listing. Pass `?type=library|interpreter|auth` to list only plugins of one `plugin_type`; omit it to list every type.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -62,7 +63,7 @@ Requires `plugins:read`. Returns every loaded plugin with its source, required s
 interface RequiredSecret {
   key: string;
   name: string;
-  description: string;
+  description?: string; // omitted when the manifest gives none
 }
 
 interface CapabilityEntry {
@@ -86,15 +87,18 @@ interface PluginSummary {
   id: string;
   name: string;
   version: string;
-  source: string;
-  url: string;
+  description: string | null;
+  icon_url: string | null;
+  banner_url: string | null;
+  source: "url" | "file";
+  url: string | null; // the manifest URL, or the file path for a file plugin
   sha256: string | null;
   enabled: boolean;
   auth_type: string;
   required_secrets: RequiredSecret[];
   secrets_configured: boolean;
-  loaded_at: string | null;
   update_available: boolean;
+  loaded_at: string | null; // set only in an install or reload response
   latest_version?: string; // where the followed channel points
   latest_version_installable?: boolean;
   latest_state?: "active" | "deprecated" | "unavailable" | "retired";
@@ -159,6 +163,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/plugins")
     .bearer_auth(token)
@@ -174,6 +179,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/plugins", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -222,9 +231,13 @@ curl http://127.0.0.1:3000/admin/plugins -H "$AUTH"
       "dependencies": [],
       "allowed_hosts": [],
       "capabilities": {
-        "declared": [],
-        "required_by_imports": [
+        "declared": [
+          { "name": "secrets:read", "risk": "low", "description": "Read the secrets you configure for this plugin." },
           { "name": "network:request:unrestricted", "risk": "high", "description": "Make HTTP requests to any host on the internet, including internal services this server can reach." }
+        ],
+        "required_by_imports": [
+          { "name": "secrets:read", "risk": "low", "description": "Read the secrets you configure for this plugin." },
+          { "name": "network:request", "risk": "medium", "description": "Make HTTP requests, only to the hosts it lists. Redirects are not followed." }
         ],
         "undeclared": []
       }
@@ -233,7 +246,7 @@ curl http://127.0.0.1:3000/admin/plugins -H "$AUTH"
 }
 ```
 
-`secrets_configured` is `true` if the plugin has no required secrets, or if a row exists for it in `happyview_plugin_configs`. `update_available`, `latest_version`, `latest_version_installable`, `latest_state` and `pending_releases` come from the cached registry listing; call `POST /admin/plugins/{id}/check-update` to refresh them. For a registry plugin, an update is offered when the channel it follows points at a version other than the installed one and that version may be installed. A plugin installed from a URL is offered nothing until it is attached to a registry project (see [Installing from a URL](/docs/guides/plugins#from-a-url)); once attached, it follows its channel but is offered only a newer version until its first install from the registry. A version may be installed when its state is `active` or `deprecated`, the registry holds its files, and it isn't flagged suspect. When the channel moves to a version that may not be installed, `latest_version_installable` is `false` and `latest_state` says why; nothing is offered. `pending_releases` lists the installable releases on the channel's track (`latest` carries releases, `beta` and `alpha` their own prereleases) newer than the installed version, up to the channel's. The cache keeps every project an installed registry plugin follows, so a plugin whose project shares its name with another publisher's in the registry is still judged by its own.
+`secrets_configured` is `true` if the plugin has no required secrets, or if a row exists for it in `happyview_plugin_configs`. `update_available`, `latest_version`, `latest_version_installable`, `latest_state` and `pending_releases` come from the cached registry listing; call `POST /admin/plugins/{id}/check-update` to refresh them. For a registry plugin, an update is offered when the channel it follows points at a version other than the installed one and that version may be installed. A plugin pinned to a version shows where its channel stands but is offered nothing. A plugin installed from a URL is offered nothing until it is attached to a registry project (see [Installing from a URL](/docs/guides/plugins#from-a-url)). Once attached, it follows its channel, but until its first install from the registry it is offered only a newer version. A version may be installed when its state is `active` or `deprecated`, the registry holds its files, and it isn't flagged suspect. When the channel moves to a version that may not be installed, `latest_version_installable` is `false` and `latest_state` says why; nothing is offered. `pending_releases` lists the installable releases on the channel's track (`latest` carries releases, `beta` and `alpha` their own prereleases) newer than the installed version, up to the channel's. The cache keeps every project an installed registry plugin follows, so a plugin whose project shares its name with another publisher's in the registry is still judged by its own.
 
 `registry` is set for a plugin installed from a registry project. `installed_state` is the installed version's lifecycle state: a plugin whose version its publisher later retires keeps running, and `installed_state` is `"retired"`, with `installed_reason` when the publisher gave one.
 
@@ -253,7 +266,7 @@ The body names the plugin by `url`, or by registry project:
 { "registry": { "did": "did:plc:mo7vq4jbioxwafy5zkcc3eux", "name": "happyview-lua", "channel": "latest" } }
 ```
 
-`channel` is `latest`, `beta` or `alpha` and defaults to `latest`; pass `version` instead to name one version. The server resolves the version, refuses one that may not be installed with `400 Bad Request` naming its state and the publisher's reason, fetches the manifest and module from the registry and checks each against the CID the version names. Bytes that don't match are refused with a message naming both CIDs. A registry preview also returns `registry: { did, name, channel, version, version_uri, state }`.
+`channel` is `latest`, `beta` or `alpha` and defaults to `latest`; pass `version` instead to name one version. HappyView resolves the version and refuses one that may not be installed with `400 Bad Request`, naming its state and the publisher's reason. It then fetches the manifest and module from the registry and checks each against the CID the version names. Bytes that don't match are refused with a message naming both CIDs. A registry preview also returns `registry: { did, name, channel, version, version_uri, state }`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -263,8 +276,9 @@ interface PluginPreview {
   id: string;
   name: string;
   version: string;
-  description: string;
-  icon_url: string;
+  description: string | null;
+  icon_url: string | null;
+  banner_url: string | null;
   auth_type: string;
   required_secrets: RequiredSecret[];
   manifest_url: string;
@@ -275,6 +289,15 @@ interface PluginPreview {
   allowed_hosts: string[];
   capabilities: CapabilityReport;
   sha256: string; // sha256 of the downloaded WASM binary
+  // Present only for a registry preview.
+  registry?: {
+    did: string;
+    name: string;
+    channel: string | null;
+    version: string;
+    version_uri: string;
+    state: string;
+  };
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/plugins/preview", {
@@ -311,6 +334,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/plugins/preview")
     .bearer_auth(token)
@@ -331,6 +355,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/plugins/preview",
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -355,6 +383,7 @@ curl -X POST http://127.0.0.1:3000/admin/plugins/preview \
   "version": "1.2.0",
   "description": "Import your Steam game library and playtime data.",
   "icon_url": "https://example.com/steam-icon.png",
+  "banner_url": null,
   "auth_type": "openid",
   "required_secrets": [
     { "key": "PLUGIN_STEAM_API_KEY", "name": "Steam Web API Key", "description": "..." }
@@ -376,13 +405,13 @@ curl -X POST http://127.0.0.1:3000/admin/plugins/preview \
     ],
     "undeclared": []
   },
-  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85"
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 }
 ```
 
 A plugin is granted exactly what it declares. `required_by_imports` is computed from the module's imports alone, so it can be narrower than `declared`: the `http` plugin declares `network:request:unrestricted`, while its imports only require `network:request`. `undeclared` lists imports the manifest does not cover. This endpoint runs the same validation as installation, so `undeclared` is always empty in a `200`; an undeclared import is refused with the `400` below.
 
-Returns `400 Bad Request` if the manifest can't be fetched or parsed, if the WASM can't be downloaded or fails its import analysis, if `api_version` is missing or below `"2"`, or if the manifest doesn't declare a capability its imports require.
+Returns `400 Bad Request` if the manifest can't be fetched or parsed, or if the WASM can't be downloaded or fails its import analysis. It also does when `api_version` is missing or below `"2"`, or when the manifest doesn't declare a capability its imports require.
 
 ## Install a plugin
 
@@ -405,7 +434,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/plugins", {
   body: JSON.stringify({
     url: "https://example.com/plugins/steam/manifest.json",
     sha256: "abc123...",
-    accepted_capabilities: ["network:request:unrestricted"],
+    accepted_capabilities: ["secrets:read", "network:request"],
   }),
 });
 const data: PluginSummary = await response.json();
@@ -433,6 +462,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/plugins")
     .bearer_auth(token)
@@ -457,6 +487,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/plugins", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -487,21 +521,25 @@ curl -X POST http://127.0.0.1:3000/admin/plugins \
 `400 Bad Request` on any of:
 
 - The manifest can't be fetched/parsed, the WASM can't be downloaded, `sha256` doesn't match, or `api_version` is unsupported.
-- Both or neither of `url` and `registry` were given, `sha256` was given with `registry` (a registry plugin is checked against its CIDs), or `registry` names both a channel and a version, or a channel other than `latest`, `beta` or `alpha`.
+- Both or neither of `url` and `registry` were given, or `sha256` was given with `registry` (a registry plugin is checked against its CIDs).
+- `registry` names both a channel and a version, or a channel other than `latest`, `beta` or `alpha`.
 - The registry version may not be installed, its files don't match their CIDs, or its manifest names a plugin other than the project.
 - The plugin's `dependencies` aren't satisfied: a dependency isn't installed, an installed dependency's version doesn't satisfy the requirement, installing would create a dependency cycle, or the manifest depends on itself. The error names the specific dependency graph problem.
 - The manifest doesn't declare a capability its compiled imports require, the same check `preview` surfaces as `capabilities.undeclared`.
+- Another installed plugin already provides the library's `namespace`, serves the interpreter's `language_id`, or runs files with one of its extensions.
+- A library's API surface doesn't parse.
+- `registry` was given while the registry is turned off with `PLUGIN_REGISTRY_URL=off`.
 - `accepted_capabilities` was provided but doesn't cover every capability the plugin would be granted. The error lists the missing capability names.
 
 A registry project or version that doesn't exist is `404 Not Found`; a registry that can't be read is `502 Bad Gateway`.
 
-## List official plugins
+## List registry plugins
 
 ```
 GET /admin/plugins/official
 ```
 
-Requires `plugins:read`. Returns the cached list of plugins from the official registry. The cache is refreshed periodically by the server; use `POST /admin/plugins/{id}/check-update` to force-refresh a single entry.
+Requires `plugins:read`. Returns the cached registry listing. It holds every publisher's plugins, and `official` is `true` for those HappyProto publishes. HappyView refreshes the cache every 15 minutes; use `POST /admin/plugins/{id}/check-update` to refresh one installed plugin's entry now. With `PLUGIN_REGISTRY_URL=off` nothing is fetched and the list stays empty.
 
 **Response**: `200 OK`
 
@@ -522,6 +560,7 @@ Requires `plugins:read`. Returns the cached list of plugins from the official re
         "latest": { "version": "1.2.0", "state": "active", "installable": true, "availability": "available" }
       },
       "lifecycle_state": "active",
+      "banner_url": null,
       "releases": [],
       "sections": {}
     }
@@ -537,7 +576,7 @@ An entry names a project, not a URL: install it by its `publisher_did` and `id` 
 DELETE /admin/plugins/{id}
 ```
 
-Requires `plugins:delete`. Unregisters the plugin from the runtime and deletes its row from the `happyview_plugins` table. Secrets stay in `happyview_plugin_configs`, so they're reused if you reinstall.
+Requires `plugins:delete`. Unregisters the plugin and deletes its row from the `happyview_plugins` table. Secrets stay in `happyview_plugin_configs`, so they're reused if you reinstall.
 
 If another installed `library` plugin still depends on this one, the removal is refused:
 
@@ -545,7 +584,7 @@ If another installed `library` plugin still depends on this one, the removal is 
 <TabItem label="TypeScript">
 
 ```ts
-await fetch("http://127.0.0.1:3000/admin/plugins/db", {
+await fetch("http://127.0.0.1:3000/admin/plugins/shared-utils", {
   method: "DELETE",
   headers,
 });
@@ -555,7 +594,7 @@ await fetch("http://127.0.0.1:3000/admin/plugins/db", {
 <TabItem label="JavaScript">
 
 ```js
-await fetch("http://127.0.0.1:3000/admin/plugins/db", {
+await fetch("http://127.0.0.1:3000/admin/plugins/shared-utils", {
   method: "DELETE",
   headers,
 });
@@ -567,7 +606,7 @@ await fetch("http://127.0.0.1:3000/admin/plugins/db", {
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .delete("http://127.0.0.1:3000/admin/plugins/db")
+    .delete("http://127.0.0.1:3000/admin/plugins/shared-utils")
     .bearer_auth(token)
     .send()
     .await?;
@@ -577,16 +616,20 @@ let response = client
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/plugins/db", nil)
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/plugins/shared-utils", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/plugins/db -H "$AUTH"
+curl -X DELETE http://127.0.0.1:3000/admin/plugins/shared-utils -H "$AUTH"
 ```
 
 </TabItem>
@@ -596,8 +639,8 @@ curl -X DELETE http://127.0.0.1:3000/admin/plugins/db -H "$AUTH"
 
 ```json
 {
-  "error": "plugin 'db' is required by: record, xrpc",
-  "dependents": ["record", "xrpc"]
+  "error": "plugin 'shared-utils' is required by: feeds, search",
+  "dependents": ["feeds", "search"]
 }
 ```
 
@@ -607,7 +650,7 @@ Pass `?force=true` to cascade the removal instead. Every dependent, and anything
 <TabItem label="TypeScript">
 
 ```ts
-const response = await fetch("http://127.0.0.1:3000/admin/plugins/db?force=true", {
+const response = await fetch("http://127.0.0.1:3000/admin/plugins/shared-utils?force=true", {
   method: "DELETE",
   headers,
 });
@@ -618,7 +661,7 @@ const data = await response.json();
 <TabItem label="JavaScript">
 
 ```js
-const response = await fetch("http://127.0.0.1:3000/admin/plugins/db?force=true", {
+const response = await fetch("http://127.0.0.1:3000/admin/plugins/shared-utils?force=true", {
   method: "DELETE",
   headers,
 });
@@ -631,7 +674,7 @@ const data = await response.json();
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .delete("http://127.0.0.1:3000/admin/plugins/db?force=true")
+    .delete("http://127.0.0.1:3000/admin/plugins/shared-utils?force=true")
     .bearer_auth(token)
     .send()
     .await?;
@@ -642,28 +685,32 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/plugins/db?force=true", nil)
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/plugins/shared-utils?force=true", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE "http://127.0.0.1:3000/admin/plugins/db?force=true" -H "$AUTH"
+curl -X DELETE "http://127.0.0.1:3000/admin/plugins/shared-utils?force=true" -H "$AUTH"
 ```
 
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` with every plugin id actually removed, in dependents-first order:
+**Response**: `200 OK` with every plugin id removed, in dependents-first order:
 
 ```json
-{ "removed": ["xrpc", "record", "db"] }
+{ "removed": ["search", "feeds", "shared-utils"] }
 ```
 
-When exactly one plugin is removed (the common case: no dependents, or `force=true` on a plugin nothing depends on), the response is `204 No Content` instead, with no body. Returns `404 Not Found` if no plugin with that id is loaded.
+When exactly one plugin is removed (the common case: no dependents, or `force=true` on a plugin nothing depends on), the response is `204 No Content` instead, with no body. Returns `404 Not Found` if no plugin with that id is loaded, and `400 Bad Request` for any other dependency graph problem.
 
 ## Reload a plugin
 
@@ -673,13 +720,13 @@ POST /admin/plugins/{id}/reload
 
 Requires `plugins:create`. Re-fetches the plugin from its current source and re-registers it. Useful after publishing a new version of a plugin you host yourself.
 
-A plugin installed from the registry reloads from the registry. With no body it fetches the version it has again, by CID. To update it, switch channel or pin a version, pass `registry`:
+A plugin installed from the registry reloads from the registry. With no body it fetches the version it has again, by CID. To update it, switch its channel, or pin a version, pass `registry`:
 
 ```json
 { "registry": { "channel": "beta" } }
 ```
 
-`{ "registry": {} }` installs the current version of the channel it follows (or its pinned version again); `channel` switches to that channel's version and follows it from then on; `version` pins one version. Add `expected_version`, the version a preview showed, and a channel that has since moved elsewhere is refused with `409 Conflict` instead of installing a version nobody reviewed. The project is the one it was installed from, and its publisher must be the one the install recorded, or the reload is refused with `409 Conflict`. A version that may not be installed is refused with `400 Bad Request`, and the installed version keeps running. A registry plugin can't be reloaded from a `url`; remove it and add it from the URL instead. Adding a plugin from a URL over a registry plugin makes it a URL install, with no registry project.
+`{ "registry": {} }` installs the current version of the channel it follows (or its pinned version again); `channel` switches to that channel's version and follows it from then on; `version` pins one version. Add `expected_version`, the version a preview showed, and a channel that has since moved elsewhere is refused with `409 Conflict` instead of installing a version nobody reviewed. The project is the one it was installed from, and its publisher must be the one the install recorded, or the reload is refused with `409 Conflict`. A version that may not be installed is refused with `400 Bad Request`, and the installed version keeps running. A registry plugin can't be reloaded from a `url`; remove it and add it from the URL instead. Sending both `url` and `registry` is a `400 Bad Request`, and so is `registry` for a plugin that wasn't installed from the registry. Adding a plugin from a URL over a registry plugin makes it a URL install, with no registry project.
 
 The body is optional. To point the plugin at a new URL, pass:
 
@@ -689,14 +736,14 @@ The body is optional. To point the plugin at a new URL, pass:
 
 When a new URL is provided, the stored `sha256` is cleared (the new version has its own hash). File-based plugins cannot be reloaded via this endpoint and return `400 Bad Request`.
 
-A plugin that recorded a publisher stays with it, and no URL can be checked against a publisher, so a reload of such a plugin to a new URL is refused with `409 Conflict` and the installed version keeps running. Update it from the registry, or remove it and add it again from the URL. A plugin installed from a URL records no publisher and may be pointed at a new one.
+A plugin that recorded a publisher stays with it, and no URL can be checked against a publisher. A reload of such a plugin to a new URL is therefore refused with `409 Conflict`, and the installed version keeps running. Update it from the registry, or remove it and add it again from the URL. A plugin installed from a URL records no publisher and may be pointed at a new one.
 
 A reloaded version can import host functions the operator never consented to. `accepted_capabilities` guards a reload the same way it guards [`POST /admin/plugins`](#install-a-plugin): when present, every capability the reloaded plugin would be granted must be listed, or the reload is refused with `400 Bad Request` naming the missing ones. The check runs before the installed version is removed, so a refusal leaves it running.
 
 ```json
 {
   "url": "https://example.com/plugins/steam/manifest.json",
-  "accepted_capabilities": ["network:request:unrestricted"]
+  "accepted_capabilities": ["secrets:read", "network:request"]
 }
 ```
 
@@ -710,7 +757,7 @@ POST /admin/plugins/{id}/check-update
 
 Requires `plugins:create`. Reads one plugin's project from the registry now, then returns the updated `PluginSummary`. A registry plugin's own project is read, even when another publisher's project holds its name in the registry. An update is offered only from the publisher the install recorded; apply it with `POST /admin/plugins/{id}/reload` and `{ "registry": {} }`.
 
-**Response**: `200 OK` with a `PluginSummary`.
+**Response**: `200 OK` with a `PluginSummary`. A registry that can't be read is a `400 Bad Request` starting `Update check failed`, and an unknown plugin is a `404 Not Found`.
 
 ## Get plugin secrets
 
@@ -718,7 +765,7 @@ Requires `plugins:create`. Reads one plugin's project from the registry now, the
 GET /admin/plugins/{id}/secrets
 ```
 
-Requires `plugins:read`. Returns the plugin's configured secrets with values masked (last 4 characters shown for values longer than 8 characters, otherwise fully masked). Requires `TOKEN_ENCRYPTION_KEY` to be configured.
+Requires `plugins:read`. Returns the plugin's configured secrets with values masked (last 4 characters shown for values longer than 8 characters, otherwise fully masked). Requires `TOKEN_ENCRYPTION_KEY` to be configured; without it the endpoint answers `500`. An unknown plugin is a `404 Not Found`.
 
 **Response**: `200 OK`
 
@@ -779,6 +826,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/plugins/steam/secrets"
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:3000/admin/plugins/steam/secrets")
     .bearer_auth(token)
@@ -804,6 +852,10 @@ req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/plugins/steam/secr
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -827,6 +879,9 @@ Special handling:
 
 - Values starting with `********` are treated as masked placeholders and the existing encrypted value is preserved (so you can `GET` then `PUT` without re-typing every secret).
 - Empty string values are not stored, so use them to clear a secret.
+- The body replaces the stored set: a secret the body doesn't name is removed.
+
+Without `TOKEN_ENCRYPTION_KEY` the endpoint answers `500`. An unknown plugin is a `404 Not Found`.
 
 **Response**: `204 No Content`
 
@@ -836,7 +891,7 @@ Special handling:
 GET /admin/plugins/{id}/allowed-hosts
 ```
 
-Requires `plugins:read`. Returns the hosts an operator has listed for a plugin declaring `network:request:defined`. This is separate from a plugin's manifest `allowed_hosts`, which `network:request:defined` requires to be empty.
+Requires `plugins:read`. Returns the hosts an operator has listed for a plugin declaring `network:request:defined`. This is separate from a plugin's manifest `allowed_hosts`, which `network:request:defined` requires to be empty. Returns `400 Bad Request` if the plugin does not declare `network:request:defined`, and `404 Not Found` for an unknown plugin.
 
 **Response**: `200 OK`
 
@@ -890,6 +945,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/plugins/steam/allowed-
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:3000/admin/plugins/steam/allowed-hosts")
     .bearer_auth(token)
@@ -911,6 +967,10 @@ req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/plugins/steam/allo
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

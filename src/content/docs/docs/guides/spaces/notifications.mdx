@@ -1,5 +1,6 @@
 ---
 title: Write notifications
+description: "Register a syncer for a space's write notifications, receive them, and send them to HappyView from a repo host."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -19,7 +20,7 @@ Registrations cover the whole space and expire after 24 hours. Registering again
 
 ## Registering for notifications
 
-Requires read access to the whole space, through a member's OAuth session or a space credential. With a credential, the request's audience is the space authority's DID.
+`registerNotify` requires read access to the whole space, through a member's OAuth session or a space credential. With a credential, the request's audience is the space authority's DID.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -84,6 +85,9 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+// key and signSpaceRequest come from the signing helper in "Signing requests" on the Credentials page.
+spaceCredential := "..." // from getSpaceCredential
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "service": "did:web:syncer.example.com#atproto_space_syncer"
@@ -93,6 +97,10 @@ req, _ := http.NewRequest("POST",
 signSpaceRequest(req, key, "Atproto-Space "+spaceCredential, "did:web:happyview.example.com")
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -129,7 +137,7 @@ HappyView resolves the service identifier to its endpoint when the syncer regist
 
 ```json
 {
-  "expiresAt": "2026-10-01T12:00:00Z"
+  "expiresAt": "2026-10-01T12:00:00+00:00"
 }
 ```
 
@@ -144,7 +152,7 @@ HappyView resolves the service identifier to its endpoint when the syncer regist
 | `space`   | string | Yes      | Space URI |
 | `service` | string | Yes      | The service identifier to unregister |
 
-The caller must be the registered service or the space's creator. The call is idempotent.
+The caller must be the registered service, the space's creator, or an operator with superadmin. The call is idempotent.
 
 **Response (200):**
 
@@ -254,6 +262,8 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+serviceAuthToken := "..." // service-auth JWT
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "repo": "did:plc:author456",
@@ -265,6 +275,10 @@ req, _ := http.NewRequest("POST",
 req.Header.Set("Authorization", "Bearer "+serviceAuthToken)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -327,7 +341,7 @@ The following forms are deprecated. They are still served in v3 alpha; removal i
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "expiresAt": "2026-10-01T12:00:00Z"
+  "expiresAt": "2026-10-01T12:00:00+00:00"
 }
 ```
 

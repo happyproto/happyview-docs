@@ -7,7 +7,7 @@ prerequisites:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page adds endpoints to your app. A **query lexicon** becomes a read endpoint your app calls with `GET`; a **procedure lexicon** becomes a write endpoint it calls with `POST`. Both answer at `/xrpc/<NSID>`.
+This page adds endpoints to your project. A **query lexicon** becomes a read endpoint your app calls with `GET`; a **procedure lexicon** becomes a write endpoint it calls with `POST`. Both answer at `/xrpc/<NSID>`.
 
 ## A query that lists records
 
@@ -97,7 +97,7 @@ export default function handle(input: Params, ctx: QueryCtx): Output {
 </TabItem>
 </Tabs>
 
-- `input` is the query's parameters. Integers, numbers and booleans arrive as those types, not strings.
+- `input` is the query's parameters. A parameter the lexicon declares as an integer or a boolean arrives as that type, not as a string.
 - `ctx` says who's calling (`ctx.caller_did`, absent for an anonymous call), the `target_collection` (`ctx.collection`), `ctx.env`, and more. [The script contract](/docs/reference/scripts/contract) lists all of it.
 - What `handle` returns is the response, as JSON.
 
@@ -201,7 +201,7 @@ To try a procedure before your app can sign users in, call it from a test, which
 
 ## Lexicon checks
 
-HappyView checks each call against its lexicon before a script runs, or before the default behaviour without one:
+HappyView checks each call against its lexicon before a script runs, or before the default behavior without one:
 
 - A call whose parameters or input break the lexicon, such as a missing required parameter or a value past `maxLength`, gets `400 {"error":"InvalidRequest"}` with a message naming the first problem. The script doesn't run.
 - A parameter the lexicon declares as an array, sent once, arrives as a one-item array.
@@ -210,9 +210,9 @@ HappyView checks each call against its lexicon before a script runs, or before t
 
 ## Errors
 
-- **Returning an error.** Return `{ error = "NotFound", message = "…" }` (in Lua; an object in JavaScript) and the response is that object. If the lexicon declares the name under `errors`, the status is `400`; otherwise it's `200`.
-- **A script that fails** answers `500` with the error, its type and its line: `{"error": "script_error", "errorType": "runtime", "message": "…", "line": 4, …}`. A script that runs too long answers `408`.
-- **No interpreter** for the script's language answers `503`.
+- To return an error, return `{ error = "NotFound", message = "…" }` (in Lua; an object in JavaScript), and the response is that object. If the lexicon declares the name under `errors`, the status is `400`; otherwise it's `200`.
+- A script that fails answers `500` with the error, its type and its line: `{"error": "script_error", "errorType": "runtime", "message": "…", "line": 4, …}`. A script that runs too long answers `408`.
+- A script whose language has no interpreter answers `503`.
 
 [The script contract](/docs/reference/scripts/contract#errors) has every case.
 

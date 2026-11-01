@@ -1,5 +1,6 @@
 ---
 title: Feature flags
+description: "Admin API endpoint for reading which feature flags are on."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -53,7 +54,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/feature-flags
 ```
 
-Returns all feature flags and their current status. Flags are backed by the `happyview_instance_settings` table. A flag is enabled when its stored setting, or its environment variable if none is stored, is `"true"`, ignoring case.
+Returns the dashboard's feature flags and their current status. The list has one flag, `feature.spaces_enabled`. Flags are backed by the `happyview_instance_settings` table. A flag is enabled when its stored setting, or its environment variable (`FEATURE_SPACES_ENABLED`) if none is stored, is `"true"`, ignoring case.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -102,6 +103,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/feature-flags", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -134,4 +139,4 @@ curl http://127.0.0.1:3000/admin/feature-flags -H "$AUTH"
 | `description` | string  | What the flag controls                       |
 | `enabled`     | boolean | Whether the flag is currently enabled        |
 
-To toggle a flag, use `PUT /admin/settings/{key}` with the value `"true"` or `"false"`. See [Instance settings](/docs/reference/admin/settings) for details.
+To toggle a flag, use `PUT /admin/settings/{key}` with the body `{"value": "true"}` or `{"value": "false"}`. See [Instance settings](/docs/reference/admin/settings) for details.

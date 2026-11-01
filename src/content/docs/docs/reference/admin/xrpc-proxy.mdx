@@ -1,10 +1,11 @@
 ---
 title: "XRPC proxy"
+description: "Admin API endpoints for the XRPC proxy: which unrecognized methods HappyView forwards, and where they go."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Control which unrecognized XRPC methods HappyView forwards, and where they go. Locally registered lexicons are always served regardless of this setting.
+Control which unrecognized XRPC methods HappyView forwards, and where they go. Lexicons registered on the instance are always served, whatever this setting says.
 
 All endpoints require the `settings:manage` permission.
 
@@ -35,7 +36,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -100,6 +101,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/settings/xrpc-proxy", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -191,6 +196,10 @@ req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/settings/xrpc-prox
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -237,7 +246,7 @@ When mode is `disabled` or `open`, any `nsids` in the request body are ignored a
 | `authority` | Forward to the authority the NSID's `_lexicon` DNS record names, with no credentials (default). |
 | `serviceproxy` | Forward to the caller's own PDS, authenticated as the caller, per [service proxying](https://atproto.com/specs/xrpc#service-proxying). An `atproto-proxy` header is passed through, and the PDS relays the request onwards. An anonymous query is `401 Unauthorized`, because the destination depends on who is asking. |
 
-`authority` answers where a schema is defined, not who serves a request. For `com.atproto.repo.*` that's the account publishing those lexicons, so an authenticated write only works under `serviceproxy`.
+`authority` routing looks up where a lexicon is defined. For `com.atproto.repo.*` that's the account publishing those lexicons, and the request carries no credentials, so a write to the caller's repo works only under `serviceproxy`.
 
 ### NSID patterns
 
@@ -253,7 +262,7 @@ Mid-segment wildcards (e.g., `com.*.feed`) are not supported.
 
 | Status | Cause |
 |--------|-------|
-| `400` | An NSID pattern is empty, has fewer than two segments, contains invalid characters, or uses an unsupported wildcard |
+| `400` | A new NSID pattern is not a valid NSID, or a wildcard pattern has fewer than two segments before `.*`, an empty segment, or a character other than letters, digits and hyphens. Patterns already stored are not checked again |
 | `422` | `mode` is not one of `disabled`, `open`, `allowlist`, `blocklist`, or `routing` is not `authority` or `serviceproxy` |
 
 ## Blocked request response

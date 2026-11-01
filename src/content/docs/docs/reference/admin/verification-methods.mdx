@@ -1,10 +1,11 @@
 ---
 title: Verification methods
+description: "Admin API endpoints for the P-256 verification methods the instance generates and publishes in its DID document."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage DID verification methods (P-256 keypairs) used for attestation signing and PLC operations.
+Manage the instance's extra DID verification methods: P-256 keypairs HappyView generates, stores and publishes in its DID document. They appear in the `did:web` document HappyView serves, and a [PLC sync](/docs/reference/admin/service-entries#sync-to-plc-directory) adds them to a `did:plc` document. HappyView creates the `#atproto_space` method itself the first time a space is created.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -102,6 +103,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/verification-methods", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -120,10 +125,10 @@ curl http://127.0.0.1:3000/admin/verification-methods -H "$AUTH"
 [
   {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "fragment_id": "#attestation",
+    "fragment_id": "#app_key",
     "key_type": "Multikey",
     "public_key_multibase": "zDnae...",
-    "created_at": "2026-06-27T00:00:00Z"
+    "created_at": "2026-06-27T00:00:00.000000+00:00"
   }
 ]
 ```
@@ -147,7 +152,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/verification-methods",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    fragment_id: "#attestation",
+    fragment_id: "#app_key",
   }),
 });
 const data: VerificationMethod = await response.json();
@@ -164,7 +169,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/verification-methods",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    fragment_id: "#attestation",
+    fragment_id: "#app_key",
   }),
 });
 const data = await response.json();
@@ -178,7 +183,7 @@ let response = client
     .post("http://127.0.0.1:3000/admin/verification-methods")
     .bearer_auth(token)
     .json(&serde_json::json!({
-        "fragment_id": "#attestation"
+        "fragment_id": "#app_key"
     }))
     .send()
     .await?;
@@ -189,11 +194,15 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
-body := bytes.NewBufferString(`{"fragment_id": "#attestation"}`)
+body := bytes.NewBufferString(`{"fragment_id": "#app_key"}`)
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/verification-methods", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -203,7 +212,7 @@ resp, err := http.DefaultClient.Do(req)
 curl -X POST http://127.0.0.1:3000/admin/verification-methods \
   -H "$AUTH" \
   -H "Content-Type: application/json" \
-  -d '{"fragment_id": "#attestation"}'
+  -d '{"fragment_id": "#app_key"}'
 ```
 
 </TabItem>
@@ -213,17 +222,17 @@ curl -X POST http://127.0.0.1:3000/admin/verification-methods \
 | ------------- | ------ | -------- | --------------------------------------------------------------------------------- |
 | `fragment_id` | string | yes      | DID document fragment identifier, must start with `#` followed by alphanumerics or underscores |
 
-Returns `400 Bad Request` for a malformed `fragment_id`: it must start with `#`, followed only by letters, digits and underscores. Returns `500 Internal Server Error` if `TOKEN_ENCRYPTION_KEY` isn't set.
+Returns `400 Bad Request` for a malformed `fragment_id`: it must start with `#`, followed only by letters, digits and underscores. Returns `500 Internal Server Error` if `TOKEN_ENCRYPTION_KEY` isn't set, or if a method with that `fragment_id` already exists.
 
 **Response**: `201 Created`
 
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "fragment_id": "#attestation",
+  "fragment_id": "#app_key",
   "key_type": "Multikey",
   "public_key_multibase": "zDnae...",
-  "created_at": "2026-06-27T00:00:00Z"
+  "created_at": "2026-06-27T00:00:00.000000+00:00"
 }
 ```
 
@@ -240,7 +249,7 @@ Requires `settings:manage` permission.
 
 ```ts
 const response = await fetch(
-  "http://127.0.0.1:3000/admin/verification-methods/%23attestation",
+  "http://127.0.0.1:3000/admin/verification-methods/%23app_key",
   { method: "DELETE", headers },
 );
 ```
@@ -250,7 +259,7 @@ const response = await fetch(
 
 ```js
 const response = await fetch(
-  "http://127.0.0.1:3000/admin/verification-methods/%23attestation",
+  "http://127.0.0.1:3000/admin/verification-methods/%23app_key",
   { method: "DELETE", headers },
 );
 ```
@@ -260,7 +269,7 @@ const response = await fetch(
 
 ```rust
 client
-    .delete("http://127.0.0.1:3000/admin/verification-methods/%23attestation")
+    .delete("http://127.0.0.1:3000/admin/verification-methods/%23app_key")
     .bearer_auth(token)
     .send()
     .await?;
@@ -271,22 +280,26 @@ client
 
 ```go
 req, _ := http.NewRequest("DELETE",
-  "http://127.0.0.1:3000/admin/verification-methods/%23attestation", nil)
+  "http://127.0.0.1:3000/admin/verification-methods/%23app_key", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
 <TabItem label="cURL">
 
 ```sh
-curl -X DELETE http://127.0.0.1:3000/admin/verification-methods/%23attestation \
+curl -X DELETE http://127.0.0.1:3000/admin/verification-methods/%23app_key \
   -H "$AUTH"
 ```
 
 </TabItem>
 </Tabs>
 
-The `fragment_id` path parameter is the fragment with or without its `#`: `attestation` and `%23attestation` both name `#attestation`.
+The `fragment_id` path parameter is the fragment with or without its `#`: `app_key` and `%23app_key` both name `#app_key`.
 
 **Response**: `204 No Content`. Returns `404 Not Found` if no method with that fragment ID exists.

@@ -1,8 +1,9 @@
 ---
 title: "Changelog"
+description: "What changed in HappyView's permissioned spaces, release by release."
 ---
 
-## v2.17 and v3 alpha: Space moderation and access checks
+## v2.17 beta and v3 alpha: Space moderation and access checks
 
 ### Admin endpoints
 
@@ -11,7 +12,7 @@ title: "Changelog"
 ### Access changes
 
 - **`getSpace` is restricted** to the space's creator, an operator with superadmin, or a caller presenting a [space credential](/docs/guides/spaces/credentials).
-- **`listRepos` requires a member or a space credential.**
+- **`listRepos` requires a member with `read` access to the whole space, or a space credential.**
 - **`listMembers` is restricted to the space's creator and operators with superadmin.** See [Listing members](/docs/guides/spaces/members#listing-members).
 
 ---
@@ -85,11 +86,11 @@ Deprecated. These forms are still served in v3 alpha; removal is not yet schedul
 - **`space:put_member{did, read, write, is_delegation?}`** sets a member's flags and returns `{did, read, write}`.
 - **`space:members()`** entries include `read` and `write` booleans beside `access`.
 
-In v3, scripts use `require("happyview.spaces")` instead. Its space handle sets a member with `set_member{ did, access, is_delegation }`.
+In v3, scripts use `require("happyview.spaces")` instead. Its space handle sets a member with `set_member{ did, read, write, is_delegation? }`, or with an `access` word in place of `read` and `write`.
 
 ### Breaking changes
 
-- Credential clients must sign requests and use the `Atproto-Space` scheme.
+- Services using credentials must sign requests and use the `Atproto-Space` scheme.
 - Apps must request `space:` scopes naming HappyView's DID as the authority.
 - Syncers must accept `notifyWrite` calls in place of webhook payloads, or keep a legacy registration. Legacy registrations are deprecated. They are still served in v3 alpha; removal is not yet scheduled.
 
@@ -132,7 +133,7 @@ Aligns with the merged [Proposal 0016](https://github.com/bluesky-social/proposa
 
 ### Breaking changes
 
-- All space URIs now use `at://` with a `space` segment instead of `ats://`. Clients using the old scheme must update.
+- All space URIs now use `at://` with a `space` segment instead of `ats://`. Apps using the old scheme must update.
 
 ---
 
@@ -225,7 +226,7 @@ Major restructuring to align with [atproto Proposal 0016](https://github.com/blu
 - Replaced the single `getCredential` endpoint with a two-step flow:
   1. **`getMemberGrant`:** proves membership and returns an HMAC-SHA256 grant (5-minute TTL)
   2. **`getSpaceCredential`:** exchanges the grant for an ES256 space credential JWT (4-hour TTL)
-- Removed the `refreshCredential` endpoint (just repeat the two-step flow)
+- Removed the `refreshCredential` endpoint (repeat the two-step flow instead)
 
 ### Bearer auth for space credentials
 

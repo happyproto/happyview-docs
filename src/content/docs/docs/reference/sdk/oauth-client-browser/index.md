@@ -1,10 +1,11 @@
 ---
 title: Browser client
+description: "HappyViewBrowserClient: the full OAuth redirect or popup flow for browser apps signing users in to a HappyView instance."
 ---
 
-The browser client handles the full OAuth redirect flow for browser apps authenticating with a HappyView instance. It wraps the [OAuth Client](/docs/reference/sdk/oauth-client) with Web Crypto, localStorage, and atproto handle/DID resolution.
+The browser client handles the full OAuth redirect flow for browser apps authenticating with a HappyView instance. It wraps the [OAuth client](/docs/reference/sdk/oauth-client) with Web Crypto, localStorage, and atproto handle/DID resolution.
 
-If you're starting a new app, use [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent) with `@atproto/lex` on top of this client. It provides type-safe XRPC calls and is the recommended way to interact with HappyView. Used on its own, this package suits an app that already uses `@atproto/oauth-client-browser` and wants to add HappyView authentication alongside it.
+If you're starting a new app, use [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent) with `@atproto/lex` on top of this client, for type-safe XRPC calls. Used on its own, this package suits an app moving from `@atproto/oauth-client-browser`, whose API it mirrors.
 
 ## Installation
 
@@ -94,14 +95,14 @@ const { authorizationUrl, did, state } =
 `login()` still works as an alias for `signInRedirect()`.
 :::
 
-### What happens during sign in
+### Sign-in steps
 
-1. The identifier is resolved to a DID via `resolveHandleToDid`, unless it is already a DID.
+1. The identifier is resolved to a DID with the client's `handleResolver`, unless it is already a DID.
 2. The DID document is fetched to find the PDS URL.
 3. The PDS's OAuth authorization server metadata is fetched.
 4. A DPoP key is provisioned from HappyView.
 5. PKCE challenge/verifier pairs are generated (one for HappyView's DPoP provisioning, one for the PDS authorization server).
-6. The pending auth state is stored in localStorage.
+6. The pending auth state is stored through the storage adapter (localStorage by default).
 7. The browser is redirected to the PDS authorization endpoint (or a popup is opened).
 
 ## Initialization
@@ -166,7 +167,7 @@ console.log(session.scopes);
 // ["atproto", "transition:generic"]
 ```
 
-To fetch the latest scopes from the server:
+To fetch the latest scopes from HappyView:
 
 ```typescript
 const info = await client.getSession("did:plc:abc123");
@@ -189,7 +190,7 @@ const response = await session.fetchHandler(
 const data = await response.json();
 ```
 
-Pass a relative path (prepends the HappyView instance URL) or a full URL (used as-is).
+Pass a relative path (prepends the HappyView instance URL) or a full URL (used as-is). The DPoP and authorization headers go with every request, so pass only URLs on your HappyView instance.
 
 ## Revoke session
 
@@ -201,9 +202,9 @@ await client.revoke(session.did);
 `logout()` still works as an alias for `revoke()`.
 :::
 
-The stored session is always cleared, even when the server refuses the revocation. `404`, `401`, and `403` are treated as a completed logout, because there is no live credential left to revoke. `5xx` and network errors still throw so you know revocation may not have reached the server, but they throw after the local session is gone, so the user is never left signed in by a failed logout.
+The stored session is always cleared, even when HappyView refuses the revocation. `404`, `401`, and `403` are treated as a completed logout, because there is no live credential left to revoke. `5xx` and network errors still throw so you know the revocation may not have gone through. They throw after the local session is gone, so the user is never left signed in by a failed logout.
 
-To clear a session locally without contacting the server at all:
+To clear a session locally without contacting HappyView at all:
 
 ```typescript
 await client.forgetSession(session.did);
@@ -245,7 +246,7 @@ const client = new HappyViewBrowserClient({
 ```
 
 - `onSessionUpdate(did)` fires after a new session is registered (from `callback()`).
-- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `logout()`, `forgetSession()` or `session.signOut()`).
+- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `logout()`, `forgetSession()` or `session.signOut()`). The client doesn't pass a `cause`.
 
 ## Error handling
 
@@ -265,7 +266,7 @@ try {
 }
 ```
 
-If the authorization server returns an error (e.g., the user denied access), the `params` contain the `error` and `error_description` fields from the server response. If the token exchange fails, the underlying `TokenExchangeError` is available as `err.cause`.
+If the authorization server returns an error (e.g., the user denied access), the `params` contain the `error` and `error_description` fields from its response. If the token exchange fails, the underlying `TokenExchangeError` is available as `err.cause`.
 
 ## Using with @atproto/api
 

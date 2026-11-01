@@ -1,24 +1,17 @@
 ---
 title: "XRPC API"
+description: "The XRPC endpoints an instance serves: fixed ones, and the queries and procedures its lexicons generate."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-[XRPC](https://atproto.com/specs/xrpc) is the HTTP-based RPC protocol atproto uses. HappyView registers XRPC endpoints based on your uploaded [lexicons](/docs/getting-started/lexicons): query lexicons become `GET /xrpc/{nsid}` routes, procedure lexicons become `POST /xrpc/{nsid}` routes.
+[XRPC](https://atproto.com/specs/xrpc) is the HTTP-based RPC protocol atproto uses. HappyView registers XRPC endpoints from your [lexicons](/docs/getting-started/lexicons), whether they come from a project, an upload or the network: query lexicons become `GET /xrpc/{nsid}` routes, procedure lexicons become `POST /xrpc/{nsid}` routes.
 
 If a query or procedure lexicon has a [script](/docs/getting-started/scripts) attached, the script handles the request. Otherwise, HappyView uses built-in default behavior (described below).
 
 ## Auth
 
-XRPC routes accept several authentication methods:
-
-- **DPoP auth**: `Authorization: DPoP <token>`, a `DPoP` proof header and `X-Client-Key`.
-- **Service auth JWTs**: `Authorization: Bearer <service_auth_jwt>`, for inter-service calls. The token's `aud` must name this instance and a [service entry](/docs/reference/admin/service-entries) allowed to call the method. A token whose `lxm` names a different method than the one called is rejected.
-- **Space credentials**: `Authorization: Atproto-Space <credential>` with an `Atproto-Space-Audience` header and an HTTP Message Signature, on space routes only. See [Space credentials](/docs/guides/spaces/credentials#using-a-credential).
-- **Cookie-based session auth**: the dashboard's signed session cookie. It counts only on a request from the instance's own pages with no `Authorization` header.
-- **Anonymous**: no auth headers, so `ctx.caller_did` is absent in scripts.
-
-Bearer API keys (`hv_*`) are rejected on XRPC routes. They are only accepted on the [admin API](/docs/reference/admin/admin-api).
+XRPC routes accept DPoP auth, service auth JWTs, space credentials, the dashboard's session cookie, or no authentication at all. The [authentication reference](/docs/reference/authentication#authenticating-users-for-procedures) owns each method's headers and the order HappyView tries them in. Admin API keys (`hv_*`) are refused on XRPC routes. An anonymous request leaves `ctx.caller_did` absent in scripts.
 
 Default auth behavior:
 
@@ -26,7 +19,7 @@ Default auth behavior:
 - **Procedures** (`POST /xrpc/{method}`): require authentication.
 - **getProfile** and **uploadBlob**: require authentication.
 
-A request with an identity also has to name its API client, with `X-Client-Key` or `client_key`. See [API client identification](/docs/reference/authentication#xrpc-api-client-identification).
+A request with an identity also has to name its API client, with `X-Client-Key` or `client_key`. A request is charged to that client's rate-limit bucket only when it proves it is that client; otherwise it is rate limited as anonymous. See [API client identification](/docs/reference/authentication#xrpc-api-client-identification).
 
 ## Fixed endpoints
 
@@ -94,6 +87,10 @@ let text = response.text().await?; // "ok"
 
 ```go
 resp, err := http.Get("http://127.0.0.1:3000/health")
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -127,9 +124,10 @@ const DPOP_PROOF = "..."; // DPoP proof JWT
 interface ProfileResponse {
   did: string;
   handle: string;
-  displayName: string;
-  description: string;
-  avatarURL: string;
+  displayName?: string;
+  description?: string;
+  avatarURL?: string;
+  avatar?: { $link: string; mimeType: string; size: number | null };
 }
 
 const response = await fetch(
@@ -202,6 +200,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -217,7 +219,7 @@ curl http://127.0.0.1:3000/xrpc/app.bsky.actor.getProfile \
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK`. `displayName`, `description` and `avatarURL` are left out when the profile doesn't have them.
+**Response**: `200 OK`. `displayName`, `description`, `avatarURL` and `avatar` are left out when the profile doesn't have them. `avatar` is the avatar's blob reference, and `avatarURL` is a URL that fetches it from the user's PDS.
 
 ```json
 {
@@ -225,7 +227,12 @@ curl http://127.0.0.1:3000/xrpc/app.bsky.actor.getProfile \
   "handle": "user.bsky.social",
   "displayName": "User Name",
   "description": "Bio text",
-  "avatarURL": "https://pds.example.com/xrpc/com.atproto.sync.getBlob?did=did:plc:abc123&cid=bafyabc"
+  "avatarURL": "https://pds.example.com/xrpc/com.atproto.sync.getBlob?did=did:plc:abc123&cid=bafyabc",
+  "avatar": {
+    "$link": "bafyabc",
+    "mimeType": "image/jpeg",
+    "size": 52000
+  }
 }
 ```
 
@@ -304,7 +311,14 @@ let response = client
 <TabItem label="Go">
 
 ```go
-imageData, _ := os.ReadFile("image.png")
+clientKey := "hvc_..." // your API client key
+accessToken := "..."   // DPoP access token
+dpopProof := "..."     // DPoP proof JWT
+
+imageData, err := os.ReadFile("image.png")
+if err != nil {
+  log.Fatal(err)
+}
 
 req, _ := http.NewRequest("POST",
   "http://127.0.0.1:3000/xrpc/com.atproto.repo.uploadBlob",
@@ -315,6 +329,10 @@ req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "image/png")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -417,6 +435,10 @@ req, _ := http.NewRequest("GET",
 req.Header.Set("X-Client-Key", clientKey)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -514,12 +536,18 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+
 req, _ := http.NewRequest("GET",
   "http://127.0.0.1:3000/xrpc/xyz.statusphere.listStatuses?limit=10&did=did:plc:abc",
   nil)
 req.Header.Set("X-Client-Key", clientKey)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -653,6 +681,10 @@ req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -744,6 +776,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..."   // DPoP access token
+dpopProof := "..."     // DPoP proof JWT
+
 body := bytes.NewBufferString(`{
   "uri": "at://did:plc:abc/xyz.statusphere.status/abc123",
   "status": "\ud83c\udf1f",
@@ -758,6 +794,10 @@ req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -793,7 +833,7 @@ A request for an NSID with no lexicon on the instance falls through to the proxy
 
 ## Errors
 
-Error responses return JSON with an `error` field:
+Error responses return JSON with an `error` field, and many also carry a `message`:
 
 ```json
 {
@@ -808,8 +848,9 @@ Error responses return JSON with an `error` field:
 | `403 Forbidden` | Refused | The proxy policy doesn't allow the NSID |
 | `404 Not Found` | Method or record not found | The requested record doesn't exist, or the feature is turned off |
 | `408 Request Timeout` | A script ran out of time | See [Script errors](#script-errors) |
-| `429 Too Many Requests` | Rate limited | The API client's budget is spent |
+| `429 Too Many Requests` | Rate limited | The bucket the request is charged to is empty: its API client's, once proven, otherwise the shared anonymous one |
 | `500 Internal Server Error` | Server-side failure | Script error, database error, or upstream PDS failure |
+| `502 Bad Gateway` | Upstream failure | The [XRPC proxy](#xrpc-proxy) couldn't resolve or reach the method's authority |
 | `503 Service Unavailable` | Storage unavailable | The storage that holds the collection is down |
 
 ### Script errors
@@ -820,13 +861,13 @@ When a script fails, the response is a `script_error` body:
 { "error": "script_error", "errorType": "runtime", "message": "attempt to index a nil value (local 't')", "method": "xyz.statusphere.getStatus", "line": 3, "file": "src/lib/format.lua" }
 ```
 
-`errorType` is `syntax`, `runtime`, `memory` or `missing_handle` with status `500`, or `timeout` with status `408` when the script hit the instruction limit or the wall clock, both set in **System > General**. `line` is the script line that raised, or `null`. `file` is the project file `line` is in, relative to the project root: the handler itself, or a local module it imported. It is `null` for a script saved through the dashboard, which has no file.
+`errorType` is `syntax`, `runtime`, `memory` or `missing_handle` with status `500`, or `timeout` with status `408` when the script hit the instruction limit or the wall clock, both set in **System > General**. `line` is the script line that raised, or `null`. `file` is the project file `line` is in, relative to the project root: the script itself, or a local module it imported. It is `null` for a script saved through the dashboard, which has no file.
 
-The same error is logged server-side with the script source and the caller's input. See [Errors](/docs/reference/scripts/contract#errors) for how to diagnose script issues.
+The instance logs the same error with the script source and the caller's input. See [Errors](/docs/reference/scripts/contract#errors) for how to diagnose script issues.
 
 ### PDS errors
 
-When a procedure proxies a write to the user's PDS and the PDS returns an error, HappyView forwards the PDS response status code and body directly to the client.
+When a procedure proxies a write to the user's PDS and the PDS returns an error, HappyView forwards the PDS response status code and body directly to the caller.
 
 ## Next steps
 

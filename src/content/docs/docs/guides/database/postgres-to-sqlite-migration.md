@@ -1,8 +1,7 @@
 ---
 title: Postgres to SQLite migration
+description: Move an existing instance from Postgres to SQLite, including the raw SQL its scripts send.
 ---
-
-This guide covers migrating an existing HappyView deployment from Postgres to SQLite. If you are staying on Postgres, no action is required.
 
 ## Overview
 
@@ -47,7 +46,7 @@ migrate-lua-sql --dry-run /path/to/lua/scripts
 migrate-lua-sql /path/to/lua/scripts
 ```
 
-The tool ships in the [release archive](/docs/guides/self-hosting/binary), not the Docker image; from a clone, run `cargo run --bin migrate-lua-sql -- /path/to/lua/scripts`. It scans all `.lua` files in the given directory and rewrites Postgres SQL patterns to SQLite equivalents.
+The tool ships in the [release archive](/docs/guides/self-hosting/binary), not the Docker image; from a clone, run `cargo run --bin migrate-lua-sql -- /path/to/lua/scripts`. It scans every `.lua` file in the given directory and its subdirectories, or in the current directory when none is given, and rewrites Postgres SQL patterns to SQLite equivalents. It rewrites any string literal that looks like SQL and fits on one line, whether or not it reaches `raw`, so review the `--dry-run` output first.
 
 ### What the codemod converts automatically
 
@@ -56,7 +55,7 @@ The tool ships in the [release archive](/docs/guides/self-hosting/binary), not t
 - `ILIKE` to `LIKE` (SQLite `LIKE` is case-insensitive for ASCII by default)
 - `NOW()` to `datetime('now')`
 - `NOW() + INTERVAL '...'` / `NOW() - INTERVAL '...'` to `datetime('now', '...')`
-- `TRUE`/`FALSE` literals to `1`/`0`
+- Lowercase `true`/`false` literals to `1`/`0`; uppercase `TRUE` and `FALSE` are left as they are
 
 ### What it flags for manual review
 
@@ -72,11 +71,12 @@ Review the flagged lines and update them manually.
 
 ## Step 4: Import data into SQLite
 
-There is no direct import. Start HappyView with the new `DATABASE_URL`, and it creates the SQLite database and runs migrations automatically. Then re-index your records from the network:
+There is no direct import. HappyView creates the SQLite database and runs its migrations when it starts. Re-index your records from the network:
 
 1. Start HappyView with the new SQLite `DATABASE_URL`
-2. Install your interpreters and libraries, then redeploy your project, or upload your lexicons via the dashboard or admin API
-3. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
+2. Install your interpreters and libraries
+3. Redeploy your project, or upload your lexicons via the dashboard or admin API
+4. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
 
 Backfill fetches records fresh from the network, so records that exist only on this instance don't come back.
 
@@ -86,7 +86,7 @@ If you were running Postgres via Docker Compose, switch to `docker-compose.prod.
 
 ## Step 6: Re-create admin settings
 
-Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
+Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, scripts saved in the dashboard, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
 
 ## Rollback
 

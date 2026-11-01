@@ -1,12 +1,13 @@
 ---
 title: "Production"
+description: What to set and back up before an instance serves real users.
 ---
 
-This page covers what to change when taking a HappyView instance from local development to production. For setup instructions, see [Docker](/docs/guides/self-hosting/docker) or [the release binaries](/docs/guides/self-hosting/binary). This page assumes you already have a working deployment and focuses on hardening and operational concerns.
+These settings take a working HappyView instance from local development to production. For setup instructions, see [Docker](/docs/guides/self-hosting/docker) or [the release binaries](/docs/guides/self-hosting/binary).
 
 ## Session secret
 
-Set `SESSION_SECRET` to a random value of at least 32 bytes, such as the output of `openssl rand -base64 48`; a placeholder like `change-me-in-production` is refused and leaves nobody able to sign in. This signs the session cookies issued during OAuth login; rotating it invalidates every existing session.
+Set `SESSION_SECRET` to a random value of at least 32 bytes, such as the output of `openssl rand -base64 48`; a placeholder like `change-me-in-production` is refused and leaves nobody able to sign in. The secret signs the session cookies issued during OAuth login; rotating it invalidates every existing session.
 
 ```sh
 openssl rand -base64 48
@@ -45,7 +46,7 @@ BASE_PATH=/hv
 
 `PUBLIC_URL` should **not** include the base path. HappyView appends it automatically when constructing OAuth callbacks and other external URLs.
 
-The base path is applied at container startup without rebuilding the image, so prebuilt Docker images work with any subpath.
+Neither the Docker image nor the release binary needs a rebuild for a subpath. The image applies the base path to its dashboard at container startup, and the binary applies it to its built-in dashboard as it serves it.
 
 ### XRPC endpoints
 
@@ -90,17 +91,17 @@ SQLite is fine for small to medium instances and is the default. Switch to Postg
 - Larger-than-memory working sets
 - External tools that need direct read access to the records table
 
-See the [database setup guide](/docs/guides/database/database-setup) for configuration details and [Postgres to SQLite migration](/docs/guides/database/postgres-to-sqlite-migration) if you're moving the other direction. Migrations run automatically on startup regardless of backend. Upgrades that build an index over a large records table make that boot slow on either backend. With several replicas, upgrade one first. See [migrations at startup](/docs/guides/database/database-setup#migrations-at-startup). The upgrade from v2 to the [compact record format](/docs/guides/database/database-setup#the-compact-record-format) copies every record once and can't be rolled back without a backup; read its notes first.
+See the [database setup guide](/docs/guides/database/database-setup) for configuration details, [SQLite to Postgres migration](/docs/guides/database/sqlite-to-postgres-migration) to switch, and [Postgres to SQLite migration](/docs/guides/database/postgres-to-sqlite-migration) to go back. Migrations run automatically on startup regardless of backend. Upgrades that build an index over a large records table make that boot slow on either backend. With several replicas, upgrade one first. See [migrations at startup](/docs/guides/database/database-setup#migrations-at-startup). The upgrade from v2 to the [compact record format](/docs/guides/database/database-setup#the-compact-record-format) copies every record once and can't be rolled back without a backup; read its notes first.
 
 ## Rate limits
 
-HappyView has a per-client token-bucket rate limiter for XRPC endpoints. The defaults (set via `DEFAULT_RATE_LIMIT_CAPACITY` and `DEFAULT_RATE_LIMIT_REFILL_RATE`) apply to any [API client](/docs/guides/api-clients) that doesn't have per-client overrides. Raise the defaults cautiously: they exist so one misbehaving integrator can't saturate the server.
+HappyView has a per-client token-bucket rate limiter for XRPC endpoints. The defaults (set via `DEFAULT_RATE_LIMIT_CAPACITY` and `DEFAULT_RATE_LIMIT_REFILL_RATE`) apply to any [API client](/docs/guides/api-clients) that doesn't have per-client overrides. Raise the defaults cautiously: they exist so one misbehaving integrator can't saturate the instance.
 
 Per-client overrides are set at client creation or via `PUT /admin/api-clients/{id}` (see [API clients](/docs/reference/admin/api-clients)).
 
 ## Logging
 
-The server's default `RUST_LOG` setting (`happyview=debug,tower_http=debug,sqlx=warn`) is noisy, though the Docker Compose files set a quieter one. For production, drop the verbosity:
+HappyView's default `RUST_LOG` setting (`happyview=debug,tower_http=debug,sqlx=warn`) is noisy, though the Docker Compose files set a quieter one. For production, drop the verbosity:
 
 ```sh
 RUST_LOG=happyview=info,tower_http=info,sqlx=warn

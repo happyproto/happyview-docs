@@ -1,5 +1,6 @@
 ---
 title: "Records"
+description: "Admin API endpoints for browsing indexed records, deleting them one at a time or by collection, and reconciling a collection with its accounts' PDSes."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -101,6 +102,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limit=10", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -133,7 +138,9 @@ curl "http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limi
 }
 ```
 
-`cursor` is omitted when there are no more results.
+`cursor` is omitted when there are no more results. `indexed_at` is `null` until the record has arrived from the network. `labels` holds the record's unexpired labels and its self-labels, each with `src`, `val` and `cts` (empty for a self-label).
+
+Returns `503` when the collection is served from external record storage that can't be reached.
 
 ## List collections
 
@@ -141,7 +148,7 @@ curl "http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limi
 GET /admin/records/collections
 ```
 
-Returns the collection NSIDs of the instance's record lexicons, without counting records. `shared` names the ones served from a shared record store, whose records this instance can't delete.
+Returns the collection NSIDs of the instance's record lexicons, without counting records. `shared` names the ones served by external record storage, whose records this instance can't delete.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -183,6 +190,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/records/collections", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -258,6 +269,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/records?uri=at://did:plc:abc/xyz.statusphere.status/3k...", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -328,6 +343,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/records/collection?collection=xyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -350,7 +369,7 @@ curl -X DELETE "http://127.0.0.1:3000/admin/records/collection?collection=xyz.st
 
 The delete runs as a `happyview.delete-collection` [job](/docs/reference/admin/jobs), in batches, so a large collection doesn't hold the database. Follow, pause or cancel it through the jobs API. Records arriving from the network while it runs are deleted too, until a batch comes back short.
 
-Returns `400 Bad Request` when `collection` is empty, and for a collection served from a shared record store: the delete would reach only this instance's own rows, and the shared records would stay. `GET /admin/records/collections` names those collections in `shared`. To delete a lexicon and its records together, see [Delete a lexicon](/docs/reference/admin/lexicons#delete-a-lexicon).
+Returns `400 Bad Request` when `collection` is empty, and for a collection served by external record storage: the delete would reach only this instance's own rows, and the shared records would stay. `GET /admin/records/collections` names those collections in `shared`. To delete a lexicon and its records together, see [Delete a lexicon](/docs/reference/admin/lexicons#delete-a-lexicon).
 
 ## Reconcile a collection
 
@@ -378,7 +397,7 @@ Compares an indexed collection with what each account's PDS holds now, and finds
 }
 ```
 
-**Errors:** `400` when `collection` is empty, isn't indexed, isn't a record lexicon, is `com.atproto.lexicon.schema`, or is served from a shared external record store, and when the rate is out of range.
+**Errors:** `400` when `collection` is empty, isn't indexed, isn't a record lexicon, is `com.atproto.lexicon.schema`, or is served by external record storage, and when the rate is out of range.
 
 ### How accounts are checked
 
@@ -389,9 +408,9 @@ An account is skipped, and nothing of it is deleted, when:
 | Reason | When |
 | --- | --- |
 | `pds_unresolved` | Its PDS can't be resolved |
-| `listing_failed` | A listing page fails, or is empty while still offering a cursor |
+| `listing_failed` | A listing page fails, is empty while still offering a cursor, or repeats a cursor |
 | `rate_limited` | The PDS is still rate limiting after five tries |
-| `repo_unavailable` | The PDS says the repo is missing, deactivated or taken down |
+| `repo_unavailable` | The PDS says the repo is missing, deactivated, taken down or suspended |
 | `suspicious_listing` | The listing is empty while records are stored, or lacks at least 10 stored records and more than half of them. Name the account in `allow_suspicious` to act on it anyway |
 | `store_read_failed` | HappyView couldn't read its own records for the account |
 

@@ -1,5 +1,6 @@
 ---
 title: "Labelers"
+description: "Admin API endpoints for adding, pausing and removing labeler subscriptions."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -87,6 +88,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/labelers", {
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/labelers")
     .bearer_auth(token)
@@ -104,6 +106,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/labelers", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -121,7 +127,7 @@ curl -X POST http://127.0.0.1:3000/admin/labelers \
 
 | Field | Type   | Required | Description                   |
 | ----- | ------ | -------- | ----------------------------- |
-| `did` | string | yes      | The labeler's atproto DID |
+| `did` | string | yes      | The labeler's atproto DID. HappyView stores it as given, without checking it |
 
 **Response**: `201 Created` (empty body). Adding a labeler that's already listed sets it back to `active`.
 
@@ -166,6 +172,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/labelers")
     .bearer_auth(token)
@@ -181,6 +188,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/labelers", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -215,7 +226,7 @@ curl http://127.0.0.1:3000/admin/labelers -H "$AUTH"
 | `status`     | string       | `active` or `paused`                               |
 | `cursor`     | number\|null | Last processed event cursor (null if never synced) |
 | `created_at` | string       | ISO 8601 creation timestamp                        |
-| `updated_at` | string       | ISO 8601 last-updated timestamp                    |
+| `updated_at` | string       | Last-updated timestamp. ISO 8601 once the subscription has been changed; before that, the database's own default format |
 
 ## Update a labeler
 
@@ -263,6 +274,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .patch("http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac")
     .bearer_auth(token)
@@ -280,6 +292,10 @@ req, _ := http.NewRequest("PATCH", "http://127.0.0.1:3000/admin/labelers/did:plc
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -297,7 +313,7 @@ curl -X PATCH http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrn
 
 | Field    | Type   | Required | Description                      |
 | -------- | ------ | -------- | -------------------------------- |
-| `status` | string | yes      | New status: `active` or `paused` |
+| `status` | string | yes      | New status: `active` or `paused`. The value isn't checked, and HappyView consumes only labelers whose status is `active` |
 
 **Response**: `204 No Content`. Returns `404 Not Found` for an unknown labeler.
 
@@ -309,7 +325,7 @@ DELETE /admin/labelers/{did}
 
 Requires `labelers:delete` permission. Removes the subscription and all labels emitted by this labeler.
 
-Deleting a labeler with `declared: true` returns `409 Conflict`; remove it from the file instead. An unknown labeler returns `404 Not Found`.
+Deleting a labeler with `declared: true` returns `409 Conflict`; remove it from `[labels] subscribe` in `happyview.toml` instead. An unknown labeler returns `404 Not Found`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -341,6 +357,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .delete("http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac")
     .bearer_auth(token)
@@ -355,6 +372,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

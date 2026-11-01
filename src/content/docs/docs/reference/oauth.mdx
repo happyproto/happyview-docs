@@ -1,15 +1,16 @@
 ---
 title: Third-party API clients
+description: "The dev.happyview.* methods apps use to manage their own API clients, and the endpoints for confidential client authentication."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Third-party applications can manage their own API clients via the `dev.happyview.*` XRPC endpoints. A third-party client is always tied to exactly one parent: the top-level API client whose DPoP session made the request, created through the admin API. Only one level of nesting is allowed; third-party clients cannot create further children. Each third-party client gets its own rate limit bucket with instance default settings.
+Third-party apps can manage their own API clients via the `dev.happyview.*` XRPC endpoints. A third-party client is always tied to exactly one parent: the top-level API client whose DPoP session made the request, created through the admin API. Only one level of nesting is allowed; third-party clients cannot create further children. Each third-party client gets its own rate limit bucket (see [Operational notes](#operational-notes)).
 
-All endpoints use [DPoP authentication](/docs/reference/authentication#authenticating-users-for-procedures). See the [admin API client docs](/docs/reference/admin/api-clients) for managing clients through the admin API, and the [API Clients guide](/docs/guides/api-clients) for how API clients work.
+All endpoints use [DPoP authentication](/docs/reference/authentication#authenticating-users-for-procedures); the dashboard's own session cookie also works, on a request from the instance's own pages. See the [admin API client docs](/docs/reference/admin/api-clients) for managing clients through the admin API, and the [API Clients guide](/docs/guides/api-clients) for how API clients work.
 
 :::note
-Only top-level API clients can call these endpoints. Third-party (child) clients receive `401 Unauthorized` or `403 Forbidden`.
+A third-party (child) client can't list or create API clients: `listApiClients` answers it with `401 Unauthorized` and `createApiClient` with `403 Forbidden`.
 :::
 
 ## Authentication
@@ -222,6 +223,10 @@ req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -346,6 +351,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_parent_key" // parent API client key
+accessToken := "eyJhbG..."    // DPoP access token
+dpopProof := "eyJhbG..."      // DPoP proof JWT
+
 body := bytes.NewBufferString(`{"id": "550e8400-e29b-41d4-a716-446655440000"}`)
 
 req, _ := http.NewRequest("POST",
@@ -356,6 +365,10 @@ req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -383,7 +396,7 @@ Returns `404` if the client doesn't exist or isn't owned by the authenticated us
 
 ## Confidential client authentication
 
-These two endpoints are unrelated to the third-party XRPC methods above. They belong to any top-level API client that wants to run its own atproto OAuth flow against a user's PDS as a **confidential** client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard's Access > API Clients > "AT Protocol Client Auth" card.
+These two endpoints are unrelated to the third-party XRPC methods above. They belong to any API client that wants to run its own atproto OAuth flow against a user's PDS as a **confidential** client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard: **Access > API Clients**, then the client's **AT Protocol Client Auth** panel.
 
 ### Get the client's JWKS
 
@@ -434,6 +447,10 @@ let jwks: serde_json::Value = response.json().await?;
 resp, err := http.Get(
   "https://happyview.example.com/oauth/clients/550e8400-e29b-41d4-a716-446655440000/jwks.json",
 )
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -478,7 +495,7 @@ Authenticate in one of three ways:
 
 - As a confidential client, with `X-Client-Key` + `X-Client-Secret`.
 - With `X-Client-Key` + an active DPoP-bound session (`Authorization: DPoP <token>` + a `DPoP` proof covering this request).
-- During a public client's first sign-in, when it has neither, with `X-Client-Key`, `provision_id` and `pkce_verifier`.
+- During a public client's first sign-in, when it has neither, with `X-Client-Key`, `provision_id` and `pkce_verifier`. When the client has `allowed_origins`, the `Origin` header must be one of them.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -488,9 +505,10 @@ const CLIENT_KEY = "hvc_...";
 const CLIENT_SECRET = "hvs_...";
 
 interface ClientAssertionResponse {
-  clientAssertion: string;
-  clientAssertionType: string;
-  expiresIn: number;
+  client_assertion: string;
+  client_assertion_type: string;
+  expires_in: number;
+  kid: string;
 }
 
 const response = await fetch(
@@ -566,6 +584,10 @@ req.Header.Set("X-Client-Secret", clientSecret)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -606,7 +628,7 @@ Attach `client_assertion` and `client_assertion_type` as form parameters on the 
 
 `kid` names the key that signed the assertion. **Store it alongside the session you establish**, and pass it back as the `kid` field whenever you request an assertion to *refresh* that session.
 
-This matters after a key rotation. An authorization server binds a session to the key that established it. If you refresh with an assertion signed by a newer key, the server sees a key it never bound the session to, and a conforming server responds by **destroying the session**, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
+An authorization server binds a session to the key that established it. After a key rotation, a refresh with an assertion signed by the newer key presents a key the server never bound the session to. A conforming server responds by **destroying the session**, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
 
 Omit `kid` for an initial authorization, where any currently valid key is correct.
 
@@ -619,14 +641,18 @@ Returns `400` (`no usable authentication key '<kid>' ...`) if the requested `kid
 | Status | Error                                     | Cause                                                            |
 | ------ | ----------------------------------------- | ---------------------------------------------------------------- |
 | 400    | `client_type must be 'confidential' or 'public'` | `clientType` is neither                                    |
-| 400    | none                                      | Missing required fields or malformed JSON                        |
-| 401    | `<method> requires DPoP authentication`   | `Authorization` header is missing or doesn't use the DPoP scheme |
-| 401    | `<method> requires an API client key`     | `X-Client-Key` header is absent                                  |
-| 401    | `Invalid client`                          | `X-Client-Key` doesn't match a known client                     |
-| 401    | `child clients cannot manage API clients` | The calling client is itself a third-party (child) client        |
-| 403    | `Child clients cannot create API clients` | The calling client is itself a third-party (child) client        |
-| 404    | `API client not found`                    | No client with that ID owned by the authenticated user           |
+| 400, 415, 422 | a plain-text body                  | Malformed JSON (`400`), no JSON `Content-Type` (`415`), or a missing or mistyped field (`422`); `getApiClient` without `id` answers `400` |
+| 401    | `<method> requires DPoP authentication, or the session cookie on a request from this instance` | No DPoP auth, and no session cookie from the instance's own pages |
+| 401    | `DPoP auth requires X-Client-Key header`  | A DPoP request without `X-Client-Key`                            |
+| 401    | `unknown client`                          | `X-Client-Key` doesn't match an active client                    |
+| 401    | `createApiClient requires an API client key` | A dashboard session that names no API client                  |
+| 401    | `Invalid client`                          | `createApiClient` from a session whose API client no longer exists or is inactive |
+| 401    | `child clients cannot manage API clients` | `listApiClients` from a third-party (child) client               |
+| 403    | `Child clients cannot create API clients` | `createApiClient` from a third-party (child) client              |
+| 404    | `API client not found`                    | `getApiClient`: no client with that ID owned by the authenticated user |
+| 404    | `api client '<id>' not found`             | `deleteApiClient`: no client with that ID owned by the authenticated user |
 | 409    | `client_id_url already registered`        | Another client already uses that `clientIdUrl`                   |
+| 429    | `RateLimited`                             | The calling client's rate-limit bucket is empty                  |
 
 ## Operational notes
 

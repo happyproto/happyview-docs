@@ -5,7 +5,7 @@ description: The handle(input, ctx) function every script defines, in Lua, JavaS
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Every script defines one function, `handle(input, ctx)`. HappyView calls it each time the script's trigger fires. `input` is the trigger's payload. `ctx` is what the runtime knows about this invocation. What `handle` returns decides what happens next.
+Every script defines one function, `handle(input, ctx)`. HappyView calls it each time the script's trigger fires. `input` is the trigger's payload. `ctx` is what HappyView knows about this invocation. What `handle` returns decides what happens next.
 
 Code at file scope runs while the script loads, before `handle` is called, so neither argument exists there. Put imports, constants and helper functions at file scope, and read `input` and `ctx` inside `handle` or in functions it calls.
 
@@ -14,7 +14,7 @@ Code at file scope runs while the script loads, before `handle` is called, so ne
 <Tabs syncKey="lang">
   <TabItem label="Lua">
 
-A global function named `handle`. Load modules with `require` at the top of the file.
+A global function named `handle`. Load libraries and built-in modules with `require` at the top of the file.
 
 ```lua
 local db = require("happyview.db")
@@ -45,7 +45,7 @@ end
   </TabItem>
   <TabItem label="JavaScript">
 
-An ES module whose default export is the handler. Load modules with `import`.
+An ES module whose default export is `handle`. Load libraries and built-in modules with `import`.
 
 ```js
 import db from "happyview.db";
@@ -62,13 +62,13 @@ export default async function handle(input, ctx) {
 }
 ```
 
-- The handler may be `async`. A returned promise is awaited, and what it settles to is the return value.
+- `handle` may be `async`. A returned promise is awaited, and what it settles to is the return value.
 - Every library call that sends a request returns a promise: a library function, and the final method of a chain such as `.run()`. The chain's earlier steps (`.where()`, `.limit()`, ...) are synchronous so they can chain.
 - A call starts as soon as it is made, so `Promise.all` over several calls costs the slowest one, not the sum.
 - File scope may use top-level `await`.
 - There are no timers. `setTimeout` does not exist.
 
-Every module has a default export holding all of its functions, and each function is also a named export. These are equivalent:
+Every library and built-in module has a default export holding all of its functions, and each function is also a named export. These are equivalent:
 
 ```js
 import db from "happyview.db";
@@ -111,9 +111,11 @@ export default async function handle(input: Input, ctx: { caller_did?: string })
 | --- | --- |
 | `xrpc.query:<nsid>` | The query-string parameters |
 | `xrpc.procedure:<nsid>` | The request body |
-| `record.index:<nsid>`, `record.create:<nsid>`, `record.update:<nsid>`, `record.delete:<nsid>` | `{ action, uri, did, collection, rkey, record }`. `action` is `"create"`, `"update"` or `"delete"`. `record` is absent on a delete |
+| `record.index:<nsid>`, `record.create:<nsid>`, `record.update:<nsid>`, `record.delete:<nsid>` | `{ action, uri, did, collection, rkey, record }`. `action` is `"create"`, `"update"` or `"delete"`. `record` is `null` on a delete |
 | `labeler.apply:<nsid>`, `labeler.apply:_actor` | `{ src, uri, val, neg, cts, exp }`. `exp` is absent when the label doesn't expire |
 | `job.run:<type>` | The input the job was created with |
+
+In Lua, a JSON `null` in `input` arrives as a sentinel value rather than `nil`, and the sentinel is truthy. Test `input.action`, not `input.record`, to tell a delete apart.
 
 ## `ctx`
 
@@ -157,13 +159,13 @@ A field that doesn't apply is absent rather than set to an empty value. In JavaS
 A query or procedure can answer in two other ways:
 
 - **A declared error.** An object whose `error` is a name the method's lexicon lists under `errors` is sent as JSON with status `400`. An `error` the lexicon doesn't list is an ordinary `200` body.
-- **Bytes.** When the method's lexicon declares an output encoding other than JSON, return a blob ref naming a blob stored on the instance, or an object with `$bytes` holding base64. `mimeType` names the type, and it's required when the lexicon declares `*/*`. Any other return value fails the run.
+- **Bytes.** When the method's lexicon declares an output encoding other than JSON, return a blob ref naming a blob stored on the instance, or an object with `$bytes` holding base64. A lexicon that names one encoding sets the content type. Under `*/*`, `mimeType` sets it: a `$bytes` object must carry one, and a blob ref without one uses the type stored with the blob. Any other return value fails the run.
 
 "Nothing" is `nil` in Lua and `undefined` or `null` in JavaScript and TypeScript. A function that ends without a `return` returns nothing, which for a record script means the record is not indexed. If a record script only has side effects, end it with `return input.record or true` (Lua) or `return input.record ?? true` (JavaScript and TypeScript).
 
 ## Errors
 
-An uncaught error fails the invocation. For a query or procedure the client gets the error back:
+An uncaught error fails the invocation. For a query or procedure the caller gets the error back:
 
 ```json
 {
@@ -176,15 +178,15 @@ An uncaught error fails the invocation. For a query or procedure the client gets
 }
 ```
 
-`errorType` is one of `syntax`, `runtime`, `timeout`, `memory` or `missing_handle`. The status is `408` for `timeout` and `500` for the rest. `line` is the script line that raised the error. For TypeScript it is the line in your TypeScript source.
+`errorType` is one of `syntax`, `runtime`, `timeout`, `memory` or `missing_handle`. The status is `408` for `timeout` and `500` for the rest. `line` is the script line that raised the error. For TypeScript it is the line in your TypeScript source. `file` is the project file the error is in, and `null` for a script saved from the dashboard. A `timeout` carries HappyView's own message, `script exceeded execution time limit`.
 
-A message containing `AUTH_ERROR:` is answered as `401`, and a library's refusal of the caller's cursor as `400` with `InvalidRequest`. Because `message` reaches the client, never put a secret or a caller's data in an error. For an expected condition, such as a missing record, return an error the lexicon declares instead: `{ error: "NotFound", message: "no such record" }`.
+A message containing `AUTH_ERROR:` is answered as `401`, and a library's refusal of the caller's cursor as `400` with `InvalidRequest`. A `STORAGE_UNAVAILABLE` failure from [record storage](/docs/guides/record-providers) is answered as `503` with `ServiceUnavailable`. Because `message` reaches the caller, never put a secret or a caller's data in an error. For an expected condition, such as a missing record, return an error the lexicon declares instead: `{ error: "NotFound", message: "no such record" }`.
 
-`missing_handle` means the script defines no handler: no global `handle` function in Lua, or no default export in JavaScript and TypeScript ("script must export a default function").
+`missing_handle` means the script defines no `handle`: no global `handle` function in Lua, or no default export in JavaScript and TypeScript ("script must export a default function").
 
 In JavaScript and TypeScript, a failed library call rejects with an `Error` that also has `code` and `retryable` properties. In Lua a library failure is a Lua error, prefixed with the library and function that failed. Catch expected failures with `try`/`catch` or `pcall`.
 
-Record and label scripts are retried on failure and then dead-lettered. A failed job is marked `failed` with the message as its error. See [Script types and triggers](/docs/reference/scripts/types-and-triggers#failures-and-retries).
+Record and label scripts are retried on failure and then dead-lettered. A failed job is marked `failed`, with the error type and the interpreter's error text as its error. See [Script types and triggers](/docs/reference/scripts/types-and-triggers#failures-and-retries).
 
 ## Built-in modules
 
@@ -192,19 +194,11 @@ Every interpreter comes with the `internal.*` modules, which need nothing instal
 
 ## Sandbox
 
-### Lua
+Each interpreter runs scripts with a reduced standard library and no file, process or network access of its own. What each language keeps is on [Languages](/docs/reference/scripts/languages): see Lua specifics and JavaScript specifics.
 
-Available: `print`, `string`, `table`, `math`, `utf8`, the coroutine library, the base library, and `os.time`, `os.date` and `os.difftime`. Not available: `io`, `package`, `debug`, `load`, `dofile`, `loadfile`, `collectgarbage`, and every other `os` function, including `os.clock`. Lua's own `require` is replaced by HappyView's. Use `internal.time.now()` to measure elapsed time.
+In every language, the guest has no timezone, so dates are read and written as UTC.
 
-### JavaScript and TypeScript
-
-Available: the ECMAScript standard library QuickJS-ng implements (`JSON`, `Promise`, `Map`, `Set`, `RegExp`, `Date`, typed arrays, `Proxy` and the rest) and `console`. Not available: `eval`, the `Function` constructor and its async and generator variants, timers, and any file or process access. An import from an absolute path, a URL, or any specifier containing `:` is refused.
-
-### Both
-
-The guest has no timezone, so dates are read and written as UTC.
-
-A script saved from the dashboard has no project around it, so a relative import such as `./helpers` fails there. Relative imports work in scripts that belong to a project.
+A script saved from the dashboard has no project around it, so a relative import such as `./helpers` is refused when you save it. Relative imports work in scripts that belong to a project.
 
 ## Next steps
 

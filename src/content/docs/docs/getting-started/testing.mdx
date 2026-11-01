@@ -225,7 +225,7 @@ A few details:
 - The record triggers take `record`, `did`, `rkey` and `as` in `opts`. The author is `did`, else `as`, else `did:plc:test`. The collection needs an indexed record lexicon in the project, or the call raises an error.
 - A record or label script that fails sets `status` to `500`, with the error in `errors`. A test run tries a failed script once. It doesn't retry.
 - A job trigger's `status` is `200` when the job completed and `500` otherwise.
-- No job worker runs during a test. A job that a script queues stays pending until you fire it with `job`.
+- No job worker runs during a test, so a job that a script queues stays pending. `job` doesn't run that queued job: it creates a new job of the type you name and runs it. To test a job script, fire `job` with the type and input the script would have queued.
 
 ### Lexicon validation
 
@@ -235,7 +235,7 @@ A few details:
 
 `as` sets the caller a trigger runs as: `{ as = "did:plc:alice" }` in Lua, `{ as: "did:plc:alice" }` in JavaScript and TypeScript. `as` takes a DID. `query`, `procedure`, the record triggers and `job` accept it. `label` doesn't.
 
-A forged caller only exists in a test run. HappyView honours it only when the request comes from the test harness, and nothing arriving over the network can claim one.
+A forged caller only exists in a test run. HappyView honors it only when the request comes from the test harness, and nothing arriving over the network can claim one.
 
 - A procedure fired with no `as` is refused with `401`, as every unauthenticated procedure is.
 - A procedure whose input has a `delegateDid` is refused with `400`. To act as another account, fire the trigger `as` that account.
@@ -334,12 +334,12 @@ describe("com.example.getWeather", () => {
 
 How mocks behave:
 
-- **A single response** answers every call to that method.
-- **A list of responses** answers in order. A call after the last one fails.
-- **An error response**, `{ ["$error"] = { code = "HTTP_ERROR", message = "timed out" } }` in Lua, makes the call fail with that code and message.
-- **A method the mock doesn't list** fails, naming the methods it does list.
-- **A namespace no installed library serves** is refused when you set the mock, so a typo can't leave the real call running. Use the full namespace, such as `happyview.http`.
-- **A mock lasts for the rest of the file** once it's set. Set mocks in `before_each` (`beforeEach`) when tests need different ones.
+- A single response answers every call to that method.
+- A list of responses answers in order. A call after the last one fails.
+- An error response, `{ ["$error"] = { code = "HTTP_ERROR", message = "timed out" } }` in Lua, makes the call fail with that code and message.
+- A method the mock doesn't list fails, naming the methods it does list.
+- A namespace no installed library serves is refused when you set the mock, so a typo can't leave the real call running. Use the full namespace, such as `happyview.http`.
+- A mock lasts for the rest of the file once it's set. Set mocks in `before_each` (`beforeEach`) when tests need different ones.
 
 `calls(namespace)` returns the calls the current test made to that namespace, each with its `method` and `args`, whether the namespace is mocked or not. The list starts empty for each test.
 
@@ -347,17 +347,17 @@ How mocks behave:
 
 HappyView itself reaches no real network during a test run: no PLC directory, relay, Jetstream or telemetry collector.
 
-- **Each test file gets its own database.** HappyView migrates one database at the start of the run, and each file starts from a fresh copy. Nothing one file writes is seen by another. The tests in one file share theirs and run in order.
-- **Test files run in parallel**, as many at a time as the machine has cores.
-- **`ctx.env` comes from `.env.test`** in the project root. `happyview test` never loads the project's `.env`, since that file holds a real instance's secrets. Setting `HAPPYVIEW_SCRIPT_ENV_FILE` in the environment overrides `.env.test`.
-- **The PDS is in process.** Writes made as the caller go to a PDS inside the test run. It answers `createRecord`, `putRecord`, `deleteRecord` and `uploadBlob` with real CIDs, and `501` to anything else. It refuses writes to another account's repo and doesn't check `swapRecord`. `pds_writes()` (`pdsWrites()`) returns the record writes the current test made.
+- Each test file gets its own database. HappyView migrates one database at the start of the run, and each file starts from a fresh copy. Nothing one file writes is seen by another. The tests in one file share theirs and run in order.
+- Test files run in parallel, as many at a time as the machine has cores.
+- `ctx.env` comes from `.env.test` in the project root. `happyview test` never loads the project's `.env`, since that file holds a real instance's secrets. Setting `HAPPYVIEW_SCRIPT_ENV_FILE` in the environment overrides `.env.test`.
+- The PDS is in process. Writes made as the caller go to a PDS inside the test run. It answers `createRecord`, `putRecord`, `deleteRecord` and `uploadBlob` with real CIDs, and `501` to anything else. It refuses writes to another account's repo and doesn't check `swapRecord`. `pds_writes()` (`pdsWrites()`) returns the record writes the current test made.
 
 ## Time limits
 
-- **A test file** can spend 60 seconds running its own code. Time spent inside a trigger doesn't count. A file that runs past its limit fails, and the other files carry on.
-- **A script** behind a trigger gets a served instance's limits: 10 seconds and 1,000,000 instructions by default. A test run has no dashboard settings, so set `SCRIPT_WALL_CLOCK_SECONDS` and `SCRIPT_INSTRUCTION_LIMIT` in the environment to match an instance that raised them.
-- **A job** gets 60 seconds for its own code and another 60 seconds shared across its `ctx.job.wait` calls. A served job has no such limit.
-- **An unmocked library call** fails with a timeout after 60 seconds, network time included.
+- A test file can spend 60 seconds running its own code. Time spent inside a trigger doesn't count. A file that runs past its limit fails, and the other files carry on.
+- A script behind a trigger gets a served instance's [limits](/docs/reference/scripts/limits). A test run has no dashboard settings, so set `SCRIPT_WALL_CLOCK_SECONDS` and `SCRIPT_INSTRUCTION_LIMIT` in the environment to match an instance that raised them.
+- A job gets 60 seconds for its own code and another 60 seconds shared across its `ctx.job.wait` calls. A served job has no such limit.
+- An unmocked library call fails with a timeout after 60 seconds, network time included.
 
 ## Watch mode
 

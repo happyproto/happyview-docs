@@ -131,7 +131,7 @@ export default async function handle(input: { uri?: string }, ctx: { caller_did:
 
 ## How it works
 
-1. Check the primary record exists with `db.get` and belongs to the caller. Return a structured error if it doesn't. Each error name (`UriRequired`, `RecordNotFound`, `NotOwner`) must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "NotOwner" }]`, for the response to be a 400; an undeclared one is sent as a 200.
+1. Check the primary record exists with `db.get` and belongs to the caller. Return a structured error if it doesn't. Each error name (`UriRequired`, `RecordNotFound`, `NotOwner`) must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "NotOwner" }]`, for the response to be a 400. An undeclared one is sent as a 200.
 2. Query for related records: comments by the same user whose `postUri` field is the primary record's URI. `where` filters on a field of the stored body, so the match happens in the database rather than in the script.
 3. Delete everything with `record.delete`. Each call removes the record from the user's PDS and the local index.
 
@@ -197,13 +197,24 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..."  // your API client key
+accessToken := "..."    // DPoP access token
+dpopProof := "..."      // DPoP proof JWT
+
 body := `{ "uri": "at://did:plc:abc/xyz.statusphere.post/abc123" }`
-req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.deletePost", bytes.NewBufferString(body))
+req, err := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.statusphere.deletePost", bytes.NewBufferString(body))
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

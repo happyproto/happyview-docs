@@ -1,20 +1,21 @@
 ---
 title: "Overview"
+description: "Permissioned spaces in HappyView: what a space is, how to turn spaces on, the endpoints, and the access model."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 :::danger[Experimental]
-Permissioned Spaces are experimental and the API will change. This implementation follows [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data). HappyView uses the `com.atproto.space.*` and `com.atproto.simplespace.*` namespaces. The `dev.happyview.space.*` endpoints are deprecated aliases. They are still served in v3 alpha; removal is not yet scheduled.
+Permissioned Spaces are experimental and the API will change. This implementation follows [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data). HappyView uses the `com.atproto.space.*` and `com.atproto.simplespace.*` namespaces. Apart from the invite endpoints, the `dev.happyview.space.*` endpoints are deprecated aliases. They are still served in v3 alpha; removal is not yet scheduled.
 :::
 
-Spaces are containers for permissioned data in atproto. Unlike regular public records that live in a user's repo, space records are gated by membership: only members can read or write data within a space.
+Spaces are containers for permissioned data in atproto. Unlike regular public records that live in a user's repo, space records are gated: each space's read and write policies decide who can read or write its data, and by default that is its members.
 
 ## Concepts
 
 A **space** is identified by three components:
 
-- **Space DID**: the DID of the space's authority. Spaces created through HappyView use HappyView's service identity DID. See [Space authority](/docs/guides/spaces/managing-spaces#space-authority).
+- **Space DID**: the DID of the space's authority. Spaces created through HappyView use the instance's service identity DID, or the creator's DID when the instance publishes no identity. See [Space authority](/docs/guides/spaces/managing-spaces#space-authority).
 - **Type**: the space type as an NSID, describing the modality (e.g. a forum, a group chat, a photo album)
 - **Space key (skey)**: a short string differentiating multiple spaces of the same type
 
@@ -74,12 +75,21 @@ let response = client
 <TabItem label="Go">
 
 ```go
+token := "..." // an admin API key
+
 body := bytes.NewBufferString(`{"value": "true"}`)
-req, _ := http.NewRequest("PUT",
+req, err := http.NewRequest("PUT",
   "http://127.0.0.1:3000/admin/settings/feature.spaces_enabled", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -95,7 +105,7 @@ curl -X PUT http://127.0.0.1:3000/admin/settings/feature.spaces_enabled \
 </TabItem>
 </Tabs>
 
-When disabled, all space endpoints return a `404` error with `FeatureDisabled` as the error code.
+While the setting is off, every space endpoint returns a `404` error with `FeatureDisabled` as the error code.
 
 ## Endpoints
 
@@ -104,7 +114,7 @@ Space endpoints are split across two namespaces:
 - **`com.atproto.space.*`**: protocol-level routes (queries, data, credentials, sync)
 - **`com.atproto.simplespace.*`**: management routes (create/update/delete spaces, membership)
 
-The `dev.happyview.space.*` aliases are deprecated. They are still served in v3 alpha; removal is not yet scheduled. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and the notify endpoints take service auth.
+Some of these endpoints also answer under a deprecated `dev.happyview.space.*` alias. The invite endpoints exist only under `dev.happyview.space.*` and are not deprecated. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and `notifyWrite` and `notifySpaceDeleted` take service auth.
 
 | Endpoint                                      | Method | Description                                     |
 | --------------------------------------------- | ------ | ----------------------------------------------- |
@@ -179,7 +189,7 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **Delegation tokens**: `getDelegationToken` (GET, 60-second TTL, single use), or tokens signed by the account's own key
 - **Space credentials**: `atproto-space-credential+jwt`, ES256, 10-minute TTL, bound to a key with `cnf.kid` and used with RFC 9421 HTTP Message Signatures
 - **Credential revocation**: `notifyCredentialRevoked` sent to hosts of repos in the space
-- **Deniable commit signatures**: user signs context (space + author + rev + random IKM), not content hash
+- **Deniable commit signatures**: the signature covers a context (space + author + rev + random IKM), not the content hash. HappyView signs the repos it holds with its `#atproto_space` key
 - **LtHash**: homomorphic set-hash (2048-byte state, 1024 uint16 lanes, BLAKE3 XOF)
 - **SignedCommit**: versioned commit struct (`ver: 1`) with hash, ikm, sig, mac, rev
 - **Record operation log**: `listRepoOps` returns the oplog for sync (values inlined by default, `excludeValues` to opt out)
@@ -198,10 +208,10 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 
 ## Next steps
 
-- [Managing Spaces](/docs/guides/spaces/managing-spaces): create, update, and delete spaces
+- [Managing spaces](/docs/guides/spaces/managing-spaces): create, update, and delete spaces
 - [Members](/docs/guides/spaces/members): manage membership and delegation
 - [Records](/docs/guides/spaces/records): read and write permissioned data
 - [Credentials](/docs/guides/spaces/credentials): cross-service authentication for spaces
-- [Write Notifications](/docs/guides/spaces/notifications): keep syncers up to date
+- [Write notifications](/docs/guides/spaces/notifications): keep syncers up to date
 - [Invites](/docs/guides/spaces/invites): invite-based membership
 - [Changelog](/docs/guides/spaces/changelog): version history

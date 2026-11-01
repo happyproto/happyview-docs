@@ -3,7 +3,7 @@ title: "Lua standard libraries"
 description: "The parts of Lua 5.4's standard library a script can use in the Lua interpreter."
 ---
 
-The Lua interpreter (`happyview-lua`) keeps these Lua 5.4 standard libraries and builtins. JavaScript and TypeScript scripts get their engine's own built-ins; see [Languages](/docs/reference/scripts/languages).
+The Lua interpreter (`happyview-lua`) keeps these Lua 5.4 standard libraries and builtins. JavaScript and TypeScript scripts get their interpreter's own built-ins; see [Languages](/docs/reference/scripts/languages).
 
 ## string
 
@@ -19,7 +19,7 @@ The whole [`math`](https://lua.org/manual/5.4/manual.html#6.7) library.
 
 ## os (safe subset)
 
-Only these three functions are available from the `os` module:
+Only these three functions are available from the `os` library:
 
 - [`time`](https://lua.org/manual/5.4/manual.html#pdf-os.time)
 - [`date`](https://lua.org/manual/5.4/manual.html#pdf-os.date)

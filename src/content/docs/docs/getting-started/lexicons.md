@@ -7,7 +7,7 @@ prerequisites:
 
 This page adds a record lexicon to your project, so your instance starts indexing that collection, and shows the other ways a lexicon can reach an instance.
 
-A lexicon is a schema document, and HappyView reads three kinds:
+A lexicon is a schema document. Three kinds matter for building an app:
 
 - A **record lexicon** describes a kind of record. HappyView indexes every record of that collection it sees.
 - A **query lexicon** or **procedure lexicon** describes an endpoint. HappyView serves it at `/xrpc/<NSID>`; [Queries and procedures](/docs/getting-started/queries-and-procedures) covers those.
@@ -41,7 +41,7 @@ A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexico
 
 Save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
 
-Records arrive only when someone writes one, so the list can stay empty for a while. To see records straight away, backfill the ones already on the network, as the next section shows, with `backfill = true` under `[dev]` as well.
+Records arrive only when someone writes one, so the list can stay empty for a while. To see records straight away, backfill the ones already on the network, as the next section shows.
 
 If the `id` doesn't match the path, the build fails and tells you where the file should be.
 
@@ -67,7 +67,7 @@ Many lexicons are already published by their authors, such as Bluesky's `app.bsk
 include = ["app.bsky.feed.post"]
 ```
 
-A network lexicon is indexed like your own, but it never backfills on its own; start one from **Data > Backfill** if you want history. Only lexicons in your project can have record scripts beside them, because a script's path names its lexicon.
+A network lexicon is indexed like your own, but it never backfills on its own; start one from **Data > Backfills** if you want history. Only lexicons in your project can have record scripts beside them, because a script's path names its lexicon.
 
 ## Lexicons added in the dashboard
 

@@ -1,5 +1,6 @@
 ---
 title: "Scripts"
+description: "Admin API endpoints for listing, creating, editing and deleting dashboard scripts, previewing the v3 codemod, and reading editor declarations."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -35,7 +36,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -138,6 +139,7 @@ const filteredData = await filtered.json();
 
 ```rust
 // List all scripts
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/scripts")
     .bearer_auth(token)
@@ -162,11 +164,19 @@ let filtered: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/scripts", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 
 // Filter by NSID suffix
 req, _ = http.NewRequest("GET", "http://127.0.0.1:3000/admin/scripts?suffix=xyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err = http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -241,6 +251,7 @@ const languages = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/scripts/languages")
     .bearer_auth(token)
@@ -256,6 +267,10 @@ let languages: Vec<String> = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/scripts/languages", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -308,6 +323,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status")
     .bearer_auth(token)
@@ -323,6 +339,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -361,7 +381,9 @@ curl "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status"
 POST /admin/scripts
 ```
 
-Creates a new script or replaces an existing one by `id`. The trigger grammar and Lua body are validated at write-time, a body that still references a removed v2 global is [refused](#saving-an-unmigrated-script), and so is a `script_type` [no installed interpreter claims](#a-script-whose-language-has-no-interpreter).
+Creates a new script or replaces an existing one by `id`. The trigger grammar is checked, and the body is checked by the interpreter its `script_type` names. A body that still references a removed v2 global is [refused](#saving-an-unmigrated-script), and so is a `script_type` [no installed interpreter claims](#a-script-whose-language-has-no-interpreter).
+
+A body the interpreter refuses answers `400` with what it reported, such as `script compilation failed at line 3: …`. A body that imports a file by a relative path answers `400` with `dashboard scripts can't import files, only project scripts can: ./format (line 1)`, because only a project has files beside a script for an import to find; import libraries with `require("happyview.*")` instead. An interpreter that fails to answer at all is a `500`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -407,6 +429,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/scripts")
     .bearer_auth(token)
@@ -435,6 +458,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/scripts", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -462,7 +489,7 @@ curl -X POST http://127.0.0.1:3000/admin/scripts \
 | `body`        | string | yes      | The script source code                                         |
 | `description` | string | no       | Human-readable description (max 300 bytes of UTF-8). An empty string is stored as `null` |
 
-**Response**: `201 Created` (new) or `200 OK` (update)
+**Response**: `201 Created` (new) or `200 OK` (update). An invalid trigger id or a `description` over 300 bytes answers `400`.
 
 ```json
 {
@@ -534,6 +561,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .patch("http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status")
     .bearer_auth(token)
@@ -556,6 +584,10 @@ req, _ := http.NewRequest("PATCH", "http://127.0.0.1:3000/admin/scripts/record.i
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -577,7 +609,7 @@ curl -X PATCH "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statuspher
 | `body`        | string       | no       | New script source; re-validated against `script_type`            |
 | `description` | string\|null | no       | New description, or `null` to clear                              |
 
-**Response**: `200 OK`
+**Response**: `200 OK`, or `404 Not Found` when no script has that id. A patched `body` gets the same checks as a create.
 
 ```json
 {
@@ -633,6 +665,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .delete("http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status")
     .bearer_auth(token)
@@ -647,6 +680,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -660,7 +697,7 @@ curl -X DELETE "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphe
 </TabItem>
 </Tabs>
 
-**Response**: `204 No Content`
+**Response**: `204 No Content`, or `404 Not Found` when no dashboard script has that id.
 
 ## Editor declarations
 
@@ -668,7 +705,7 @@ curl -X DELETE "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphe
 GET /admin/editor/declarations?language={language_id}
 ```
 
-The declarations an interpreter renders for editors, the same files [`happyview types`](/docs/guides/type-generation) writes into `.happyview/types/<language_id>/`, but rendered from everything this instance holds: its installed libraries, and every lexicon it serves, whether from a project, the dashboard or the network. The dashboard's script editor completes from them. Requires `scripts:read`.
+The declarations an interpreter renders for editors. They are the same files [`happyview types`](/docs/guides/type-generation) writes into `.happyview/types/<language_id>/`, but rendered from everything this instance holds: its installed libraries, and every lexicon it serves, whether from a project, the dashboard or the network. The dashboard's script editor completes from them. Requires `scripts:read`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -710,6 +747,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/editor/declarations?language=lua", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -733,10 +774,11 @@ interface EditorDeclarations {
 ```
 
 **Response**: `200 OK`, with an `ETag`.
-- **Revalidation:** the rendering is kept until a library, a lexicon or the interpreter changes. Send the tag back as `If-None-Match` and get `304 Not Modified` while nothing has.
-- **An interpreter that renders no declarations** answers an empty `files` and a note saying why.
-- **`404 Not Found`** when no installed interpreter claims the language.
-- **`502 Bad Gateway`** when the interpreter fails to render.
+
+- The rendering is kept until a library, a lexicon or the interpreter changes. Send the tag back as `If-None-Match` and get `304 Not Modified` while nothing has.
+- An interpreter that renders no declarations answers an empty `files` and a note saying why.
+- `404 Not Found` when no installed interpreter claims the language.
+- `502 Bad Gateway` when the interpreter fails to render.
 
 ## Scripts a project file defines
 
@@ -748,7 +790,7 @@ When the instance runs a project, a script defined by a file under `src/` answer
 POST /admin/scripts/{id}/codemod
 ```
 
-Rewrites a Lua script's body onto the v3 `handle(input, ctx)` contract, the rewrite [Migrating scripts to v3](/docs/guides/migrating-scripts) describes. Only `script_type: "lua"` is supported. Previewing needs `scripts:read`; `apply: true` needs `scripts:manage` as well, since it stores the rewritten body. Omit the request body entirely, or send `{}`, to preview.
+Rewrites a Lua script's body onto the v3 `handle(input, ctx)` contract, the rewrite [Migrating scripts to v3](/docs/guides/migrating-scripts) describes. Only `script_type: "lua"` is supported. `404 Not Found` when no script has that id and no `source` is sent. Previewing needs `scripts:read`; `apply: true` needs `scripts:manage` as well, since it stores the rewritten body. Omit the request body entirely, or send `{}`, to preview.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -811,6 +853,7 @@ const data = await applied.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let preview = client
     .post("http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status/codemod")
     .bearer_auth(token)
@@ -837,12 +880,20 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/scripts/record.in
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 
 applyBody := bytes.NewBufferString(`{"apply": true, "allow_markers": true}`)
 req, _ = http.NewRequest("POST", "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere.status/codemod", applyBody)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err = http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -891,7 +942,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere
 
 `apply: true` on a rewrite that changed the script (`changed: true`) and still has one or more notes returns `409 Conflict` unless `allow_markers: true` is also set. Re-applying when the rewrite changes nothing (`changed: false`) is a no-op and returns `200 OK` regardless of `allow_markers`.
 
-`source` previews the rewrite of text the server doesn't hold, such as an editor's unsaved changes. No stored script is needed, so it works before a script is first saved: the `{id}` in the path then only tells the codemod which kind of script it is rewriting. Nothing is stored, `changed` compares against `source` rather than the stored body, and sending it with `apply: true` returns `400 Bad Request`.
+`source` previews the rewrite of text the instance doesn't hold, such as an editor's unsaved changes. No stored script is needed, so it works before a script is first saved: the `{id}` in the path then only tells the codemod which kind of script it is rewriting. Nothing is stored, `changed` compares against `source` rather than the stored body, and sending it with `apply: true` returns `400 Bad Request`.
 
 A non-Lua `script_type` returns `400 Bad Request`. A body that doesn't parse as Lua also returns `400 Bad Request` rather than a result. That differs from `needs_migration`'s `"unparseable"`, which is a value on the *script list/get* response, not this endpoint.
 
@@ -938,6 +989,6 @@ interface UnmigratedScriptError {
 }
 ```
 
-**Response**: `400 Bad Request`. Nothing is stored. `removed_globals` is present on this error and no other, so a client can key on it rather than on the wording of `error`. The check runs before the body is compiled, so a script that reads a removed global at file scope gets this answer rather than a compilation failure; a body that doesn't parse at all still gets the compilation failure. Such a script would fail on its first run, so it is turned away at the edit instead. A `PATCH` that sends no `body` is not checked, so the description of a stored script that is still waiting for the codemod stays editable.
+**Response**: `400 Bad Request`. Nothing is stored. `removed_globals` is present on this error and no other, so a client can key on it rather than on the wording of `error`. The check runs before the body is compiled, so a script that reads a removed global at file scope gets this answer rather than a compilation failure. A body that doesn't parse at all still gets the compilation failure. A script with a removed global would fail on its first run, so it is turned away at the edit instead. A `PATCH` that sends no `body` is not checked, so the description of a stored script that is still waiting for the codemod stays editable.
 
 `apply: true` on this endpoint is the one write that can store a body with removed globals left in it: only the constructs it marked `-- codemod:` remain, and `allow_markers: true` is the explicit consent to store them. Saving that same body back through `POST` or `PATCH` is refused until the marked lines are rewritten by hand.

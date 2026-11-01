@@ -5,7 +5,7 @@ description: "Admin API endpoints for an instance's telemetry consent: read and 
 
 Endpoints behind the dashboard's **System > Telemetry** page. Telemetry is off unless an operator turns it on; [Telemetry](/docs/guides/telemetry) explains what a report contains. All need `settings:manage`.
 
-On an instance a hosting platform manages, telemetry is set by the platform: the changing endpoints answer `409`.
+On an instance a hosting platform manages, telemetry is set by the platform: `PUT` answers `409`, as does writing or deleting a `telemetry.*` key through the [settings](/docs/reference/admin/settings) endpoints.
 
 ## Get telemetry settings
 
@@ -83,6 +83,6 @@ POST /admin/settings/telemetry/send
 
 Sends a report now.
 
-**Response**: `200 OK` `{ "sent": true, "benchmarks": … }`, where `benchmarks` is what the collector answered.
+**Response**: `200 OK` `{ "sent": true, "benchmarks": … }`, where `benchmarks` is what the collector answered, or `null`.
 
 **Errors:** `400` when `mode` is `off`; `500` when the report couldn't be sent.

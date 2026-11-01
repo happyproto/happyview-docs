@@ -7,7 +7,7 @@ A plugin is a WebAssembly module plus a `manifest.json` that says what it is and
 
 ## The SDK crate
 
-`happyview-plugin-sdk` (version 0.5.0) is the Rust side of the plugin interface: the allocator and calling convention, the JSON types that cross the boundary, a typed wrapper for every host function, and macros that generate a plugin's exports. It isn't on crates.io; depend on it from HappyView's repository:
+`happyview-plugin-sdk` (version 0.5.0) is the Rust side of the plugin interface. It holds the allocator and calling convention, the JSON types that cross the boundary, a typed wrapper for every host function, and macros that generate a plugin's exports. It isn't on crates.io; depend on it from HappyView's repository:
 
 ```toml
 [dependencies]
@@ -26,7 +26,7 @@ On rustc 1.96 and later, an `extern` block of host imports you write yourself ne
 | Macro | Plugin type | Generates |
 | --- | --- | --- |
 | `export_abi!()` | any | `alloc` and `dealloc`, using the SDK's allocator (dlmalloc), plus a panic handler on targets without WASI. |
-| `export_abi!(alloc = system)` | any | `alloc` and `dealloc` using the crate's own global allocator, for plugins that link `std`. |
+| `export_abi!(alloc = system)` | any | `alloc` and `dealloc` using the crate's own global allocator, for plugins that link `std`, plus the same panic handler on targets without WASI. |
 | `library_plugin! { info, surface, call }` | library | The ABI, `plugin_info`, `get_api_surface` and `call`. `call` gets the function name, its arguments and a `CallContext`. |
 | `auth_plugin! { info, authorize_url, callback, refresh, profile }` | auth | The ABI, `plugin_info`, `get_authorize_url`, `handle_callback`, `refresh_tokens` and `get_profile`. |
 | `interpreter_plugin! { info, execute, validate[, declarations] }` | interpreter | The ABI with `alloc = system`, `plugin_info`, `execute`, `validate`, and `get_declarations` when `declarations` is given. |
@@ -47,23 +47,25 @@ Each export takes its input as a pointer and length the host wrote with the plug
 | `api_version` | string | all | Required, and must be `"2"`. Lower is refused as too old, higher as unsupported. |
 | `plugin_type` | `auth`, `library` or `interpreter` | all | Default `auth`. |
 | `description`, `icon_url`, `banner_url`, `publisher` | strings | all | Optional. `publisher` is a DID. |
-| `wasm_file` | string | all | Default `plugin.wasm`, relative to the manifest's URL. |
+| `wasm_file` | string | all | Default `plugin.wasm`, relative to the manifest (its URL, or its directory on disk). |
 | `capabilities` | list | all | Must cover every import the module makes; see [Capabilities](#capabilities). The plugin gets exactly these. |
 | `allowed_hosts` | list of hostnames | all | The hosts `network:request` may reach. A bare hostname or `*.`-prefixed. |
 | `required_secrets` | `[{ key, name, description? }]` | all | Each `key` must start with `PLUGIN_<ID>_`, the id upper-cased with other characters as `_`. |
 | `namespace` | string | library | What scripts `require`, such as `happyview.db`. Default: the `id`. `internal.` is reserved, and two libraries can't share one. |
 | `dependencies` | `[{ id, version }]` | library | Other libraries this one calls, with a semver range (default `*`). Auth and interpreter plugins can't declare any. |
 | `language_id` | string | interpreter | Required. Lowercase letters, digits, `-` and `_`, starting with a letter. Unique among installed interpreters. |
-| `extensions` | list | interpreter | The file extensions it runs, 1 to 16 lowercase letters or digits, not `json`. Unique among installed interpreters. |
+| `extensions` | list | interpreter | The file extensions it runs, 1 to 16 lowercase letters or digits, not `json`, none listed twice. Unique among installed interpreters. |
+| `file_extension` | string | interpreter | One extension, the older form of `extensions`. Read only when `extensions` is empty. |
+| `monaco_language` | string | interpreter | Accepted and kept with the manifest; HappyView doesn't read it. |
 | `supports_libraries` | list | interpreter | Default `["*"]`, every library. Can't mix `*` with ids. |
 | `auth_type` | `oauth2`, `openid` or `api_key` | auth | Default `oauth2`. |
 | `config_schema` | JSON Schema | auth | Optional. |
 
-A manifest may be at most 1 MiB and a module at most 16 MiB. A module that uses the component model, GC or typed function references is refused. A plugin installed from the registry is refused if its manifest or module doesn't match the content hash its release recorded.
+A manifest fetched from a URL or the registry may be at most 1 MiB, and a module fetched that way at most 16 MiB. A module that uses the component model, GC or typed function references is refused. A plugin installed from the registry is refused if its manifest or module doesn't match the content hash its release recorded.
 
 ## Capabilities
 
-At install, HappyView reads the module's imports and refuses it unless `capabilities` covers every one. The operator sees each capability with its risk and description before installing. At run time, a call to a host function the plugin lacks the capability for answers `FORBIDDEN`.
+At install, HappyView reads the module's imports and refuses it unless `capabilities` covers every one. The operator sees each capability with its risk and description before installing. At run time, a call to a host function the plugin lacks the capability for answers `FORBIDDEN` (the key-value imports, which return a bare status, answer `-1`).
 
 | Capability | Risk | What the operator is told | Host functions |
 | --- | --- | --- | --- |
@@ -100,13 +102,13 @@ At install, HappyView reads the module's imports and refuses it unless `capabili
 
 Rules that go with them:
 
-- **Free imports.** `host_log`, `host_lexicon_get`, `host_allowed_hosts` and `host_script_panic` need no capability.
-- **One network capability.** `network:request`, `network:request:defined` and `network:request:unrestricted` can't be combined. `network:request` needs `allowed_hosts`; the other two need it empty. With `network:request:defined`, the operator sets the hosts under the plugin's settings (`GET`/`PUT /admin/plugins/{id}/allowed-hosts`).
-- **WASI.** Only the imports above are allowed, plus the ones a WASI build links without using them (`proc_exit`, `sched_yield`, `fd_fdstat_get`, `fd_prestat_get`, `fd_prestat_dir_name`, `args_*`, `environ_*`). Any other WASI import, such as a file or socket, is refused at install whatever the manifest says. Standard output reaches the plugin log at `info`, standard error at `warn`.
+- `host_log`, `host_lexicon_get`, `host_allowed_hosts` and `host_script_panic` need no capability.
+- `network:request`, `network:request:defined` and `network:request:unrestricted` can't be combined. `network:request` needs `allowed_hosts`; the other two need it empty. With `network:request:defined`, the operator sets the hosts under the plugin's settings (`GET`/`PUT /admin/plugins/{id}/allowed-hosts`).
+- Only the WASI imports above are allowed, plus the ones a WASI build links without using them (`proc_exit`, `sched_yield`, `fd_fdstat_get`, `fd_prestat_get`, `fd_prestat_dir_name`, `args_*`, `environ_*`). Any other WASI import, such as a file or socket, is refused at install whatever the manifest says. Standard output reaches the plugin log at `info`, standard error at `warn`.
 
 ## Host function wrappers
 
-The SDK's `host` module has a typed wrapper for each host function, grouped here by the capability it needs. Each returns a `Result` whose error is `HostError::Plugin` with the host's code and message.
+The SDK's `host` module has a typed wrapper for each host function, grouped here by the capability it needs. Each returns a `Result` whose error carries the host's code and message: a `PluginError` for most, and a `HostError` (its `Plugin` variant) for `get_secret`, `http_request`, `allowed_hosts`, `kv_get`, `kv_set`, `kv_delete` and `lookup_record`. The logging wrappers and `script_panic` return nothing.
 
 | Capability | Wrappers |
 | --- | --- |

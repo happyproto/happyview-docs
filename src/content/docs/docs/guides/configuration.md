@@ -1,12 +1,13 @@
 ---
 title: Configuring an instance
+description: The environment variables and happyview.toml settings an instance needs first, and how to check and run a project locally.
 ---
 
 :::tip[Every variable in one place]
 [Configuration](/docs/reference/configuration) in the reference lists every environment variable, instance setting and `happyview.toml` key, with defaults and accepted values. This guide explains the ones you'll set first.
 :::
 
-HappyView is configured via environment variables. Serving with a plain `happyview` loads a `.env` file on startup, from the working directory or the nearest parent that has one. `happyview check`, `happyview dev`, `happyview test` and `happyview types` do not: under `happyview dev` the project's `.env` supplies script variables (`ctx.env`) only, as [Running locally](#running-locally-happyview-dev) explains, and under `happyview test` they come from `.env.test` instead, as [Testing](/docs/getting-started/testing) explains. See [Running locally](/docs/getting-started/running-locally) for running a project on your machine, [Docker](/docs/guides/self-hosting/docker) for deploying from published images, [Native binary](/docs/guides/self-hosting/binary) for a released binary, or [Production](/docs/guides/self-hosting/production) for the hardening checklist.
+HappyView is configured via environment variables. Serving with a plain `happyview` loads a `.env` file on startup, from the working directory or the nearest parent that has one. `happyview check`, `happyview dev`, `happyview test` and `happyview types` do not. Under `happyview dev` the project's `.env` supplies script variables (`ctx.env`) only, as explained [below](#running-locally-happyview-dev). Under `happyview test` they come from `.env.test` instead, as [Testing](/docs/getting-started/testing) explains. See [Running locally](/docs/getting-started/running-locally) for running a project on your machine, [Docker](/docs/guides/self-hosting/docker) for deploying from published images, [Native binary](/docs/guides/self-hosting/binary) for a released binary, or [Production](/docs/guides/self-hosting/production) for the hardening checklist.
 
 ## Environment variables
 
@@ -61,10 +62,10 @@ app_name = "HappyProto Registry"           # stands in for APP_NAME
 superadmin = "did:plc:..."                 # stands in for SUPERADMIN_DID
 
 [interpreters]
-lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "latest" }
+lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "alpha" }
 
 [libraries]
-"happyview.http" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-http", version = "1.0.3" }
+"happyview.http" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-http", channel = "alpha" }
 
 [dev]
 port = 3000                  # stands in for PORT, under `happyview dev` only
@@ -85,16 +86,12 @@ backfill = true              # backfill this record collection once
 indexed = false              # keep the lexicon for validation and refs, without ingesting its collection
 ```
 
-- `[network_lexicons] include` lexicons are tracked at boot, with no target collection and no backfill. One whose id a dashboard lexicon already uses is skipped with a warning; the dashboard lexicon is kept.
+- `[network_lexicons] include` lexicons are tracked at boot, with no target collection and no backfill. One whose id a dashboard lexicon or a project file already uses is skipped with a warning, and that lexicon is kept.
 - `[labels] subscribe` labelers are subscribed at boot. Pausing one from the dashboard sticks across restarts.
 - Neither can be removed from the dashboard or the admin API (`409`); remove the line from the file. A line removed from the file leaves its subscription or lexicon in place, now removable from the dashboard.
 - `backfill = true` on a record lexicon in the project's `src/lexicons/` starts a backfill only the first time. Under `happyview dev`, only when `[dev] backfill = true`; dev also checks after every rebuild, so a lexicon added while dev runs gets its backfill then. At boot, HappyView starts one for the collection unless a network backfill of that collection already exists, whatever its outcome: completed, failed, cancelled or still running. A backfill of named accounts does not count, and neither does a backfill of all collections, so either of those leaves the declared one to start. Restarting does not crawl the network again, even if the first backfill failed or was cancelled. To run it again, open **Backfills** in the dashboard, choose **New backfill** and select the collection, or call [`POST /admin/backfill`](/docs/reference/admin/backfill) with `{"collection": "..."}`.
-:::note[Pending happyview#319]
-**Backfills** and **New backfill** match [happyview#319](https://github.com/gamesgamesgamesgamesgames/happyview/pull/319), which is open. Until it merges, the page reads **Backfill** and its button **Create Backfill Job**.
-:::
-
 - `indexed` (default `true`): set `false` to keep a record lexicon for validation and refs without ingesting its collection from the network. An unindexed lexicon starts no backfill, even with `backfill = true`. Toggling it takes effect on the next build. The admin API's `indexed` field on [`POST /admin/lexicons`](/docs/reference/admin/lexicons) does the same for a dashboard lexicon.
-- `[interpreters]` and `[libraries]` name the plugins a project uses, keyed by language id or library namespace. Each value is a table naming a registry project: `did` is the publisher's DID and `name` the project name, followed by exactly one of `channel` (`latest`, `beta` or `alpha`) or `version` (a pinned release, such as `1.2.0` or `1.2.0-rc.1`). `hpy happyview add` writes these entries. The older `lua = "1.4.0"` form is refused with a message showing the table form.
+- `[interpreters]` and `[libraries]` name the plugins a project uses, keyed by language id or library namespace. Each value is a table naming a registry project: `did` is the publisher's DID and `name` the project name. It also sets exactly one of `channel` (`latest`, `beta` or `alpha`) or `version` (a pinned release, such as `1.2.0` or `1.2.0-rc.1`). `hpy happyview add` writes these entries. The older `lua = "1.4.0"` form is refused with a message showing the table form.
 - Unknown sections and keys are refused, and every error names the file, line and column: `happyview.toml:3:1: unknown field ...`.
 
 ## Checking a project
@@ -154,9 +151,9 @@ Scripts are checked by the interpreter that claims their file extension, so `che
 - **`diagnostics`** holds a successful build's warnings, or a failed build's errors and warnings. `line` is `null` for a problem with the whole file.
 - **`files`** gives every file under `src/` a role: `lexicon`, `handler`, `module` or `test`.
   - Files HappyView ignores, and files it refuses, are left out. A refused file's reason is in `diagnostics`.
-  - A handler carries its `trigger`, plus `lexicon` when the trigger names one of the project's lexicons.
+  - A `handler` file carries its `trigger`, plus `lexicon` when the trigger names one of the project's lexicons.
   - `language` is the interpreter that runs the file.
-- **`lexicons`** lists the lexicon files that load, with their `kind`: `record`, `query`, `procedure`, `space` or `definitions`.
+- **`lexicons`** lists the project lexicons that load, with their `kind`: `record`, `query`, `procedure`, `space` or `definitions`.
 - **`files` and `lexicons` are filled in even when the project does not build.**
 - **A check that cannot start** prints `{"ok": false, "error": "..."}` and exits `2`.
 
@@ -173,7 +170,7 @@ State lives in `<project>/.happyview/`:
 
 Precedence is the same as everywhere: environment variables, then `happyview.toml`, then these defaults.
 
-**`.env` is for scripts, not the server.** The project's `.env` supplies `ctx.env` only, and is re-read on every script run. It never sets server configuration, so a `DATABASE_URL` or `PORT` in it is just a script variable. `$VAR` references in it are expanded from the process environment first, then from lines above it in the same file. The process environment holds only what was exported in the shell that started HappyView, not the defaults dev supplies. So `X=$DATABASE_URL` gives `ctx.env` the `DATABASE_URL` you exported, else the value of a `DATABASE_URL=` line earlier in `.env`, else an empty value.
+**`.env` is for scripts, not the instance.** The project's `.env` supplies `ctx.env` only, and is re-read on every script run. It never sets instance configuration, so a `DATABASE_URL` or `PORT` in it is just a script variable. `$VAR` references in it are expanded from the process environment first, then from lines above it in the same file. The process environment holds only what was exported in the shell that started HappyView, not the defaults dev supplies. So `X=$DATABASE_URL` gives `ctx.env` the `DATABASE_URL` you exported, else the value of a `DATABASE_URL=` line earlier in `.env`, else an empty value.
 
 **Saving rebuilds.** The watcher covers `src/`, `happyview.toml` and the modules in `.happyview/build/`. Each build prints one line listing what changed, followed by a line for each warning. A build that fails prints every error, then `build failed; still serving the previous build`, and the last good build keeps serving until you fix it. Dev also starts when the project's `src/` is already broken, and waits for the fix. A `happyview.toml` that does not parse at startup stops it; the same breakage while dev runs is reported and survived. If file events don't arrive (a Docker Desktop bind mount, say), set `HAPPYVIEW_WATCH_POLL_MS`.
 
@@ -184,7 +181,7 @@ Precedence is the same as everywhere: environment variables, then `happyview.tom
 - A setting that is read only at startup prints `restart required to apply: <names>`, naming the variables, such as `PORT` or `PUBLIC_URL`.
 - An edit that is rejected leaves the running configuration untouched.
 
-**Writes reach the real network.** Dev prints a warning once at startup: writes from the instance go to your real PDS and the live network, where any instance indexing the same collections, including your production one, will index them. Set `HAPPYVIEW_NETWORK=local`, or run `hpy happyview dev --network local`, to silence it.
+**Writes reach the real network.** Dev prints a warning once at startup: writes from the instance go to your real PDS and the live network. Any instance indexing the same collections, including your production one, will index them. `hpy happyview dev --network local` runs the project against a private network instead, and prints no warning. Setting `HAPPYVIEW_NETWORK=local` yourself only silences the warning; writes still reach the real network.
 
 ## Next steps
 

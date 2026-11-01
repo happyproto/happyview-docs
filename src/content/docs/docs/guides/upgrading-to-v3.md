@@ -1,14 +1,15 @@
 ---
 title: "Upgrading to v3"
+description: "What changes when an instance moves from v2 to v3, and the steps to upgrade one: the record format, interpreters, the codemod, libraries and plugins."
 ---
 
-v3 takes the script runtime out of HappyView. In v2 a Lua interpreter was compiled into the binary; in v3 a script runs inside an **interpreter plugin**, and HappyView ships none. An instance with no interpreter installed can neither save nor run a script.
+v3 takes script execution out of HappyView. In v2 a Lua interpreter was compiled into the binary; in v3 a script runs inside an **interpreter plugin**, and HappyView ships none. An instance with no interpreter installed can neither save nor run a script.
 
 The libraries went the same way. `db`, `http`, `Record` and the rest were the host in v2; in v3 they are library plugins a script reaches through `require("happyview.*")`, and HappyView ships none of those either.
 
 The database upgrades in place, but one way only: the first start moves every record into a compact format, and the way back is the backup you take first. Every environment variable you set for v2 still means the same thing, and the admin API keeps its routes. The other breaking changes are concentrated in scripts and plugins.
 
-This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating Scripts to v3](/docs/guides/migrating-scripts).
+This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
 **v3 is in alpha.** The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
 
@@ -30,9 +31,10 @@ This guide covers the operator-facing changes. The script contract itself (the r
 
 1. Take a database backup. See [Backups](/docs/guides/self-hosting/production#backups). The only way back to v2 is to restore it.
 2. Check you have the free disk [the compact record format](/docs/guides/database/database-setup#before-you-upgrade) needs.
-3. On Postgres, stop every HappyView instance before starting v3. On either backend, read the same section if you built indexes, triggers or views on the record tables: some of them have to go first.
+3. On Postgres, stop every HappyView instance before starting v3.
+4. On either backend, if you built indexes, triggers or views on the record tables, read [the same section](/docs/guides/database/database-setup#before-you-upgrade): some of them have to go first.
 
-Then start v3. The upgrade runs once, before the server accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so clients start again from the first page.
+Then start v3. The upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page.
 
 ## 1. Install an interpreter plugin
 
@@ -77,7 +79,14 @@ An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The 
 
 ### Installing it
 
-Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the registry, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
+1. Go to **Integrations > Plugins**.
+2. Click **Add plugin**.
+3. Pick the project from the registry.
+4. Choose a channel.
+5. Review the capabilities it asks for.
+6. Install it.
+
+[Installing plugins](/docs/guides/plugins#from-the-registry) is the reference, and three of its details apply to an upgrade.
 
 **It is the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has. `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later; see [Channels](/docs/guides/plugins#channels).
 
@@ -93,20 +102,20 @@ An interpreter installed from a release URL needn't be reinstalled. The next reg
 
 A script stored before the upgrade stays in the table untouched and fails the first time it reads a removed global. The scripts list reports what each one still references in `needs_migration`, and the codemod rewrites it: from the editor's **Migrate** button, from `POST /admin/scripts/{id}/codemod`, or from the `happyview-codemod` CLI.
 
-[Migrating Scripts to v3](/docs/guides/migrating-scripts) is the reference for what the rewrite does and what it leaves behind as a `-- codemod:` marker for you to finish by hand.
+[Migrating from v2](/docs/guides/migrating-scripts) is the reference for what the rewrite does and what it leaves behind as a `-- codemod:` marker for you to finish by hand.
 
-Two things that matter for the order you do this in:
+Two things affect the order you do this in:
 
 - **The codemod does not need an interpreter.** It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
-- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`: run `docker run <image> happyview-codemod --database-url <url>` against the same database, or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
+- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`. Run `docker run <image> happyview-codemod --database-url <url>` against the same database for a dry run, then again with `--apply` to write the rewrites. Or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
 
-Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception, so a script with markers can be stored once you confirm.
+Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception: a rewrite that still has markers is stored once you confirm it, with `"allow_markers": true` in the API or `--allow-markers` on the CLI.
 
 ## 3. Install the libraries your scripts require
 
-The codemod rewrites a v2 global into a `require`, and a `happyview.*` module is a library plugin. A migrated script therefore saves fine and then fails at run time on the first library it names that isn't installed. Do this before you let traffic reach a migrated script.
+The codemod rewrites a v2 global into a `require`, and each `happyview.*` name it requires is a library plugin. A migrated script therefore saves fine and then fails at run time on the first library it names that isn't installed. Do this before you let traffic reach a migrated script.
 
-The `require` block the codemod writes at the top of each script is the list of what that script needs. The `internal.*` modules in it come from the interpreter itself and need nothing installed; each `happyview.*` module is a project in the registry:
+The `require` block the codemod writes at the top of each script is the list of what that script needs. The `internal.*` modules in it come from the interpreter itself and need nothing installed; each `happyview.*` library is a project in the registry:
 
 | `require` | Registry project |
 |-----------|------------------|
@@ -138,7 +147,7 @@ There is no fallback for any plugin type, auth included. A v2-era manifest also 
 
 The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it (account linking through an auth plugin, say) stops working until you replace it. Check your boot log after the upgrade.
 
-The official auth plugins (Steam, Xbox, Microsoft and itch.io) are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing Plugins](/docs/guides/developing-plugins) covers what it now has to declare.
+The official auth plugins (Steam, Xbox, Microsoft and itch.io) are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
 ## 5. Script limits now apply
 
@@ -152,7 +161,7 @@ If you have alerting or log queries over script failures, two columns changed sh
 
 **Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened: `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
 
-**An unrecognised `script_type`.** v2 refused an unknown language with a 422 from the request body. v3 accepts any string there and refuses it in the handler with a 400 naming the language, because what is valid now depends on which interpreters are installed.
+**An unrecognised `script_type`.** v2 refused an unknown language with a 422 from the request body. v3 accepts any string in the body and then refuses it with a 400 naming the language, because what is valid now depends on which interpreters are installed.
 
 ## 7. `spaceType` on the plugin and script surfaces
 
@@ -162,19 +171,19 @@ The HTTP surface is unaffected. `createSpace` and `listSpaces` accept `spaceType
 
 ## 8. Library record reads return an envelope
 
-A record read through a library (`require("happyview.db")`'s `get`, `search` and `records(…)` chains, and `require("happyview.backlinks")`) answers `{uri, did, collection, rkey, cid, indexed_at, record}`, with the stored body verbatim under `record`. v2 answered the body with `uri` written onto it. `cid` is null while the row holds a local write's placeholder, and `indexed_at` is null until Jetstream has echoed the record.
+A record read through a library answers `{uri, did, collection, rkey, cid, indexed_at, record}`, with the stored body verbatim under `record`. That covers `require("happyview.db")`'s `get`, `search` and `records(…)` chains, and `require("happyview.backlinks")`. v2 answered the body with `uri` written onto it. `cid` is null while the row holds a local write's placeholder, and `indexed_at` is null until Jetstream has echoed the record.
 
 The public XRPC query routes keep their flat body-plus-`uri` shape. A scriptless lexicon query still answers what it answered in v2.
 
-A script the codemod migrated keeps v2's flat rows, through a shim the codemod inlines; [Migrating Scripts to v3](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
+A script the codemod migrated keeps v2's flat rows, through a shim the codemod inlines; [Migrating from v2](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
 
 ## 9. Building from source
 
 A default build compiles no Lua interpreter at all: `mlua` sits behind a non-default `lua-reference` feature. The resulting binary cannot run a script without an interpreter plugin.
 
-`lua-reference` is **not** a fallback runtime. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
+`lua-reference` is **not** a fallback interpreter. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
 
-Two new environment variables are optional and additive: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. See the [Configuration reference](/docs/reference/configuration#plugins).
+v3 adds environment variables of its own, all optional. Two are about plugins: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. See the [Configuration reference](/docs/reference/configuration#plugins).
 
 ## 10. Rolling back
 
@@ -191,7 +200,7 @@ Anything written after the upgrade, including operators, scripts and settings, i
 - [ ] Take a database backup, and confirm `record store upgrade complete` in the first boot's log
 - [ ] Install an interpreter plugin from the registry on the `alpha` channel, and confirm boot no longer warns
 - [ ] Run the codemod over every stored script, and finish any `-- codemod:` markers by hand
-- [ ] Install a library plugin for every `happyview.*` module the rewritten scripts require
+- [ ] Install a library plugin for every `happyview.*` name the rewritten scripts require
 - [ ] Confirm `needs_migration` is empty and `runnable` is true for every script
 - [ ] Replace any plugin whose manifest is `api_version` `"1"`, and check the boot log for refusals
 - [ ] Review long-running scripts against the instruction limit and the 10-second wall clock
@@ -200,7 +209,7 @@ Anything written after the upgrade, including operators, scripts and settings, i
 
 ## Next steps
 
-- [Migrating Scripts to v3](/docs/guides/migrating-scripts): the script contract, the codemod, and every marker it emits
+- [Migrating from v2](/docs/guides/migrating-scripts): the script contract, the codemod, and every marker it emits
 - [Plugins](/docs/guides/plugins): installing and configuring plugins
-- [Developing Plugins](/docs/guides/developing-plugins): the SDK, capabilities, and the library surface
+- [Developing plugins](/docs/guides/developing-plugins): the SDK, capabilities, and the library surface
 - [Configuration reference](/docs/reference/configuration): every environment variable

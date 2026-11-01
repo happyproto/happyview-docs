@@ -1,5 +1,6 @@
 ---
 title: "Users"
+description: "Admin API endpoints for adding, listing and removing operators, changing their permissions, and transferring superadmin."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -47,7 +48,7 @@ AUTH="Authorization: Bearer $TOKEN"
 </TabItem>
 </Tabs>
 
-## Create a user
+## Add an operator
 
 ```
 POST /admin/users
@@ -132,6 +133,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/users", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -156,7 +161,7 @@ curl -X POST http://127.0.0.1:3000/admin/users \
 | `template`    | string   | no       | Permission template: `viewer`, `maintainer`, `manager`, or `full_access`. `operator`, the old name for `maintainer`, is still accepted |
 | `permissions` | string[] | no       | Explicit list of permissions to grant. When present, `template` is ignored |
 
-If neither `template` nor `permissions` is provided, the operator gets the `viewer` template.
+If neither `template` nor `permissions` is provided, the operator gets the `viewer` template. Names in `permissions` are not checked here, so a misspelt one is stored and grants nothing.
 
 Returns `400 Bad Request` if a handle can't be resolved, `403 Forbidden` if you grant a permission you don't hold, and `409 Conflict` if the operator already exists.
 
@@ -169,7 +174,7 @@ Returns `400 Bad Request` if a handle can't be resolved, `403 Forbidden` if you 
 }
 ```
 
-## List users
+## List operators
 
 ```
 GET /admin/users
@@ -225,6 +230,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/users", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -252,7 +261,7 @@ curl http://127.0.0.1:3000/admin/users -H "$AUTH"
 ]
 ```
 
-## Get a user
+## Get an operator
 
 ```
 GET /admin/users/{id}
@@ -301,6 +310,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-446655440000", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -315,13 +328,13 @@ curl http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-446655440000 -H "
 
 **Response**: `200 OK` with the same shape as a single item from the list response.
 
-## Update user permissions
+## Update an operator's permissions
 
 ```
 PATCH /admin/users/{id}/permissions
 ```
 
-Requires `users:update` permission. You cannot grant permissions you don't have yourself, and you cannot modify the permissions of an operator with superadmin.
+Requires `users:update` permission. You cannot grant permissions you don't have yourself, change your own permissions, or modify the permissions of an operator with superadmin; each returns `403 Forbidden`. An unrecognized permission name in `grant` or `revoke` returns `400 Bad Request`, and an unknown operator `404 Not Found`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -393,6 +406,10 @@ req, _ := http.NewRequest("PATCH", "http://127.0.0.1:3000/admin/users/550e8400-e
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -416,7 +433,7 @@ curl -X PATCH http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-44665544
 | `grant`  | string[] | no       | Permissions to add    |
 | `revoke` | string[] | no       | Permissions to remove |
 
-**Response**: `204 No Content`. Fetch the user again to see its permissions.
+**Response**: `204 No Content`. Fetch the operator again to see their permissions.
 
 ## Transfer superadmin
 
@@ -424,7 +441,9 @@ curl -X PATCH http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-44665544
 POST /admin/users/transfer-super
 ```
 
-Only an operator with superadmin can call this endpoint. It gives superadmin to another existing operator and takes it from the caller.
+Only an operator with superadmin can call this endpoint; anyone else gets `403 Forbidden`. It gives superadmin to another existing operator, grants them every permission, and takes superadmin from the caller, who keeps their stored permissions. All three changes happen in one transaction, and an unknown `target_user_id` returns `404 Not Found` with nothing changed.
+
+The dashboard's **Users** page marks the operator with superadmin as **Owner**, and offers this endpoint as **Transfer Ownership**. `PUT /admin/platform/super-user` is reserved for a hosting platform's key and returns `403 Forbidden` to an operator.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -481,6 +500,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/users/transfer-su
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -502,7 +525,7 @@ curl -X POST http://127.0.0.1:3000/admin/users/transfer-super \
 
 **Response**: `204 No Content`
 
-## Delete a user
+## Delete an operator
 
 ```
 DELETE /admin/users/{id}
@@ -554,6 +577,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/users/550e8400-e29b-41d4-a716-446655440000", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

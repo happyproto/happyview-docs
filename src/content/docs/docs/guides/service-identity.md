@@ -1,14 +1,13 @@
 ---
 title: Service identity
+description: The three ways to give your instance its own DID, and how to choose between them.
 ---
 
 A service identity lets your instance authenticate itself to other services on the network. When a user's PDS routes a request, it finds the destination by resolving the instance's DID, so without a service identity, standard atproto service proxying can't reach your instance.
 
-HappyView can operate without a service identity using its built-in auth, but configuring one is recommended for full network compatibility.
-
 ## Identity modes
 
-HappyView supports three ways to establish a service identity during setup.
+HappyView supports three ways to establish a service identity during setup. The setup wizard offers them as **Use your domain**, **Create a new network identity** and **Use an existing AT Protocol account**.
 
 ### Domain identity (did:web)
 
@@ -23,21 +22,21 @@ HappyView registers a new identity in the [PLC directory](https://atproto.com/sp
 During registration, HappyView generates two keypairs:
 
 - **Signing key:** Used to authenticate requests from your instance. HappyView stores it encrypted and manages it automatically.
-- **Rotation key:** Used to recover or update the identity if the signing key is lost or the instance goes down. This key is generated once and must be downloaded immediately, because it can't be retrieved later.
+- **Rotation key:** Used to recover or update the identity if the signing key is lost or the instance goes down. HappyView keeps an encrypted copy to update the identity's service entries, but you can download it only during setup, so download it then.
 
 Store the rotation key file somewhere safe and offline (e.g. a password manager, encrypted USB drive, or secure backup). You need it to move your identity to a new instance or recover from data loss.
 
-### Linked account
+### Attached account
 
 Link your instance to an existing atproto account you control. HappyView verifies ownership by redirecting you to sign in through that account's PDS, then uses the account's existing DID as the service identity.
 
 ## Choosing an identity mode
 
-| | Domain (did:web) | Network (did:plc) | Linked account |
+| | Domain (did:web) | Network (did:plc) | Attached account |
 |---|---|---|---|
 | Setup complexity | Automatic | Requires key backup | Requires existing account |
-| Domain independence | No, tied to your domain | Yes, survives domain changes | Depends on the linked account |
-| Key management | Automatic | You must back up the rotation key | Managed by the linked account's PDS |
+| Domain independence | No, tied to your domain | Yes, survives domain changes | Depends on the attached account |
+| Key management | Automatic | You must back up the rotation key | Managed by the attached account's PDS |
 | Best for | Single-domain instances | Long-lived production instances | Operators who already have an atproto presence |
 
 ## Skipping setup

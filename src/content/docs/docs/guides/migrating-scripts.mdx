@@ -3,7 +3,7 @@ title: Migrating from v2
 description: The Lua globals v3 removed, what replaces them, and how to run the codemod that rewrites v2 scripts.
 ---
 
-In v2, a Lua script reached HappyView through globals such as `params`, `caller_did`, `db`, `Record` and `now()`. v3 removes them. Everything moves onto the [`handle(input, ctx)` contract](/docs/reference/scripts/contract) and modules loaded with `require`.
+In v2, a Lua script reached HappyView through globals such as `params`, `caller_did`, `db`, `Record` and `now()`. v3 removes them. Everything moves onto the [`handle(input, ctx)` contract](/docs/reference/scripts/contract), built-in `internal.*` modules and libraries, both loaded with `require`.
 
 Only Lua scripts need migrating. Every v2 script was Lua, and JavaScript and TypeScript scripts are new in v3.
 
@@ -87,7 +87,7 @@ The same v2 name meant different things in different script types, so the rewrit
 
 ### Libraries
 
-Each v2 library global is now a library plugin you install and `require`. Every `happyview.*` module a migrated script loads must be installed, or the script fails when it loads.
+Each v2 library global is now a library plugin you install and `require`. Every library a migrated script loads with `require("happyview.*")` must be installed, or the script fails when it loads.
 
 | v2 | v3 |
 | --- | --- |
@@ -105,8 +105,8 @@ Each v2 library global is now a library plugin you install and `require`. Every 
 
 Two shapes changed:
 
-- **Reads return an envelope.** A v3 record read returns `{ uri, did, collection, rkey, cid, indexed_at, record }`, with the stored body under `record`. v2 returned the body with `uri` added to it.
-- **`db.query` is a chain.** `db.query{ collection = c, limit = n }` becomes `db.records(c):limit(n):run()`. A chain step given `nil` is skipped.
+- A v3 record read returns an envelope, `{ uri, did, collection, rkey, cid, indexed_at, record }`, with the stored body under `record`. v2 returned the body with `uri` added to it.
+- `db.query` is a chain: `db.query{ collection = c, limit = n }` becomes `db.records(c):limit(n):run()`. A chain step given `nil` is skipped.
 
 Where a rename alone would change behavior, the codemod inlines a small shim, called a polyfill, at the top of the script that keeps the v2 behavior on top of the v3 library. There are three: the v2 row shape over `happyview.db` and `happyview.backlinks`, the v2 `Record` API over `happyview.record`, and v2's `xrpc` return shape over `happyview.xrpc`. Each one is marked with a comment such as:
 
@@ -131,6 +131,8 @@ Previewing needs the `scripts:read` permission. Applying needs `scripts:manage`.
 ### From the admin API
 
 ```sh
+AUTH="Authorization: Bearer hv_..." # your API key
+
 # Preview the rewrite of a stored script
 curl -X POST "http://127.0.0.1:3000/admin/scripts/xrpc.query:com.example.list/codemod" -H "$AUTH"
 
@@ -140,7 +142,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/xrpc.query:com.example.list/co
   -d '{"apply": true}'
 ```
 
-Applying a rewrite that still has markers is refused with a `409` unless you also send `"allow_markers": true`. Sending `"source"` previews the rewrite of that text instead of the stored body; it can't be combined with `apply`.
+Applying a rewrite that changes the script and still has markers is refused with a `409` unless you also send `"allow_markers": true`. Sending `"source"` previews the rewrite of that text instead of the stored body; combining it with `apply` is a `400`.
 
 ### From the command line
 
@@ -207,7 +209,7 @@ function handle(input, ctx)
 end
 ```
 
-`handle` gains its parameters, the query's `params` becomes `input`, the modules it uses are required, `atproto.blob_upload` moves to `record.upload_blob`, and the downloaded blob's fields are renamed (`.handle` to `.bytes`, `.mimeType` to `.mime_type`).
+`handle` gains its parameters, the query's `params` becomes `input`, the libraries it uses are required, `atproto.blob_upload` moves to `record.upload_blob`, and the downloaded blob's fields are renamed (`.handle` to `.bytes`, `.mimeType` to `.mime_type`).
 
 ## Next steps
 
