@@ -22,7 +22,7 @@ A run can't recover from a spent budget. `pcall` and `try`/`catch` don't stop it
 
 ## Wall clock
 
-The wall clock counts the time the script itself spends running, not time it spends waiting on the host for something such as an HTTP request or a database read. A run that hits the wall clock fails with `timeout`. In a JavaScript or TypeScript script, library calls still in flight when the run is cut short are dropped with it.
+A run that hits the wall clock fails with `timeout`. In a JavaScript or TypeScript script, library calls still in flight when the run is cut short are dropped with it.
 
 ## Memory
 

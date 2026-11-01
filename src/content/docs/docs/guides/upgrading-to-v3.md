@@ -23,7 +23,7 @@ This guide covers the operator-facing changes. The script contract itself (the r
 | `db`, `http`, `Record` and the rest built into the host | Library plugins, installed like any other |
 | Plugin manifests at `api_version` `"1"` | `api_version` `"2"`, declaring capabilities |
 | Plugins installed from a URL and checked against a `sha256` you supply | Installed from a registry of `software.release` records and verified by CID |
-| Instruction limit never fired; no time or memory limit | Instruction limit enforced, plus a request wall clock and a per-run memory ceiling |
+| Script limits | An instruction limit, a request wall clock and a per-run memory ceiling |
 | `happyview_records` and `happyview_record_refs` are tables | Views over a compact format, compressed on SQLite |
 
 ## Before you start
@@ -73,21 +73,21 @@ Three are published, each its own project in the registry:
 | JavaScript | `javascript` | `happyview-javascript` | `.js`, `.mjs` |
 | TypeScript | `typescript` | `happyview-typescript` | `.ts`, `.mts` |
 
-An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The other two are for scripts you write from here on, and all three can be installed at once: an interpreter claims a language id and a set of file extensions, and a second one claiming either is refused at install.
+An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The other two are for scripts you write from here on, and all three can be installed at once. An interpreter claims a language id and a set of file extensions, and a second one claiming either is refused at install.
 
 ### Installing it
 
 Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the registry, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
 
-**It is the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has; `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later, once there is somewhere to move it to; see [Channels](/docs/guides/plugins#channels).
+**It is the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has. `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later; see [Channels](/docs/guides/plugins#channels).
 
-**There is nothing to checksum.** A registry version names its manifest and its module by CID; HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
+**There is nothing to checksum.** A registry version names its manifest and its module by CID. HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
 
 **The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded, which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it stops HappyView reading the registry, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
 
 To install without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`. To give a fleet its interpreter without anyone clicking, `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of sources on the first boot that names them; see [Default plugins](/docs/guides/plugins#default-plugins).
 
-If you installed an interpreter from a release URL earlier in the alpha, you needn't reinstall: the next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working. [From a URL](/docs/guides/plugins#from-a-url) covers both.
+An interpreter installed from a release URL needn't be reinstalled. The next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working. [From a URL](/docs/guides/plugins#from-a-url) covers both.
 
 ## 2. Migrate your stored scripts
 
@@ -123,7 +123,7 @@ The `require` block the codemod writes at the top of each script is the list of 
 
 They install exactly as an interpreter does, from the same registry and the same `alpha` channel. The registry carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
 
-The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one; the row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
+The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one. The row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
 
 ## 4. Rebuild or replace your plugins
 
@@ -142,19 +142,7 @@ The official auth plugins (Steam, Xbox, Microsoft and itch.io) are published in 
 
 ## 5. Script limits now apply
 
-v2 set a one-million-instruction limit and never enforced it. v3 enforces it, and adds two limits v2 had none of. A script that quietly ran long in v2 can fail in v3.
-
-| Limit | Default | Applies to | Setting |
-|-------|---------|------------|---------|
-| Instructions per run | 1,000,000 | Every kind but jobs | `script_instruction_limit`, env `SCRIPT_INSTRUCTION_LIMIT`, range 1,000 to 1,000,000,000 |
-| Wall clock per run | 10 s | Every kind but jobs | `script_wall_clock_seconds`, env `SCRIPT_WALL_CLOCK_SECONDS`, range 1 to 300 |
-| Memory per run | 64 MiB | Every kind, jobs included | Not configurable |
-
-Jobs are exempt from the first two, and `ctx.job.should_stop()` is how a job stops.
-
-Both settings resolve from the database, then the environment, then the default, so the **Instruction limit** and **Request wall clock** fields in **System > General** take precedence over the environment. A value outside the range is refused on save; an environment value outside it is warned about and the default stands. A change lands in-process and reaches a second instance on the same database within ten seconds.
-
-The wall clock counts only time the script itself runs. Waiting on the host (an HTTP request, a database read) is not charged to it.
+v3 runs every script under an instruction limit, a wall clock and a memory ceiling. A script that ran long in v2 can fail in v3. [Limits](/docs/reference/scripts/limits) has the defaults and the settings, and `ctx.job.should_stop()` is how a job stops.
 
 A run that spends either budget fails with `timeout`; one that exhausts its memory fails with `memory`. An XRPC caller sees `{"error": "script_error", "errorType": "timeout"}` at 408, or `"memory"` at 500.
 
@@ -164,7 +152,7 @@ If you have alerting or log queries over script failures, two columns changed sh
 
 **Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened: `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
 
-**An unrecognised `script_type`.** v2 validated the field during deserialisation, so an unknown language was a 422 from the request body. v3 accepts any string there and refuses it in the handler with a 400 naming the language, because what is valid now depends on which interpreters are installed.
+**An unrecognised `script_type`.** v2 refused an unknown language with a 422 from the request body. v3 accepts any string there and refuses it in the handler with a 400 naming the language, because what is valid now depends on which interpreters are installed.
 
 ## 7. `spaceType` on the plugin and script surfaces
 

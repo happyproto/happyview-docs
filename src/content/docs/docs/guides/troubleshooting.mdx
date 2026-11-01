@@ -92,17 +92,7 @@ See [Migrating scripts to v3](/docs/guides/migrating-scripts).
 A record or label script that hits a limit lands in **Dead Letters** with the
 same failure as its error.
 
-**Why.** v3 enforces three limits on every run:
-
-| Limit | Default | Range | Applies to |
-|---|---|---|---|
-| Instructions | 1,000,000 | 1,000 to 1,000,000,000 | Every script kind except jobs |
-| Wall clock | 10 seconds | 1 to 300 | Every script kind except jobs |
-| Memory | 64 MiB | not configurable | Every script kind, jobs included |
-
-The wall clock counts only time the script itself runs, not time spent
-waiting on the host (an HTTP request, a database read). Jobs are exempt from
-the first two; `ctx.job.should_stop()` is how a job stops.
+**Why.** v3 runs every script under an instruction limit, a wall clock and a memory ceiling. [Limits](/docs/reference/scripts/limits) has the defaults. Jobs have no instruction limit or wall clock; `ctx.job.should_stop()` is how a job stops.
 
 **Fix.** Make the script do less per run: page through results, or move bulk
 work into a job. If the work is legitimate, raise the instruction or wall-clock

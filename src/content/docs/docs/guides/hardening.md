@@ -60,7 +60,7 @@ Under **System > XRPC Proxy** you can change this to:
 Allowlist mode is the one to reach for. Enumerate the NSIDs your app actually calls and list those. It is more work up front, and it means a new dependency fails visibly at deploy time rather than silently widening what your instance will fetch on a caller's behalf.
 
 :::note
-Set the mode explicitly even if you want **Open**, so a change to the default in a later release doesn't change what your instance does.
+Set the mode explicitly even if you want **Open**, so your configuration states what your instance does.
 :::
 
 ### Choose a routing mode deliberately
@@ -75,7 +75,7 @@ Prefer **Service proxy**. Two consequences to weigh before switching:
 - **Anonymous unrecognized queries stop working.** Under authority routing an unauthenticated caller can hit an unrecognized NSID and get an answer. Under service proxy there is no PDS to forward to, so it returns 401. If clients rely on that, they need to authenticate first.
 - **Authenticated clients reach more.** Requests are forwarded with the user's token, so what a client can do is bounded by that token's scopes rather than by which lexicons you have registered. Scope your API clients before switching, per the section above.
 
-HappyView additionally checks repo writes and blob uploads against the session's granted scopes before forwarding. That is a pre-flight check, not the boundary: the PDS enforces scopes regardless. It covers only operations that map unambiguously to a permission, so it doesn't replace scoping clients properly.
+HappyView checks repo writes and blob uploads against the session's granted scopes before forwarding, and the PDS enforces scopes on every request. Scope your API clients to what each one needs.
 
 ## Scope linked repos narrowly, because you cannot edit them
 
@@ -114,9 +114,7 @@ and restoring that backup restores it.
 
 When a request carries an `atproto-proxy` header, it is asking to be relayed onwards to a named service. HappyView forwards that header to the user's PDS rather than resolving it, because the token that accompanies a relayed request is signed by the *user's own identity key*, which only their PDS holds.
 
-**The PDS will mint an identity-bearing assertion addressed to whatever service the caller names.** Its audience binding stops that assertion being replayed elsewhere, but the named service still receives proof of that user's identity.
-
-HappyView has no destination allowlist for this: the decision to sign for a given audience belongs to the party holding the key, which is the PDS. You decide who gets to make such a request at all, because registering a third-party API client is what grants it. Register clients deliberately, and scope them as above.
+The decision to sign for a given audience belongs to the party holding the key, which is the PDS. You decide who gets to make such a request at all, because registering a third-party API client is what grants it. Register clients deliberately, and scope them as above.
 
 ## A checklist
 
