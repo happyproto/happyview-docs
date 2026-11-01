@@ -3,7 +3,7 @@ title: "How HappyView fits atproto"
 description: "The atproto pieces HappyView works with, one sentence each, and the path a record takes from a user's repository to your app."
 ---
 
-HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting Started uses. You don't need more than this to build with HappyView.
+HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting started uses. You don't need more than this to build with HappyView.
 
 ## The pieces
 
@@ -38,7 +38,7 @@ flowchart TD
 3. Your app calls a **query** on your instance, and gets answers from the instance's index.
 4. Your app calls a **procedure** to change something. The instance writes to the user's PDS as that user, and indexes the result straight away.
 
-Your project decides each step: which collections are indexed, what each query returns, and what a procedure writes. That is what the rest of Getting Started builds.
+Your project decides each step: which collections are indexed, what each query returns, and what a procedure writes. That is what the rest of Getting started builds.
 
 ## Next steps
 

@@ -65,6 +65,9 @@ A lexicon an instance fetches from its authority on the network and keeps up to 
 A lexicon added to an instance through the dashboard or the admin API.
 _Avoid_: local lexicon, manual lexicon (except quoting the dashboard's **Local** tab or the API's `manual` source)
 
+**Account**:
+An atproto identity with its own repository, as the dashboard's backfill form and progress name it. Backfill prose says "accounts"; `repos` stays only in API field names and the linked repos feature.
+
 **Collection**:
 The set of records of one record lexicon, named by that lexicon's NSID.
 _Avoid_: collection (for the lexicon itself), table
@@ -129,6 +132,11 @@ _Avoid_: marketplace, store, catalogue (except as the dashboard's label)
 
 **Channel**:
 A named release line in the registry, such as `alpha`.
+
+## Docs structure
+
+**Getting started**, **Guides**, **Operating**, **Reference**, **Architecture**:
+The docs' sections, written in sentence case. Getting started teaches building an app, in order. Guides are for one job while building. Operating is for running an instance. Reference owns every key, flag and field.
 
 ## Releases
 

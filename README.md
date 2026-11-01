@@ -8,7 +8,7 @@ The website and documentation for [HappyView](https://github.com/gamesgamesgames
 bun install
 bun run dev        # http://localhost:4321
 bun run build      # builds dist/, and fails on a broken internal link or anchor
-bun test           # the frozen-URL and link-style tests; run after a build
+bun test           # the frozen-URL, link-style, glossary and diagram tests; run after a build
 ```
 
 ## Where things are
@@ -18,11 +18,13 @@ bun test           # the frozen-URL and link-style tests; run after a build
 - `src/content/blog/` holds the blog posts. A post's file name is its URL.
 - `src/content/landing/` holds the landing page's copy and the sample project it shows.
 - `src/redirects.json` maps every URL the old site served to its new home. The build writes it to `dist/_redirects` for wisp.place, and `test/legacy-urls.test.ts` checks that every URL in `test/legacy-urls.txt` still answers.
-- `src/styles/marketing.css` is happyproto.at's stylesheet, copied from happyproto/happyproto.at (`src/styles/marketing.css` at 8a09e8f). `src/styles/docs.css` points Starlight's colours and type at the design system's tokens.
+- `src/styles/marketing.css` holds the rules this site uses from happyproto.at's stylesheet. `src/styles/docs.css` points Starlight's colours and type at the design system's tokens.
 
 ## Writing a page
 
-Every page has a `title`, a one-sentence `description` and a `type` (`conceptual`, `how-to` or `reference`). A how-to page may list `prerequisites`, as paths. Use Starlight's asides (`:::note`, `:::tip`, `:::caution`, `:::danger`) for callouts, and `<Tabs syncKey="lang">` from `@astrojs/starlight/components` for code in several languages, in the order Lua, JavaScript, TypeScript.
+Every page has a `title` in sentence case and a one-sentence `description`. A how-to page may list `prerequisites`, as paths. Use Starlight's asides (`:::note`, `:::tip`, `:::caution`, `:::danger`) for callouts, and `<Tabs syncKey="lang">` from `@astrojs/starlight/components` for code in several languages, in the order Lua, JavaScript, TypeScript.
+
+Reference pages own every key, flag and field. A guide explains the few a reader needs first and links to the reference for the rest. Give every v3 diagram an `accTitle`; a test checks it.
 
 Links are root-absolute (`/docs/guides/backfill`), with no `.md`. Relative links resolve differently with and without a trailing slash, which is how the old site collected its broken links.
 

@@ -214,7 +214,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Migrations run automatically on the new container's first boot. Back up the volume first; see [Backups](/docs/guides/self-hosting/production#backups). If you're coming from HappyView 1.x, read [Upgrading to v2](/docs/guides/upgrading-to-v2) first.
+Migrations run automatically on the new container's first boot. Back up the volume first; see [Backups](/docs/guides/self-hosting/production#backups). If you're coming from HappyView 1.x, read [Upgrading to v2](/docs/v2/guides/upgrading-to-v2) first.
 
 ### Health checks
 

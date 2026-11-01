@@ -136,7 +136,6 @@ export const v3Sidebar: Sidebar = [
       d('guides/telemetry'),
       d('guides/troubleshooting'),
       d('guides/upgrading-to-v3'),
-      d('guides/upgrading-to-v2'),
     ],
   },
   {

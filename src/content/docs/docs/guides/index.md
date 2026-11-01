@@ -3,7 +3,7 @@ title: Guides
 description: Task-by-task guides for building on HappyView and running it.
 ---
 
-Getting Started walks through each part of HappyView once, in order. These guides go further into one task each.
+Getting started walks through each part of HappyView once, in order. These guides go further into one task each.
 
 - **Data:** [backfill](/docs/guides/backfill), [record storage](/docs/guides/record-providers), [labelers](/docs/guides/labelers), [publishing lexicons](/docs/guides/publishing-lexicons), [linked repos](/docs/guides/linked-repos), [attestation signing](/docs/guides/attestation-signing) and [spaces](/docs/guides/spaces).
 - **Apps and access:** [API clients](/docs/guides/api-clients), [API keys](/docs/guides/api-keys), [permissions](/docs/guides/permissions) and [service identity](/docs/guides/service-identity).
