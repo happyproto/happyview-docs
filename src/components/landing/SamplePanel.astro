@@ -83,6 +83,9 @@ const { tabs } = Astro.props;
     white-space: nowrap;
     cursor: pointer;
   }
+  .lp-tabs button:hover {
+    color: var(--hp-color-fg);
+  }
   .lp-sample:not([data-enhanced]) .lp-tabs {
     display: none;
   }
@@ -98,7 +101,7 @@ const { tabs } = Astro.props;
      Only the longest file scrolls. Without JavaScript every panel shows, so
      each takes its own height. */
   .lp-sample[data-enhanced] .lp-panel {
-    block-size: 20rem;
+    block-size: 18rem;
     overflow-y: auto;
   }
   .lp-panel {

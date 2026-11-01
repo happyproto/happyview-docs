@@ -106,7 +106,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
         state: window.location.href,
       });
     } catch {
-      return "Couldn't find an account for that handle. Check it and try again.";
+      return "Couldn't start sign-in. Check the handle and your connection, then try again.";
     }
   };
 

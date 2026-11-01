@@ -120,6 +120,14 @@ main .content-panel + .content-panel {
   font-weight: inherit;
 }
 
+/* The version switch stays in reach however far the sidebar scrolls. */
+.starlight-sidebar-topics {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: var(--hp-color-bg);
+}
+
 /* An archived label should recede: outlined, never the current page's fill. */
 .sl-badge.default {
   background: transparent;
@@ -235,20 +243,31 @@ pre.mermaid {
 pre.mermaid svg {
   min-inline-size: var(--diagram-floor, auto);
 }
-pre.mermaid small {
+pre.mermaid small,
+.diagram-full small {
   font-size: 1em;
 }
+/* If rendering stalls, the source comes back rather than a blank box. */
 @media (scripting: enabled) {
   pre.mermaid:not([data-processed], [data-failed]) {
     min-block-size: 18rem;
     color: transparent;
+    animation: diagram-source 0s linear 8s forwards;
+  }
+}
+@keyframes diagram-source {
+  to {
+    color: var(--hp-color-fg);
   }
 }
 .diagram-expand {
-  margin-block-start: var(--hp-space-2);
+  display: flex;
+  margin-block-end: var(--hp-space-2);
+  margin-inline-start: auto;
 }
 .diagram-dialog {
   inline-size: min(100vw - 2rem, 96rem);
+  margin: auto;
   max-inline-size: none;
   max-block-size: calc(100dvh - 2rem);
   padding: var(--hp-space-4);
@@ -271,9 +290,14 @@ pre.mermaid small {
 .diagram-full svg {
   display: block;
   inline-size: 100%;
-  min-inline-size: calc(var(--diagram-floor) * 0.66);
   max-inline-size: none !important;
-  block-size: auto;
+  max-block-size: calc(100dvh - 7rem);
+}
+@media (max-width: 49.99rem) {
+  .diagram-full svg {
+    min-inline-size: var(--diagram-floor);
+    max-block-size: none;
+  }
 }
 
 /* Search. */
@@ -282,7 +306,7 @@ pre.mermaid small {
   color: var(--hp-color-fg-muted);
   font-size: var(--hp-text-sm);
 }
-.pagefind-ui__results > .pagefind-ui__result:first-child .pagefind-ui__result-title {
+.pagefind-ui__results > .pagefind-ui__result:first-child > .pagefind-ui__result-inner > .pagefind-ui__result-title {
   background: var(--sl-color-accent-low);
 }
 .search-status {
@@ -295,7 +319,7 @@ pre.mermaid small {
 
 /* Splash pages have no column to hold their measure. */
 :root:not([data-has-sidebar]) .sl-markdown-content {
-  max-inline-size: 70ch;
+  max-inline-size: 60ch;
 }
 
 /* Phone targets. */
@@ -327,6 +351,12 @@ pre.mermaid small {
   }
   #starlight__sidebar :is(a, .large) {
     font-size: var(--hp-text-sm);
+  }
+  .site-title {
+    min-block-size: 2.75rem;
+  }
+  .pagefind-ui__button {
+    min-block-size: 2.75rem;
   }
   .pagefind-ui__result-link {
     display: inline-flex;

@@ -44,7 +44,7 @@
 }
 
 .post-body {
-  max-inline-size: 70ch;
+  max-inline-size: 60ch;
   font-size: var(--hp-text-lg);
   line-height: var(--hp-leading-relaxed);
 }
