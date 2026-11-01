@@ -3,7 +3,7 @@ title: Languages
 description: Install the Lua, JavaScript and TypeScript interpreter plugins, pick a language for a new script, and start from the built-in starter scripts.
 ---
 
-Each language is an interpreter plugin. Add the ones you want to write scripts in. You can use all three in one project.
+Each language runs in an interpreter plugin. Add the ones you want to write scripts in. You can use all three in one project.
 
 | Language | `script_type` | Plugin | File extensions |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ In a project, a script's file extension picks its language. `src/jobs/export.lua
 
 A self-hosted instance starts with no interpreter. HappyView does not bundle one, so a self-hosted instance can't save or run a script until you install one.
 
-Hosts can preinstall interpreters with [`HAPPYVIEW_DEFAULT_PLUGINS`](#on-first-boot). The plugins it names are installed in the background on the first boot whose variable lists them, so they may take a moment to appear. HappyProto's provisioner preinstalls Lua on every HappyProto instance.
+An operator can preinstall interpreters with [`HAPPYVIEW_DEFAULT_PLUGINS`](#on-first-boot), so they may take a moment to appear after the first boot. HappyProto's provisioner preinstalls Lua on every HappyProto instance.
 
 Lua is also the default language in three places:
 
@@ -45,12 +45,14 @@ This adds it under `[interpreters]` in `happyview.toml` and to `happyview.lock`.
 
 ### From the dashboard
 
-1. Open **Integrations > Plugins** in the dashboard and click **Add plugin**.
-2. Pick `happyview-lua`, `happyview-javascript` or `happyview-typescript` from the registry.
-3. Choose a **Channel**. The dashboard selects `latest` when the project publishes it, and otherwise the first channel the project has. While v3 is in alpha, the interpreters are published on the `alpha` channel only, so that is the channel to pick.
-4. Review the capabilities the plugin asks for, then install it.
+1. Open **Integrations > Plugins** in the dashboard.
+2. Click **Add plugin**.
+3. Pick `happyview-lua`, `happyview-javascript` or `happyview-typescript` from the registry.
+4. Choose a **Channel**. The dashboard selects `latest` when the plugin publishes it, and otherwise the plugin's first channel. While v3 is in alpha, the interpreters are published on the `alpha` channel only, so that is the channel to pick.
+5. Review the capabilities the plugin asks for.
+6. Install the plugin.
 
-The JavaScript and TypeScript interpreters ask for the same capabilities: `library:call`, `script:host`, `script:test`, `wasi:clock`, `wasi:random` and `wasi:stdio`.
+All three interpreters ask for the same capabilities: `library:call`, `script:host`, `script:test`, `wasi:clock`, `wasi:random` and `wasi:stdio`.
 
 ### On first boot
 
@@ -307,21 +309,26 @@ export default async function handle(input: unknown, ctx: { job: Job }) {
 
 Lua scripts run in PUC Lua 5.4 with a cut-down standard library:
 
-- **Kept:** `string`, `table`, `math`, `coroutine`, `utf8`, and from `os` only `os.time`, `os.date` and `os.difftime`. The full list is in [Lua standard libraries](/docs/reference/scripts/standard-libraries).
-- **Absent:** `io`, `debug` and `package`, the rest of `os` (including `os.clock`), and the base functions `load`, `loadfile`, `dofile` and `collectgarbage`.
-- **`require` is HappyView's.** Lua's own is replaced by one that loads installed libraries (`happyview.*`) and the built-in `internal.*` modules.
-- **Reading a removed v2 global raises an error naming it**, such as `params` or `db`, with the way to migrate. Any other unknown global is `nil`, as in plain Lua.
-- **Limits end the run.** `pcall` doesn't stop a script that has spent its instruction or time limit. See [Limits](/docs/reference/scripts/limits).
+- Kept: `string`, `table`, `math`, `coroutine`, `utf8`, and from `os` only `os.time`, `os.date` and `os.difftime`. The full list is in [Lua standard libraries](/docs/reference/scripts/standard-libraries).
+- Absent: `io`, `debug` and `package`, the rest of `os` (including `os.clock`), and the base functions `load`, `loadfile`, `dofile` and `collectgarbage`.
+- `require` is HappyView's. Lua's own is replaced by one that loads installed libraries (`happyview.*`) and the built-in `internal.*` modules.
+- To measure elapsed time, use `internal.time.now()`.
+- Reading a removed v2 global raises an error naming it, such as `params` or `db`, with the way to migrate. Any other unknown global is `nil`, as in plain Lua.
+- Limits end the run. `pcall` doesn't stop a script that has spent its instruction or time limit. See [Limits](/docs/reference/scripts/limits).
+
+## JavaScript specifics
+
+JavaScript runs on QuickJS-ng. Scripts get the ECMAScript standard library it implements (`JSON`, `Promise`, `Map`, `Set`, `RegExp`, `Date`, typed arrays, `Proxy` and the rest) and `console`. Not available: `eval`, the `Function` constructor and its async and generator variants, timers, and any file or process access. An import from an absolute path, a URL, or any specifier containing `:` is refused.
 
 ## TypeScript specifics
 
-TypeScript is compiled to JavaScript and then run by the same engine as JavaScript, so everything in the [contract](/docs/reference/scripts/contract) applies unchanged. What TypeScript adds:
+TypeScript is compiled to JavaScript and then run on QuickJS-ng, as JavaScript is, so everything in the [contract](/docs/reference/scripts/contract) applies unchanged. What TypeScript adds:
 
-- **Types are erased, not checked.** A type error never stops a save or a run. Declare the shapes your script reads, as the starters do, or use `any`.
-- **Runtime TypeScript works.** `enum`, `namespace` with values, and parameter properties are compiled, not just stripped.
-- **Some syntax is refused** with a `syntax` error on its line: decorators and `accessor` fields, `import x = require("...")` and `export =`, and JSX.
-- **Errors point at your TypeScript.** Line numbers in errors are mapped back through a source map to the line you wrote.
-- **Type-only imports are removed.** A library you import only for its types doesn't need to be installed.
+- Types are erased, not checked. A type error never stops a save or a run. Declare the shapes your script reads, as the starters do, or use `any`.
+- TypeScript features that emit code work. `enum`, `namespace` with values, and parameter properties are compiled, not just stripped.
+- Some syntax is refused with a `syntax` error on its line: decorators and `accessor` fields, `import x = require("...")`, `export =`, `module Foo { }` (write `namespace Foo { }`), and JSX.
+- Errors point at your TypeScript. Line numbers in errors are mapped back through a source map to the line you wrote.
+- Type-only imports are removed. A library you import only for its types doesn't need to be installed.
 
 ## Next steps
 

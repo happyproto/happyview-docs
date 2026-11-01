@@ -1,5 +1,6 @@
 ---
 title: "Permissions"
+description: "Admin API endpoint listing the permissions and templates an operator can be given."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -113,6 +114,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/permissions", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -133,7 +138,7 @@ curl http://127.0.0.1:3000/admin/permissions -H "$AUTH"
     {
       "key": "lexicons:create",
       "name": "Create Lexicons",
-      "description": "Upload lexicon schemas",
+      "description": "Upload and register new lexicon schemas",
       "category": "Lexicons"
     }
   ],
@@ -141,10 +146,22 @@ curl http://127.0.0.1:3000/admin/permissions -H "$AUTH"
     {
       "key": "viewer",
       "label": "Viewer",
-      "permissions": ["lexicons:read", "records:read", "stats:read", "events:read", "metrics:read"]
+      "permissions": [
+        "lexicons:read",
+        "records:read",
+        "script-variables:read",
+        "scripts:read",
+        "users:read",
+        "api-keys:read",
+        "backfill:read",
+        "stats:read",
+        "events:read",
+        "metrics:read",
+        "dead-letters:read"
+      ]
     }
   ]
 }
 ```
 
-Templates are predefined permission bundles used when creating or updating users. See the [Permissions guide](/docs/guides/permissions) for the full list.
+Templates are predefined permission bundles used when creating or updating operators. The order of a template's `permissions` is not fixed. See the [Permissions guide](/docs/guides/permissions) for the full list.

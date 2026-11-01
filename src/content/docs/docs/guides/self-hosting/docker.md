@@ -1,10 +1,11 @@
 ---
 title: "Docker"
+description: Run HappyView from its published container image with one of the production Compose files.
 ---
 
-This guide deploys HappyView from the prebuilt images published to GitHub Container Registry, using one of the two production Compose files in the repository. Nothing is compiled locally: the image already contains the server and the dashboard.
+This guide deploys HappyView from the prebuilt images published to GitHub Container Registry, using one of the two production Compose files in the repository. Nothing is compiled locally: the image already contains HappyView and its dashboard.
 
-If you want to run the repository's development stack with hot reloading, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md instead. To run the server directly with `cargo run`, see [From source](/docs/guides/self-hosting/from-source).
+If you want to run the repository's development stack with hot reloading, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md instead. To run HappyView directly with `cargo run`, see [From source](/docs/guides/self-hosting/from-source).
 
 ## Prerequisites
 
@@ -45,7 +46,7 @@ Pick one Compose file. Both live at the repository root:
 
 See the [database setup guide](/docs/guides/database/database-setup) for the full comparison. Migrations run automatically on startup on either backend, and both directions are [migratable](/docs/guides/database/sqlite-to-postgres-migration) later.
 
-Make a directory for the deployment and download the one you picked as `docker-compose.yml`, so `docker compose` finds it without a `-f` flag:
+Make a directory for the instance and download the one you picked as `docker-compose.yml`, so `docker compose` finds it without a `-f` flag:
 
 ```sh
 mkdir -p happyview && cd happyview
@@ -83,11 +84,11 @@ echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
 Compose refuses to start without these:
 
 - **`PUBLIC_URL`**: the public HTTPS URL people actually reach, scheme included. It's used to build OAuth redirect URIs, so a mismatch breaks login. Do **not** include `BASE_PATH` here.
-- **`SESSION_SECRET`**: signs the dashboard session cookie. An unset or too-short value doesn't stop the server booting. It disables cookie login, which is why the Compose files require it explicitly.
+- **`SESSION_SECRET`**: signs the dashboard session cookie. An unset or too-short value doesn't stop HappyView booting. It disables cookie login, which is why the Compose files require it explicitly.
 - **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [spaces](/docs/guides/spaces), and service identity don't work. Rotating it makes everything already encrypted unreadable.
 
 :::caution[Deploying from a clone of the repository instead]
-The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not: a development `.env` left beside the Compose files is auto-loaded just the same, and will quietly supply these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:
+The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not. A development `.env` left beside the Compose files is auto-loaded just the same, and quietly supplies these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:
 
 ```sh
 docker compose --env-file .env.prod -f docker-compose.prod.sqlite.yml up -d
@@ -195,21 +196,21 @@ Migrations run automatically on the new container's first boot. Back up the volu
 
 ### Health checks
 
-Both stacks ship a container healthcheck. The runtime image carries no `curl` or `wget`, so it probes `/health` over bash's `/dev/tcp`. The SQLite stack allows a 120-second start period, because a `VACUUM` scheduled from the dashboard runs at boot before the server binds. The Postgres stack uses 60 seconds, which covers migrations on a first boot. Scheduling a vacuum is rejected there, so there's nothing longer to wait out.
+Both stacks ship a container healthcheck. The runtime image carries no `curl` or `wget`, so it probes `/health` over bash's `/dev/tcp`. The SQLite stack allows a 120-second start period, because a `VACUUM` scheduled from the dashboard runs at boot before HappyView binds its listener. The Postgres stack uses 60 seconds, which covers migrations on a first boot. Scheduling a vacuum is rejected there, so there's nothing longer to wait out.
 
 :::caution[A scheduled SQLite VACUUM takes the instance offline]
-Reclaiming SQLite disk space is scheduled from **System > Database** in the dashboard and runs on the next boot. `VACUUM` rebuilds the database into a new file, and it runs before the server starts listening, so on a large database that's minutes to hours during which nothing is serving. Behind a container healthcheck this can get the process killed mid-rebuild, which the next boot then reports as a crashed attempt. Raise or disable the healthcheck for that one restart.
+Reclaiming SQLite disk space is scheduled from **System > Database** in the dashboard and runs on the next boot. `VACUUM` rebuilds the database into a new file, and it runs before HappyView starts listening, so on a large database that's minutes to hours during which nothing is serving. Behind a container healthcheck this can get the process killed mid-rebuild, which the next boot then reports as a crashed attempt. Raise or disable the healthcheck for that one restart.
 :::
 
 For an external probe, `GET /health` returns `200 ok` once HappyView can bind its listener, and stays at the domain root even when `BASE_PATH` is set. It doesn't touch the database.
 
 ### Stopping and restarting
 
-Both stacks set `init: true`. The entrypoint `exec`s the server, making it PID 1, where the kernel drops signals that have only their default disposition, and the server installs no `SIGTERM` handler. Without an init, every `stop`, `restart`, and `down` would hang for the full grace period and end in `SIGKILL` (exit 137). `init: true` puts tini at PID 1 to forward the signal so the server exits promptly.
+Both stacks set `init: true`. The entrypoint `exec`s HappyView, making it PID 1, where the kernel drops signals that have only their default disposition, and HappyView installs no `SIGTERM` handler. Without an init, every `stop`, `restart`, and `down` would hang for the full grace period and end in `SIGKILL` (exit 137). `init: true` puts tini at PID 1 to forward the signal so HappyView exits promptly.
 
 This is a _prompt_ exit, not a _graceful_ one: there is no graceful-shutdown handler, so in-flight requests are dropped either way, and an interrupted [job](/docs/getting-started/background-jobs) is re-queued on the next boot.
 
-The Postgres service additionally uses `stop_signal: SIGINT`. Docker's default `SIGTERM` is a Postgres _smart_ shutdown, which waits for every client to disconnect, so it would hang for the full grace period and take a `SIGKILL`, leaving the next boot to run crash recovery. `SIGINT` is the fast shutdown: roll back open transactions, checkpoint, exit.
+The Postgres service additionally uses `stop_signal: SIGINT`. Docker's default `SIGTERM` is a Postgres _smart_ shutdown, which waits for every client to disconnect. It would hang for the full grace period and take a `SIGKILL`, leaving the next boot to run crash recovery. `SIGINT` is the fast shutdown: roll back open transactions, checkpoint, exit.
 
 ### Logs
 

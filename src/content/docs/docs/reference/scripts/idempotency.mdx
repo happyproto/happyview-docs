@@ -1,6 +1,6 @@
 ---
 title: Create scripts may run more than once
-description: The same record can reach a record-created script more than once, so write create scripts to be idempotent.
+description: The same record can reach a create script more than once, so write create scripts to be idempotent.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -11,7 +11,7 @@ This applies to any script that handles creates: a `record.create:<nsid>` script
 
 ## When it happens
 
-- **Backfills.** A backfill reads each account's existing records and sends every one through the record script as a create, whether HappyView has seen it before or not. Running a backfill again, or backfilling a collection that is already indexed, delivers those creates again.
+- **Backfills.** A crawl reads each account's existing records and sends every one through the record script as a create, whether HappyView has seen it before or not. A replay sends each archived event with its own action, so its creates arrive again too. Running a backfill again, or backfilling a collection that is already indexed, delivers those creates again.
 - **Retries.** A record script that fails is run again, up to 4 attempts in total. Anything the script did before it failed, such as an HTTP call or a write, happens again on the next attempt.
 - **Dead-letter retries.** Retrying a dead-lettered event from the dashboard runs the script for that event again.
 
@@ -19,10 +19,10 @@ This applies to any script that handles creates: a `record.create:<nsid>` script
 
 Running a create script twice for the same record should leave things the same as running it once.
 
-- **Write by key, and replace.** Key anything you store on the record's URI, or on its DID and rkey, and overwrite it. A search index document whose ID is the record's URI is safe to write twice. A `POST` that adds a new row every time is not.
-- **Don't keep per-call counters.** Adding one to a count each time the script runs will overcount. Count the records instead, for example with `db.records(collection):count()` in Lua, or store a set keyed by URI.
-- **Check before one-time side effects.** Before sending a notification, a welcome email or a payment, check whether it has already happened for this record, and record that it did, keyed by the record's URI.
-- **Keep the return value deterministic.** If the script rewrites the record, compute the result from the record alone, not from the time of the run or a random value, so a second run stores the same thing.
+- Write by key, and replace. Key anything you store on the record's URI, or on its DID and rkey, and overwrite it. A search index document whose ID is the record's URI is safe to write twice. A `POST` that adds a new row every time is not.
+- Don't keep per-call counters. Adding one to a count each time the script runs will overcount. Count the records instead, for example with `db.records(collection):count()` in Lua, or store a set keyed by URI.
+- Check before one-time side effects. Before sending a notification, a welcome email or a payment, check whether it has already happened for this record, and record that it did, keyed by the record's URI.
+- Keep the return value deterministic. If the script rewrites the record, compute the result from the record alone, not from the time of the run or a random value, so a second run stores the same thing.
 
 ## Example
 

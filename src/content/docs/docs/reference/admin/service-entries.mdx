@@ -1,10 +1,11 @@
 ---
 title: Service entries
+description: "Admin API endpoints for the service entries in the instance's DID document, the XRPC methods each one grants, and syncing them to the PLC directory."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage the service entries published in the instance's DID document. Each entry declares an XRPC service type (e.g. `AtprotoLabeler`, `BskyFeedGenerator`) and controls which lexicons route to HappyView's endpoint. All endpoints require the `settings:manage` permission.
+Manage the service entries published in the instance's DID document. Each entry declares an atproto service type (e.g. `AtprotoLabeler`, `BskyFeedGenerator`). Its access mode decides which XRPC methods a caller using service auth addressed to that entry may call. All endpoints require the `settings:manage` permission.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -102,6 +103,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/service-entries", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -123,8 +128,8 @@ curl http://127.0.0.1:3000/admin/service-entries -H "$AUTH"
     "fragment_id": "#happyview",
     "service_type": "AtprotoLabeler",
     "access_mode": "all",
-    "created_at": "2026-05-09T12:00:00Z",
-    "updated_at": "2026-05-09T12:00:00Z"
+    "created_at": "2026-05-09T12:00:00.000000+00:00",
+    "updated_at": "2026-05-09T12:00:00.000000+00:00"
   }
 ]
 ```
@@ -196,6 +201,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries",
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -226,8 +235,8 @@ The entry is created with `access_mode` set to `all`. The endpoint URL is derive
   "fragment_id": "#feed",
   "service_type": "BskyFeedGenerator",
   "access_mode": "all",
-  "created_at": "2026-05-09T12:00:00Z",
-  "updated_at": "2026-05-09T12:00:00Z"
+  "created_at": "2026-05-09T12:00:00.000000+00:00",
+  "updated_at": "2026-05-09T12:00:00.000000+00:00"
 }
 ```
 
@@ -295,6 +304,10 @@ req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/service-entries/1"
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -364,6 +377,10 @@ client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/service-entries/1", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -428,6 +445,10 @@ let data: Vec<String> = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/service-entries/1/xrpcs", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -507,6 +528,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/1
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -589,6 +614,10 @@ req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/service-entries
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -657,6 +686,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/lexicons/app.bsky.feed.getFeedSkeleton/services", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -722,6 +755,10 @@ let response = client
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/sync-plc", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -734,7 +771,9 @@ curl -X POST http://127.0.0.1:3000/admin/service-entries/sync-plc -H "$AUTH"
 </TabItem>
 </Tabs>
 
-Returns `400 Bad Request` if the identity mode is not `did_plc` or no DID is configured.
+The operation keeps the DID's existing rotation keys, handles and services, and adds the instance's verification methods. Each service entry is written with `PUBLIC_URL` as its endpoint, and a service pointing at `PUBLIC_URL` that no longer has an entry is removed.
+
+Returns `400 Bad Request` if no identity is configured, the identity mode is not `did_plc`, or no DID is registered yet. Returns `500 Internal Server Error` if `TOKEN_ENCRYPTION_KEY` is not set.
 
 **Response**: `204 No Content`
 
@@ -785,6 +824,10 @@ let response = client
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/sync-plc/request", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -807,7 +850,7 @@ Returns `400 Bad Request` if the identity mode is not `attach_account`, no ident
 POST /admin/service-entries/sync-plc/submit
 ```
 
-Submits the email confirmation token to sign and publish the PLC operation via the attached account's PDS.
+Builds the same changes as a direct sync, has the attached account's PDS sign them with the email confirmation code, and submits the signed operation through that PDS.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -867,6 +910,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/s
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

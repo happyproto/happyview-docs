@@ -93,7 +93,7 @@ _Avoid_: rewind
 
 **Network store**:
 The shared copy of public atproto records every HappyProto instance reads from.
-_Avoid_: shared store, record store (for the network store; HappyView's own storage layer is the record store)
+_Avoid_: shared store, record store (for the network store; HappyView's own storage layer is record storage)
 
 ## Scripts
 

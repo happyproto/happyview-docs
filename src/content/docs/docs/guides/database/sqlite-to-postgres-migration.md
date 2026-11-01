@@ -1,8 +1,7 @@
 ---
 title: SQLite to Postgres migration
+description: Move an existing instance from SQLite to Postgres, including the raw SQL its scripts send.
 ---
-
-This guide covers migrating an existing HappyView deployment from SQLite to Postgres. If you are staying on SQLite, no action is required.
 
 ## Overview
 
@@ -20,7 +19,7 @@ If you are using Docker Compose, switch to `docker-compose.prod.postgres.yml`. S
 
 ## Step 2: Back up your SQLite database
 
-Take a consistent copy of your SQLite database before making any changes, which works while HappyView is running:
+Take a consistent copy of your SQLite database before making any changes. The `.backup` command works while HappyView is running:
 
 ```sh
 sqlite3 data/happyview.db ".backup 'data/happyview.db.backup'"
@@ -46,14 +45,15 @@ DATABASE_BACKEND=postgres
 
 ## Step 4: Start HappyView
 
-Start HappyView with the new `DATABASE_URL`. It will connect to Postgres and run migrations automatically, creating all necessary tables.
+Start HappyView with the new `DATABASE_URL`. It connects to Postgres and runs its migrations, which create all necessary tables.
 
 ## Step 5: Re-index your data
 
 Since HappyView indexes records from the atproto network, the simplest way to populate your new Postgres database is to re-run the backfill:
 
-1. Install your interpreters and libraries, then redeploy your project, or upload your lexicons via the dashboard or admin API
-2. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
+1. Install your interpreters and libraries
+2. Redeploy your project, or upload your lexicons via the dashboard or admin API
+3. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
 
 Backfill fetches records fresh from the network, so no data transfer between databases is needed. Records that exist only on this instance don't come back.
 
@@ -63,7 +63,7 @@ If you have many lexicons, you can export them from the old instance before swit
 
 ## Step 6: Re-create admin settings
 
-Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
+Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, scripts saved in the dashboard, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
 
 ## Scripts
 

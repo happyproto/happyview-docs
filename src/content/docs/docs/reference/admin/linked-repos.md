@@ -1,5 +1,6 @@
 ---
 title: Linked repos
+description: "Admin API endpoints for creating linked repo grants, authorizing them, and minting and revoking their invites."
 ---
 
 Admin API endpoints for managing linked repos and their invites. The whole lifecycle is available here, so the feature can be driven headlessly without the dashboard. For a conceptual overview, see [Linked repos](/docs/guides/linked-repos).
@@ -29,10 +30,10 @@ Returns every grant, newest first. Never includes session data or tokens.
       "scopes": "atproto repo:com.example.note?action=create&action=update",
       "status": "active",
       "last_error": null,
-      "last_refreshed_at": "2026-07-30T12:00:00Z",
-      "authorized_at": "2026-07-29T09:14:00Z",
+      "last_refreshed_at": "2026-07-30T12:00:00+00:00",
+      "authorized_at": "2026-07-29T09:14:00+00:00",
       "created_by": "did:plc:admin",
-      "created_at": "2026-07-29T09:12:00Z"
+      "created_at": "2026-07-29T09:12:00+00:00"
     }
   ]
 }
@@ -68,7 +69,7 @@ Returns the created grant, in the same shape as the list endpoint.
 
 Scopes are validated on the way in: a malformed scope or an invalid NSID is rejected with a `400`. `atproto` is added automatically if the string doesn't contain it, so the stored scopes may differ from what you sent. Scopes are immutable afterwards; there is no update endpoint.
 
-Pinning to a DID that already has a grant returns a `409`.
+Pinning to a DID that already has a grant returns a `409`, and an empty `scopes` string returns a `400`.
 
 ## Start an authorization
 
@@ -89,7 +90,7 @@ Returns a URL to send the browser to. This only works for a grant that names a h
 ```
 
 :::caution
-A `400` mentioning cached client metadata is expected occasionally right after creating a grant. Authorization servers cache the client metadata document, so a freshly added scope may not be visible yet. Retrying after a minute usually clears it. The error text distinguishes this from a scope the server genuinely won't accept.
+A `400` mentioning cached client metadata is expected occasionally right after creating a grant. Authorization servers cache the client metadata document, so a freshly added scope may not be visible yet. Retrying after a minute usually clears it. The same `400` covers a scope the server won't accept at all, so if a retry doesn't clear it, delete the grant and create it again with scopes the server accepts.
 :::
 
 ## Mint an invite
@@ -98,7 +99,7 @@ A `400` mentioning cached client metadata is expected occasionally right after c
 POST /admin/linked-repos/{id}/invite
 ```
 
-Mints a single-use invite link for the grant.
+Mints a single-use invite link for the grant. The link stays usable until someone completes the authorization with it, so a recipient who backs out at the consent screen can use the same link again. Completing it retires every outstanding invite for the grant.
 
 **Permission:** `linked-repos:create`
 
@@ -106,14 +107,14 @@ Mints a single-use invite link for the grant.
 
 | Field        | Type   | Description                                                       |
 | ------------ | ------ | ----------------------------------------------------------------- |
-| `expires_in` | number | Optional. Lifetime in seconds, 60 to 2592000 (30 days). Default 7 days. |
+| `expires_in` | number | Optional. Lifetime in seconds, 60 to 2592000 (30 days). Default 7 days. A value outside the range returns a `400`. |
 
 **Response:**
 
 ```json
 {
   "invite_url": "https://appview.example.com/auth/linked-repo/start?token=...",
-  "expires_at": "2026-08-06T09:12:00Z"
+  "expires_at": "2026-08-06T09:12:00+00:00"
 }
 ```
 
@@ -138,7 +139,7 @@ Returns the grant's outstanding, unexpired invites. Expired invites are not list
   "invites": [
     {
       "invite_id": "a5e55c20844abe8068d142a815c6730d4e4ae73309c145dc1c5b451d9e7e45c8",
-      "expires_at": "2026-08-06T09:12:00Z"
+      "expires_at": "2026-08-06T09:12:00+00:00"
     }
   ]
 }
@@ -162,7 +163,7 @@ Revoking uses the same permission as minting, since they're one lifecycle: whoev
 { "revoked": true }
 ```
 
-Returns `404` if no matching invite exists for that grant, which includes an invite that has already been used, revoked, or expired.
+Returns `404` if no matching invite exists for that grant, which includes an invite that has already been used or revoked. An expired invite answers `404` once HappyView's hourly cleanup has removed it; until then, revoking it succeeds.
 
 ## Delete a grant
 
@@ -170,7 +171,7 @@ Returns `404` if no matching invite exists for that grant, which includes an inv
 DELETE /admin/linked-repos/{id}
 ```
 
-Deletes the grant and its stored OAuth session together.
+Deletes the grant, its stored OAuth session and its outstanding invites together. Returns `404` for an unknown grant.
 
 **Permission:** `linked-repos:delete`
 

@@ -1,8 +1,9 @@
 ---
 title: Plugins
+description: Install plugins from the registry, a URL, environment variables or the file system, and configure their secrets.
 ---
 
-HappyView uses plugins, which are WebAssembly modules, to extend its functionality. Interpreters run scripts in one language, libraries give scripts their `happyview.*` modules, and auth plugins let users link accounts from platforms like Steam, Xbox and itch.io.
+Plugins are WebAssembly modules that add to what HappyView can do. Interpreters run scripts in one language, libraries are what a script loads with `require("happyview.*")`, and auth plugins let users link accounts from platforms like Steam, Xbox and itch.io.
 
 The official plugins are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
@@ -13,9 +14,12 @@ The official plugins are built in the [plugins](https://github.com/happyproto/pl
 HappyView reads its plugins from a registry of `software.release` records, `https://api.happyproto.at` by default. Each plugin there is a project: a publisher's DID and a project name, such as `did:plc:mo7vq4jbioxwafy5zkcc3eux` and `happyview-lua`. HappyView refreshes its copy of the registry every 15 minutes.
 
 1. Go to **Integrations > Plugins**
-2. Click **Add plugin** and pick a plugin from the registry
-3. Choose a channel, review the plugin details and the capabilities it asks for, and click **Install**
-4. Configure any required secrets using the settings button
+2. Click **Add plugin**
+3. Pick a plugin from the registry
+4. Choose a channel
+5. Review the plugin details and the capabilities it asks for
+6. Click **Install**
+7. Configure any required secrets on the installed plugin's **Settings** tab
 
 To install one without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`.
 
@@ -36,7 +40,7 @@ The publisher sets every version's state, and can change it after publishing:
 
 A version is also refused when the registry doesn't hold its files, or when the registry has flagged it as suspect because its record changed after it was published. A project can be retired as a whole; the registry listing hides it from **Add plugin**.
 
-Nothing turns a plugin off on its own. A plugin whose installed version is later retired keeps running, and the dashboard marks it in red with the publisher's reason. When a channel moves to a version that can't be installed, nothing is offered, and the dashboard says why.
+A lifecycle state never turns a plugin off. A plugin whose installed version is later retired keeps running, and the dashboard marks it in red with the publisher's reason. When a channel moves to a version that can't be installed, nothing is offered, and the dashboard says why.
 
 #### Verified by CID
 
@@ -82,11 +86,11 @@ Set `HAPPYVIEW_DEFAULT_PLUGINS` to give a new instance plugins it starts with, s
 HAPPYVIEW_DEFAULT_PLUGINS=https://example.com/plugins/lua/manifest.json
 ```
 
-Each comma-separated source is installed once, as if an operator added it from that URL and accepted every capability its manifest declares; listing it is the operator's consent. The sources applied are recorded in the instance settings under `default_plugins.applied`, so a default plugin an operator uninstalls stays uninstalled, and one already installed under the same id is left as it is. A source that can't be fetched or installed is logged as a warning and tried again at the next boot. The installs run in the background after boot, each given up on after two minutes, so they never hold up the server.
+Each comma-separated source is installed once, as if an operator added it from that URL and accepted every capability its manifest declares; listing it is the operator's consent. The sources applied are recorded in the instance settings under `default_plugins.applied`, so a default plugin an operator uninstalls stays uninstalled, and one already installed under the same id is left as it is. A source that can't be fetched or installed is logged as a warning and tried again at the next boot. The installs run in the background after boot, each given up on after two minutes, so they never hold up the instance.
 
 ### Via file system
 
-Place plugins in the `./plugins/` directory:
+Place plugins in the `./plugins/` directory, or the directory `PLUGIN_DIR` names, one subdirectory per plugin:
 
 ```
 plugins/
@@ -97,11 +101,11 @@ plugins/
 
 ## Plugin configuration
 
-Plugins may require secrets (API keys, client credentials, etc.) to function. There are two ways to configure these:
+Plugins may require secrets, such as API keys and client credentials. Set them in the dashboard or as environment variables.
 
 ### Dashboard configuration
 
-Click the settings icon next to a plugin to enter secrets. These are encrypted using AES-256-GCM and stored in the database.
+Open the plugin from **Integrations > Plugins** and enter its secrets on its **Settings** tab. These are encrypted using AES-256-GCM and stored in the database.
 
 **Requires:** `TOKEN_ENCRYPTION_KEY` environment variable (base64-encoded 32-byte key).
 
@@ -113,23 +117,23 @@ openssl rand -base64 32
 
 ### Environment variables
 
-Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_`. The plugin `auth-steam` reads `PLUGIN_AUTH_STEAM_API_KEY`:
+Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_`. The official Steam plugin, `happyview-auth-steam`, reads `PLUGIN_HAPPYVIEW_AUTH_STEAM_API_KEY`:
 
 ```bash
-PLUGIN_STEAM_API_KEY=your-api-key
-PLUGIN_XBOX_CLIENT_ID=your-client-id
-PLUGIN_XBOX_CLIENT_SECRET=your-client-secret
+PLUGIN_HAPPYVIEW_AUTH_STEAM_API_KEY=your-api-key
+PLUGIN_HAPPYVIEW_AUTH_XBOX_CLIENT_ID=your-client-id
+PLUGIN_HAPPYVIEW_AUTH_XBOX_CLIENT_SECRET=your-client-secret
 ```
 
-These are only necessary if you can't configure secrets in the dashboard. Dashboard-configured secrets take precedence over environment variables.
+These are only necessary if you can't configure secrets in the dashboard. Dashboard-configured secrets take precedence: once any secret for a plugin is saved in the dashboard, HappyView reads none of that plugin's secrets from the environment.
 
 ## Security
 
-- **Sandboxed execution**: Plugins run in isolated WebAssembly environments
-- **Limited host access**: A plugin reaches only the host functions its declared [capabilities](/docs/reference/plugin-sdk#capabilities) cover, and you accept those at install
-- **Encrypted storage**: OAuth tokens and secrets are encrypted at rest using AES-256-GCM
-- **Scoped storage**: Plugin KV storage is isolated per-plugin and per-user
-- **No filesystem access**: Plugins cannot access the host filesystem
+- Plugins run in isolated WebAssembly environments.
+- A plugin reaches only the host functions its declared [capabilities](/docs/reference/plugin-sdk#capabilities) cover, and you accept those at install.
+- OAuth tokens and secrets are encrypted at rest using AES-256-GCM.
+- Plugin KV storage is isolated per plugin and per user.
+- Plugins cannot access the host filesystem.
 
 ## Next steps
 

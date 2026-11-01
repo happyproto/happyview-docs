@@ -1,5 +1,6 @@
 ---
 title: "Lexicons"
+description: "Admin API endpoints for uploading, listing and deleting lexicons, and for tracking network lexicons."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -52,6 +53,8 @@ AUTH="Authorization: Bearer $TOKEN"
 ```
 POST /admin/lexicons
 ```
+
+Requires `lexicons:create`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -136,6 +139,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/lexicons")
     .bearer_auth(token)
@@ -196,6 +200,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/lexicons", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -226,9 +234,9 @@ curl -X POST http://127.0.0.1:3000/admin/lexicons \
 
 The `id` must be a valid [NSID](https://atproto.com/specs/nsid). It is the
 lexicon's primary key, the XRPC method it is served at, and, for record
-lexicons, the collection HappyView filters Jetstream on. An `id` that is empty
-or malformed is rejected with `400 Bad Request`, and an `id` a project file
-defines with `409 Conflict`.
+lexicons, the collection HappyView filters Jetstream on. A document with no
+string `id`, or an `id` that is empty or malformed, is rejected with
+`400 Bad Request`, and an `id` a project file defines with `409 Conflict`.
 
 **Response**: `201 Created` (new) or `200 OK` (upsert)
 
@@ -242,10 +250,15 @@ defines with `409 Conflict`.
 ```
 
 `backfill_job_id` is the id of the [backfill job](/docs/reference/admin/backfill) this upload
-started, or `null` if it started none: because `backfill` was `false`, because
-this was an upsert rather than a first upload, because the lexicon is not an
-indexed record type, or because the caller lacks `backfill:create`. Poll it via
-`GET /admin/backfill/status`.
+started. Poll it via `GET /admin/backfill/status`. It is `null` when the upload
+started none, which happens when:
+
+- `backfill` was `false`;
+- this was an upsert rather than a first upload;
+- the lexicon is not an indexed record type;
+- the caller lacks `backfill:create`;
+- automatic backfills are off, as on a dev instance with `HAPPYVIEW_DEV_BACKFILL` turned off;
+- or the backfill failed to start.
 
 `issues` lists any warnings about the document, and is empty when there are none.
 
@@ -257,7 +270,7 @@ problem:
 
 ```json
 {
-  "error": "the lexicon is not valid: defs.main.key: unknown record key 'uuid': must be tid, nsid, any, or literal:<value> (and 2 more)",
+  "error": "the lexicon is not valid: defs.main.key: unknown record key 'uuid': must be tid, nsid, any, or literal:<value> (and 1 more)",
   "issues": [
     {
       "path": "defs.main.key",
@@ -279,7 +292,7 @@ problem:
 | `message` | string | What's wrong |
 | `severity` | string | `error` or `warning` |
 
-Only an `error` refuses the upload. A `warning` is a document that works but
+Only an `error` refuses the upload. A `warning` marks a document that works but
 reads oddly, such as an `array` with no `items`, and it's reported beside the
 errors. An upload whose only issues are warnings succeeds and carries them in
 `issues` on its response.
@@ -287,20 +300,23 @@ errors. An upload whose only issues are warnings succeeds and carries them in
 A `subscription` lexicon is valid and gets a warning: it's stored, and no
 endpoint is generated for it, because HappyView doesn't serve subscriptions.
 
-The check covers the `lexicon` version and the `id` NSID; that `defs` is a
-non-empty object; that every def names a known type; that `record`, `query`,
-`procedure` and `subscription` appear only as `main`; that a record says how its
-rkey is chosen (`tid`, `nsid`, `any` or `literal:<value>`) and carries an object
-schema; that a `ref` or `union` member naming a def in this document resolves
-(a ref into another lexicon is checked only for shape); that an object's
-`required` and `nullable` name properties it has; and that the document is at
-most 256 KiB.
+The check covers:
+
+- the `lexicon` version and the `id` NSID;
+- that `defs` is a non-empty object, and every def names a known type;
+- that `record`, `query`, `procedure` and `subscription` appear only as `main`;
+- that a record says how its rkey is chosen (`tid`, `nsid`, `any` or `literal:<value>`) and carries an object schema;
+- that a `ref` or `union` member naming a def in this document resolves (a ref into another lexicon is checked only for shape);
+- that an object's `required` and `nullable` name properties it has (a `nullable` naming a missing property is only a warning);
+- that the document is at most 256 KiB.
 
 ## List lexicons
 
 ```
 GET /admin/lexicons
 ```
+
+Requires `lexicons:read`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -354,6 +370,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/lexicons")
     .bearer_auth(token)
@@ -369,6 +386,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/lexicons", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -401,8 +422,8 @@ curl http://127.0.0.1:3000/admin/lexicons -H "$AUTH"
     "authority_did": null,
     "last_fetched_at": null,
     "token_cost": null,
-    "created_at": "2025-01-01T00:00:00Z",
-    "updated_at": "2025-01-01T00:00:00Z"
+    "created_at": "2025-01-01T00:00:00+00:00",
+    "updated_at": "2025-01-01T00:00:00+00:00"
   }
 ]
 ```
@@ -432,6 +453,8 @@ curl http://127.0.0.1:3000/admin/lexicons -H "$AUTH"
 GET /admin/lexicons/{id}
 ```
 
+Requires `lexicons:read`.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -458,6 +481,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status")
     .bearer_auth(token)
@@ -473,6 +497,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -485,13 +513,15 @@ curl http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status -H "$AUTH"
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` with the fields of a list entry, without `record_schema`, plus `lexicon_json`, the raw document.
+**Response**: `200 OK` with the fields of a list entry, without `record_schema`, plus `lexicon_json`, the raw document. Returns `404 Not Found` for an unknown lexicon.
 
 ## Delete a lexicon
 
 ```
 DELETE /admin/lexicons/{id}
 ```
+
+Requires `lexicons:delete`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -523,6 +553,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .delete("http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status")
     .bearer_auth(token)
@@ -537,6 +568,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -549,7 +584,7 @@ curl -X DELETE http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status -H "$
 </TabItem>
 </Tabs>
 
-**Response**: `204 No Content`
+**Response**: `204 No Content`, or `404 Not Found` for an unknown lexicon.
 
 Deleting a lexicon stops live indexing and leaves the records already indexed under its collection in place. To delete those too, add `delete_records=true`:
 
@@ -568,7 +603,7 @@ This also needs `records:delete-collection` and `records:delete`, like [deleting
 
 The records are deleted by a `happyview.delete-collection` [job](/docs/reference/admin/jobs). The lexicon is removed before the job is enqueued, so live indexing can't put records back while it runs. Records a record script kept after the source deleted them are included.
 
-`delete_records=true` returns `400 Bad Request` for anything but a record lexicon, because a query or procedure lexicon operates on another lexicon's collection, and for a collection served from a shared record store. The lexicon is left in place when the request is refused.
+`delete_records=true` returns `400 Bad Request` for anything but a record lexicon, because a query or procedure lexicon operates on another lexicon's collection, and for a collection served by external record storage. The lexicon is left in place when the request is refused.
 
 Deleting a lexicon listed under `[network_lexicons] include` in `happyview.toml` returns `409 Conflict`.
 
@@ -620,6 +655,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -664,6 +703,8 @@ Network lexicons are fetched from the atproto network via DNS TXT resolution and
 ```
 POST /admin/network-lexicons
 ```
+
+Requires `lexicons:create`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -712,6 +753,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/network-lexicons")
     .bearer_auth(token)
@@ -736,6 +778,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/network-lexicons"
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -757,13 +803,13 @@ curl -X POST http://127.0.0.1:3000/admin/network-lexicons \
 | Field               | Type   | Required | Description                                                         |
 | ------------------- | ------ | -------- | ------------------------------------------------------------------- |
 | `nsid`              | string | yes      | The NSID of the lexicon to watch                                    |
-| `backfill`          | boolean | no      | Whether the first add starts a backfill of a record lexicon (default `false`). Needs `backfill:create` |
+| `backfill`          | boolean | no      | Whether the first add starts a backfill of a record lexicon (default `false`). Without `backfill:create`, no backfill starts |
 | `target_collection` | string | no       | For query/procedure lexicons, the record collection they operate on |
 | `indexed`           | boolean | no     | Whether HappyView ingests the record collection. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept |
 
 HappyView resolves the NSID authority via DNS TXT, fetches the lexicon from the authority's PDS, parses it, and stores it.
 
-**Response**: `201 Created`
+**Response**: `201 Created`, for a first add and for adding one already tracked, which fetches it again
 
 ```json
 {
@@ -801,6 +847,8 @@ Resolves an NSID's lexicon from its authority on the network and returns it, wit
 GET /admin/network-lexicons
 ```
 
+Requires `lexicons:read`.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -835,6 +883,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/network-lexicons")
     .bearer_auth(token)
@@ -850,6 +899,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/network-lexicons", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -870,8 +923,8 @@ curl http://127.0.0.1:3000/admin/network-lexicons -H "$AUTH"
     "nsid": "xyz.statusphere.status",
     "authority_did": "did:plc:authority",
     "target_collection": null,
-    "last_fetched_at": "2025-01-01T00:00:00Z",
-    "created_at": "2025-01-01T00:00:00Z",
+    "last_fetched_at": "2025-01-01T00:00:00+00:00",
+    "created_at": "2025-01-01T00:00:00+00:00",
     "declared": false,
     "indexed": true
   }
@@ -883,6 +936,8 @@ curl http://127.0.0.1:3000/admin/network-lexicons -H "$AUTH"
 ```
 DELETE /admin/network-lexicons/{nsid}
 ```
+
+Requires `lexicons:delete`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -914,6 +969,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .delete("http://127.0.0.1:3000/admin/network-lexicons/xyz.statusphere.status")
     .bearer_auth(token)
@@ -928,6 +984,10 @@ let response = client
 req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/network-lexicons/xyz.statusphere.status", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -941,8 +1001,8 @@ curl -X DELETE http://127.0.0.1:3000/admin/network-lexicons/xyz.statusphere.stat
 </TabItem>
 </Tabs>
 
-Removes the network lexicon tracking and also deletes the lexicon from the `happyview_lexicons` table and in-memory registry.
+Stops tracking the network lexicon and deletes the lexicon from the `happyview_lexicons` table and from memory.
 
 A network lexicon listed under `[network_lexicons] include` in the project's `happyview.toml` reports `declared: true`, and removing it returns `409 Conflict`; remove it from the file instead.
 
-**Response**: `204 No Content`. `delete_records=true` also deletes the collection's records, on the same terms as [deleting a lexicon](#delete-a-lexicon), and answers `202 Accepted` with `job_id` and `collection`.
+**Response**: `204 No Content`, or `404 Not Found` for an NSID that isn't tracked. `delete_records=true` also deletes the collection's records, on the same terms as [deleting a lexicon](#delete-a-lexicon), and answers `202 Accepted` with `job_id` and `collection`.

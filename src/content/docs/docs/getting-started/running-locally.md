@@ -9,7 +9,7 @@ This page runs the project you created as a local instance, calls its endpoint, 
 
 ## Start it
 
-From inside the project:
+Move into the project and start it:
 
 ```sh
 cd my-app
@@ -70,7 +70,7 @@ Open the `dashboard:` link `dev` printed and sign in with the account whose DID 
 
 A person who signs in to an instance's dashboard to run it is an **operator**. What each operator may do is set by **permissions**, and your account has the **superadmin** privilege: every permission, on your local instance.
 
-While you develop, the dashboard is where you watch what your project does: **Data > Records** for indexed records, **System > Event Logs** for your scripts' log lines, **Data > Jobs** and **Data > Dead Letters** for background work and failed runs.
+While you develop, the dashboard is where you watch what your project does. **Data > Records** shows indexed records and **System > Event Logs** your scripts' log lines. **Data > Jobs** and **Data > Dead Letters** show background work and failed runs.
 
 ## Backfill is off locally
 

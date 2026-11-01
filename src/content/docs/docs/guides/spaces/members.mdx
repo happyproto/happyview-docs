@@ -1,5 +1,6 @@
 ---
 title: "Members"
+description: "Set, remove and list a space's members, and add another space as a member through delegation."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -98,19 +99,30 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..."   // your API client key
+accessToken := "..."     // DPoP access token
+dpopProof := "..."       // DPoP proof JWT
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "did": "did:plc:newmember",
   "read": true,
   "write": true
 }`)
-req, _ := http.NewRequest("POST",
+req, err := http.NewRequest("POST",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.putMember", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -141,7 +153,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.putMemb
 | `did` | string | Yes | | DID of the member, or a space URI for delegation |
 | `read` | boolean | Yes | | Whether the member can read the space |
 | `write` | boolean | Yes | | Whether the member can write to the space |
-| `isDelegation` | boolean | No | `false` | Whether this member is a delegated space (HappyView extension) |
+| `isDelegation` | boolean | No | `false` | Whether this member is a delegated space (HappyView extension). Replaced on every call, so updating a delegation entry without it turns the entry into an ordinary member. |
 
 **Response (201):**
 
@@ -226,17 +238,28 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..."   // your API client key
+accessToken := "..."     // DPoP access token
+dpopProof := "..."       // DPoP proof JWT
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "did": "did:plc:newmember"
 }`)
-req, _ := http.NewRequest("POST",
+req, err := http.NewRequest("POST",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.removeMember", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -325,13 +348,24 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("GET",
+clientKey := "hvc_..."   // your API client key
+accessToken := "..."     // DPoP access token
+dpopProof := "..."       // DPoP proof JWT
+
+req, err := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.listMembers?space=at://did:web:happyview.example.com/space/com.example.forum/main",
   nil)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -433,6 +467,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..."   // your API client key
+accessToken := "..."     // DPoP access token
+dpopProof := "..."       // DPoP proof JWT
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "did": "at://did:web:happyview.example.com/space/com.example.team/engineering",
@@ -440,13 +478,20 @@ body := bytes.NewBufferString(`{
   "write": false,
   "isDelegation": true
 }`)
-req, _ := http.NewRequest("POST",
+req, err := http.NewRequest("POST",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.putMember", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -470,7 +515,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.putMemb
 </TabItem>
 </Tabs>
 
-Delegation chains are resolved up to 10 levels deep. The delegation entry's own `read` and `write` are not applied; delegated members keep their own. When a user appears in several chains, each flag is combined separately: the user can read if any path grants `read`, and can write if any path grants `write`.
+Delegation chains are resolved up to 10 levels deep. The delegation entry's own `read` and `write` are not applied; delegated members keep their own. When a member appears in several chains, each flag is combined separately: the member can read if any path grants `read`, and can write if any path grants `write`.
 
 ### Example: nested teams
 

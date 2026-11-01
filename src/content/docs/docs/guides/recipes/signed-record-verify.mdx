@@ -154,8 +154,15 @@ let response = client
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123", nil)
+req, err := http.NewRequest("GET", "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.example.post/3abc123", nil)
+if err != nil {
+  log.Fatal(err)
+}
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -171,6 +178,7 @@ curl "http://127.0.0.1:3000/xrpc/xyz.example.getPost?uri=at://did:plc:abc/xyz.ex
 ```json
 {
   "record": {
+    "$type": "xyz.example.post",
     "text": "Hello world",
     "createdAt": "2026-04-30T12:00:00Z",
     "signature": {

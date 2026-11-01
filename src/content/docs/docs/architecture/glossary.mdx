@@ -18,6 +18,26 @@ JavaScript or TypeScript.
 v2's script globals (`db`, `Record`, `params` and 29 others) are gone in v3.
 See [Migrating scripts to v3](/docs/guides/migrating-scripts).
 
+### Trigger
+
+What makes a [script](#script) run, written as an id such as
+`record.create:xyz.statusphere.status`. A script is named by what triggers it:
+a **query script** (`xrpc.query`), a **procedure script** (`xrpc.procedure`), a
+**record script** (`record.index`, `record.create`, `record.update` or
+`record.delete`), a **label script** (`labeler.apply`) or a **job script**
+(`job.run`).
+
+### Script variable
+
+A named value a [script](#script) reads from `ctx.env`, managed on the
+dashboard's **ENV Variables** page. It isn't an environment variable, which
+configures the [instance](#instance).
+
+### Language
+
+What a [script](#script) is written in: Lua, JavaScript or TypeScript. Each is
+run by its own [interpreter](#interpreter).
+
 ### Interpreter
 
 A [plugin](#plugin) that runs scripts in one language. HappyView ships
@@ -43,6 +63,11 @@ which link accounts on other platforms. A plugin's manifest must declare
 `api_version` `"2"` and list its [capabilities](#capability); HappyView refuses
 anything else. You install plugins from the [registry](#registry), from a URL,
 or from a file.
+
+### Auth plugin
+
+A [plugin](#plugin) that lets a [user](#user) link an account on another
+platform, such as Steam or itch.
 
 ### Capability
 
@@ -72,7 +97,7 @@ the publisher you installed from.
 
 ### Channel
 
-A line of releases a registry [project](#registry) publishes: `latest` for
+A line of releases a plugin publishes in the [registry](#registry): `latest` for
 releases, `beta` and `alpha` for prereleases. An install follows a channel,
 and is offered the next version on it, unless you pin it to one version.
 During the v3 alpha, the official interpreters are published on `alpha` only.
@@ -91,6 +116,10 @@ with the publisher's reason.
 One running HappyView server, self-hosted or on HappyProto. Its role on the
 atproto network is an AppView.
 
+### App
+
+Your own product, which talks to an [instance](#instance).
+
 ### Project
 
 The directory you deploy to an [instance](#instance): its lexicons and scripts
@@ -101,6 +130,22 @@ to an instance with `hpy happyview deploy`. Deploying needs the
 `project:deploy` permission. HappyView also runs a project directly when
 `HAPPYVIEW_PROJECT` points at its directory.
 
+### HappyProto project
+
+A container in the HappyProto dashboard that holds one instance today and other
+services later. Your [project](#project) deploys to the instance in a
+HappyProto project.
+
+### Service entry
+
+A service an [instance](#instance) publishes in its DID document, and the id
+other services use to address it.
+
+### Third-party API client
+
+A child API client an [app](#app) creates through
+`dev.happyview.createApiClient`.
+
 ### hpy
 
 HappyProto's command-line tool.
@@ -108,8 +153,9 @@ HappyProto's command-line tool.
 - `hpy happyview` builds HappyView apps: `create`, `dev`, `add`, `build`,
   `check`, `test`, `types`, then `login`, `deploy`, `logout` and `whoami` for
   instances.
-- `hpy registry` signs in to the registry and publishes plugins to it:
-  `plugin init`, `publish`, `status` and `lifecycle`.
+- `hpy registry` signs in to the registry with `login`, and manages your
+  plugins there with `hpy registry plugin`: `init`, `publish`, `status`,
+  `lifecycle` and others.
 - `hpy update` and `hpy channel` keep hpy itself up to date.
 
 ## Access
@@ -147,10 +193,48 @@ person to sign in, unless `SUPERADMIN_DID` names someone else.
 An atproto OAuth permission set that an app asks for at sign-in to use an
 instance's admin API. HappyView's is `dev.happyview.adminFull` ("Manage your
 HappyView instances"), which grants `rpc` on `dev.happyview.admin.manage`. An app
-holding it acts with the permissions the signed-in user already has on that
+holding it acts with the permissions the signed-in operator already has on that
 instance, never more. `hpy` signs in with it.
 
+## Lexicons
+
+### Lexicon
+
+A schema document describing a record type, a query or a procedure. A
+**record lexicon**, **query lexicon** or **procedure lexicon** is named by its
+`main` type.
+
+### NSID
+
+A lexicon's id, such as `xyz.statusphere.status`.
+
+### Project lexicon
+
+A [lexicon](#lexicon) defined by a file under a [project's](#project)
+`src/lexicons/`.
+
+### Network lexicon
+
+A [lexicon](#lexicon) an instance fetches from its authority on the network and
+keeps up to date.
+
+### Uploaded lexicon
+
+A [lexicon](#lexicon) added to an instance through the dashboard or the admin
+API. The dashboard's **Local** tab adds one, and the API reports its source as
+`manual`.
+
 ## Records
+
+### Account
+
+An atproto identity with its own repository. Backfill progress counts
+accounts.
+
+### Collection
+
+The set of records of one record [lexicon](#lexicon), named by that lexicon's
+[NSID](#nsid).
 
 ### Record provider
 
@@ -174,8 +258,8 @@ answer `503` "the record store is unavailable" rather than an empty result.
 ### Backfill
 
 Indexing the records a collection already has on the network, rather than
-waiting for new ones to arrive. A backfill is a **crawl** or a **replay**, or
-on HappyProto, runs your record scripts over the network store's copy.
+waiting for new ones to arrive. A backfill is a **crawl**, a **replay** or, on
+HappyProto, a run of your record scripts over the network store's copy.
 
 ### Crawl
 
@@ -191,6 +275,11 @@ A backfill that reads the Jetstream archive.
 The shared copy of public atproto records every HappyProto instance reads
 from, through a record source and storage of HappyProto's own. If you run
 HappyView yourself, it doesn't apply to you.
+
+### Script stats
+
+What a backfill's records cost in record scripts, reported in a backfill job's
+`hook_stats`.
 
 ## Permissions
 

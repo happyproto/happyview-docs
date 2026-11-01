@@ -1,10 +1,11 @@
 ---
 title: "Dashboard"
+description: A tour of the dashboard's pages and what each one manages on an instance.
 ---
 
 HappyView ships with a web dashboard that provides a visual interface for most of what the [admin API](/docs/reference/admin/admin-api) offers. The instance serves it itself, and it authenticates via atproto OAuth. The sidebar shows only the pages your [permissions](/docs/guides/permissions) allow.
 
-On a fresh instance the dashboard opens a setup wizard, which covers the [service identity](/docs/guides/service-identity) and ends with the [telemetry](/docs/guides/telemetry) question. With no operators in the database and no `SUPERADMIN_DID` set, the first person to log in is made an operator with the superadmin privilege and every permission, so log in first with the handle you want to run the instance.
+On a fresh instance the dashboard opens a setup wizard, which covers the [service identity](/docs/guides/service-identity) and ends with the [telemetry](/docs/guides/telemetry) question. With no operators in the database and no `SUPERADMIN_DID` set, the first person to sign in is made an operator with the superadmin privilege and every permission. Sign in first with the handle you want to run the instance.
 
 ## Data
 
@@ -16,14 +17,7 @@ Navigate to **Lexicons** to see every lexicon the instance holds. Each entry sho
 
 Click **Add Lexicon** and choose **Local** or **Network**.
 
-**Local** lexicons are defined by you. The editor shows two side-by-side panels (tabs on a narrow screen):
-
-- **Lexicon JSON**: define your lexicon
-- **Lua Script**: write the script for a query or procedure
-
-The **Lua Script** panel only appears when the lexicon's `defs.main.type` is `query` or `procedure`. For record lexicons, only the JSON panel is shown. A [project](/docs/getting-started/project-structure) is how to write these in another language.
-
-HappyView generates a default script when you first set the type to query or procedure. The template updates when the type changes, but once you edit the script your changes are preserved.
+**Local** lexicons are defined by you, in the **Lexicon JSON** editor. A query or procedure lexicon's script is written separately, on the [Scripts](#scripts) page or as a file in a [project](/docs/getting-started/project-structure).
 
 For a record lexicon, **Index records from the network** decides whether the instance ingests its collection, and **Enable backfill for lexicon** indexes its existing records as well.
 
@@ -37,15 +31,9 @@ The JSON editor provides real-time validation against the atproto Lexicon v1 sch
 - Auto-complete for definition types (`record`, `query`, `procedure`, `subscription`), property types (`string`, `integer`, `boolean`, `ref`, `union`, `blob`, `cid-link`, etc.), and schema structure (`defs`, `main`, `properties`, `required`)
 - Enforces the required top-level shape: `lexicon`, `id`, and `defs.main`
 
-#### Lua editor
-
-The Lua editor offers completion, hover and signature help from the declarations the interpreter provides, so it covers the libraries installed on the instance.
-
-See [Scripts](/docs/getting-started/scripts) for how a script is written.
-
 ### Records
 
-Navigate to **Records** to browse all indexed atproto records. Records are grouped by collection and searchable. Each record shows its AT URI, author DID, and the raw record JSON.
+Navigate to **Records** to browse all indexed atproto records. Pick a collection to list its records. Each record shows its AT URI, author DID, and the raw record JSON.
 
 ### Spaces
 
@@ -54,10 +42,6 @@ Navigate to **Spaces** to view the instance's [spaces](/docs/guides/spaces). The
 ### Backfills
 
 Navigate to **Backfills** to view and manage backfills. Click **New backfill** to start one for any record lexicon's collection. The table shows each backfill's collection, accounts, status and start time. Click a row to open **Backfill details**, with its **Source** (such as **Crawl**, **Replay** or **Network store**), its progress, and how its **Record scripts** ran. Progress updates in real time. A running backfill can be cancelled or paused from there: it shows "cancelling" while the worker finishes its current batch, then "cancelled". See [Backfill](/docs/guides/backfill) for how the process works.
-
-:::note[Pending happyview#319]
-These labels match [happyview#319](https://github.com/gamesgamesgamesgamesgames/happyview/pull/319), which is open. Until it merges, the page reads **Backfill** and its button **Create Backfill Job**.
-:::
 
 ### Jobs
 
@@ -83,7 +67,7 @@ Create and revoke admin API keys for automation. Each key is scoped to specific 
 
 ### API Clients
 
-Register and manage third-party API clients. Each client gets an `hvc_…` client key and `hvs_…` client secret. You can configure the client type (confidential or public), allowed origins, scopes, and per-client rate limits. See [Authentication: API client identification](/docs/reference/authentication#xrpc-api-client-identification) for how clients are used.
+Register and manage API clients. Each client gets an `hvc_…` client key and `hvs_…` client secret. You can configure the client type (confidential or public), allowed origins, scopes, and per-client rate limits. See [Authentication: API client identification](/docs/reference/authentication#xrpc-api-client-identification) for how clients are used.
 
 ## Integrations
 
@@ -91,14 +75,16 @@ Register and manage third-party API clients. Each client gets an `hvc_…` clien
 
 Navigate to **Scripts** to list, create and edit the instance's scripts. A row is marked when no installed interpreter can run it. A script that still reads v2 globals offers **Migrate**; see [Migrating scripts to v3](/docs/guides/migrating-scripts). A script's own page shows a summary of its [performance](#script-performance).
 
+The Lua editor offers completion, hover and signature help from the declarations the interpreter provides, so it covers the libraries installed on the instance. See [Scripts](/docs/getting-started/scripts) for how a script is written.
+
 ### Script performance
 
 Navigate to **Script Performance** to see how often each script runs, how long it takes, and how much of that time is the script's own. The page needs `metrics:read`, which every template holds.
 
-The **1h**, **24h**, **7d** and **30d** buttons pick the window. The first two are kept in memory, so they cover this instance's runs alone and read back the last day after a restart. The other two are read from the database and summed over every instance sharing it. Stored metrics are kept for as long as event logs (`event_log_retention_days`, 30 days by default), and the page says so when that is shorter than the window.
+The **1h**, **24h**, **7d** and **30d** buttons pick the window. The first two are held in memory and cover this instance's runs alone. They're saved once a minute, so a restart reloads the last day. The other two are read from the database and summed over every instance sharing it. Stored metrics are kept for as long as event logs (`event_log_retention_days`, 30 days by default), and the page says so when that is shorter than the window.
 
-- **Scripts** lists each script with its **Kind** and **Source** (**Project file** or **Dashboard**), **Runs**, **p50**, **p95**, **Max**, **Errors**, **Timeouts**, **Memory peak**, and **Code · host**: the mean time in the script's own code, then waiting on the host calls it made. It holds up to 1,024 scripts, and the page counts any more that weren't recorded.
-- Clicking a script opens its detail: the same figures, **Instructions per run**, graphs over the window, and **Where a run's time goes**.
+- **Scripts** lists each script with its **Kind** and **Source** (**Project file** or **Dashboard**), **Runs**, **p50**, **p95**, **Max**, **Errors**, **Timeouts**, **Memory peak**, and **Code · host**. **Code · host** is the mean time in the script's own code, then waiting on the host calls it made. It holds up to 1,024 scripts, and the page counts any more that weren't recorded.
+- Clicking a script opens its detail: the same figures, **Instructions per run**, graphs over the window, and **Where a run’s time goes**.
 - **Record pipeline** lists what each record costs on its way in, by collection: **Records**, **Rate**, **p50**, **p95**, **Script vs platform**, **Stage means**, **Failed**, **Timeouts** and **Dead-lettered**.
 
 Setting `script_metrics_enabled` to `false` stops recording new runs, and the page shows a warning. What was recorded stays until it leaves its window.
@@ -135,7 +121,7 @@ Choose whether the instance sends reports and what they contain, and read the ex
 
 ### Service Identity
 
-Configure the atproto service identity for your HappyView instance: a `did:web` derived from your public URL, a `did:plc` you control, or an attached atproto account. This determines the DID that signs service-level interactions on the network. See [Service identity](/docs/guides/service-identity).
+Configure the atproto service identity for your HappyView instance: a `did:web` derived from your public URL, a `did:plc` you control, or an attached atproto account. The service identity determines the DID that signs service-level interactions on the network. See [Service identity](/docs/guides/service-identity).
 
 ### Lexicon Publishing
 

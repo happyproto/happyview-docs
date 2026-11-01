@@ -3,7 +3,7 @@ title: "Architecture"
 description: "How HappyView handles requests, ingest and backfill, and what its database holds, for contributors."
 ---
 
-Guide for contributors working on HappyView itself. For an overview of the product, see the [Introduction](/docs).
+This page is for contributors working on HappyView itself. For an overview of the product, see the [Introduction](/docs).
 
 ## System overview
 
@@ -41,7 +41,7 @@ graph LR
   Labeler["Labeler<br/><small>WebSocket (out-of-band)</small>"] -->|label events| DB
 ```
 
-Queries go through the query handler to the database (SQLite by default, or Postgres). Writes go through the procedure handler to the user's PDS, then HappyView indexes the record locally. Real-time record events stream in via [Jetstream](https://github.com/bluesky-social/jetstream) (its v2 `subscribeEvents` stream when the host offers it, otherwise v1), applied in order for each repo, with the stream position saved only once every earlier event has been applied; historical records are backfilled in-process, either by replaying the Jetstream archive or by listing accounts through the relay's `listReposByCollection` and fetching records directly from each PDS. Every source hands its events to one ingest pipeline (`src/ingest.rs`), which runs the record script and writes the record. [Labelers](/docs/guides/labelers) are external services that emit content labels over a direct WebSocket connection, outside the relay and repository system. [Spaces](/docs/guides/spaces) provide permissioned data containers with membership-gated access, per-user repo state tracking (LtHash + signed commits), and cross-service credential-based authentication.
+Queries go through the query handler to the database (SQLite by default, or Postgres). Writes go through the procedure handler to the user's PDS, then HappyView indexes the record locally. Real-time record events stream in via [Jetstream](https://github.com/bluesky-social/jetstream), on its v2 `subscribeEvents` stream when the host offers it and v1 otherwise. They are applied in order for each repo, and the stream position is saved only once every earlier event has been applied. Historical records are backfilled in-process, either by replaying the Jetstream archive or by listing accounts through the relay's `listReposByCollection` and fetching records directly from each PDS. Every source hands its events to one ingest pipeline (`src/ingest.rs`), which runs the record script and writes the record. [Labelers](/docs/guides/labelers) are external services that emit content labels over a direct WebSocket connection, outside the relay and repository system. [Spaces](/docs/guides/spaces) are permissioned data containers: membership gates access, each user's repo state is tracked with an LtHash and signed commits, and credentials authenticate callers across services.
 
 ## Request flow
 
@@ -194,8 +194,8 @@ sequenceDiagram
 **Recovering a cursor.**
 
 - A cursor older than Jetstream keeps (`CursorTooOld`) is replayed from the Jetstream archive when it has one and `BACKFILL_SOURCE` is `auto` or `replay`: see Gap replay under [Backfill](#backfill). Otherwise it resumes from the stored witnessed time. Jetstream clamps that to its oldest event and announces the gap with `#info OutdatedCursor`, which is logged as `jetstream.gap` with reason `outdated_cursor`. Only when there is no stored time does HappyView resume from the live tip, logged as `cursor_too_old`. A [backfill](/docs/guides/backfill) recovers what was missed.
-- If the server renumbers its seqs (`FutureCursor`), HappyView resumes by witnessed time too.
-- An unexplained 400 first drops compression, then the seq cursor (only when a seq was sent and a witnessed time is saved; otherwise it goes straight to the hourly retry and keeps the cursor), then retries hourly and logs `jetstream.invalid_request`.
+- If Jetstream renumbers its seqs (`FutureCursor`), HappyView resumes by witnessed time too.
+- An unexplained 400 first drops compression, then the seq cursor, then retries hourly and logs `jetstream.invalid_request`. The seq cursor is dropped only when a seq was sent and a witnessed time is saved; otherwise the consumer goes straight to the hourly retry and keeps the cursor.
 - Under `auto`, a 404 falls back to v1 until the process restarts.
 
 **Edge cases of revs and tombstones.**
@@ -254,11 +254,11 @@ sequenceDiagram
 
 **Two sources.** A backfill job reads its records from one of two places, chosen by `BACKFILL_SOURCE` (default `crawl`) or the job's `source`. A crawl runs the pipeline above, and every account backfill crawls. A replay asks the Jetstream archive for a plan (`planSnapshot`), downloads the segments and blocks that hold the job's collections, and writes the records through the same path as live events. A second sweep then applies the account and sync events for the accounts that hold records. Markers are applied as of their own time, so the two sweeps give the same result in either order and never remove records written after them. `auto` replays when the Jetstream has an archive and crawls when it doesn't. A replay returns only what the archive holds; some accounts' history in Bluesky's archive starts after their first record, which a crawl would find.
 
-**Gap replay.** When the live consumer's cursor is older than Jetstream keeps, HappyView creates a replay job for the gap between its last applied seq and the archive's sealed tip, and resumes the live stream at that tip. The consumer waits at most 30 seconds for the archive's plan; past that it resumes without a replay. Live events and the replay overlap safely, because the rev guard and tombstones make every write idempotent. Instances on `BACKFILL_SOURCE=crawl` (the default), or on a Jetstream without an archive, skip the gap.
+**Gap replay.** When the live consumer's cursor is older than Jetstream keeps, HappyView creates a replay job for the gap between its last applied seq and the archive's sealed tip. It resumes the live stream at that tip. The consumer waits at most 30 seconds for the archive's plan; past that it resumes without a replay. Live events and the replay overlap safely, because the rev guard and tombstones make every write idempotent. Instances on `BACKFILL_SOURCE=crawl` (the default), or on a Jetstream without an archive, skip the gap.
 
 ## Database schema
 
-Tables are named `happyview_<name>`, and the headings below drop the prefix. These are the tables a contributor meets first, not all of them. Types are indicative: SQLite stores most of these as TEXT or INTEGER, and `migrations/` holds each backend's definitions.
+Tables are named `happyview_<name>`, and the headings below drop the prefix. These are the tables a contributor meets first, not all of them. The Type column says what a value holds, not its SQL type. Both backends store ids, timestamps and JSON as TEXT, because sqlx's `Any` driver has no native timestamp or JSON type, and most flags as INTEGER 0 or 1. `migrations/` holds each backend's definitions.
 
 ### `records`
 
@@ -292,11 +292,11 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `action`            | text        | For procedures: `create`, `update`, `delete` or `upsert` |
 | `source`            | text        | `manual` or `network`                           |
 | `authority_did`     | text        | For a network lexicon: its authority's DID      |
-| `last_fetched_at`   | timestamptz | For a network lexicon: when it was last fetched |
+| `last_fetched_at`   | timestamp | For a network lexicon: when it was last fetched |
 | `token_cost`        | integer     | Rate-limit cost, overriding the type's default  |
 | `indexed`           | boolean     | Whether HappyView ingests this collection       |
-| `created_at`        | timestamptz |                                                 |
-| `updated_at`        | timestamptz |                                                 |
+| `created_at`        | timestamp |                                                 |
+| `updated_at`        | timestamp |                                                 |
 
 ### `users`
 
@@ -305,8 +305,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `id`           | uuid (PK)     |                                                  |
 | `did`          | text (unique) | User's atproto DID                           |
 | `is_super`     | boolean       | Whether this operator holds superadmin|
-| `created_at`   | timestamptz   |                                                  |
-| `last_used_at` | timestamptz   | Updated on each authenticated request            |
+| `created_at`   | timestamp   |                                                  |
+| `last_used_at` | timestamp   | Updated on each authenticated request            |
 
 ### `user_permissions`
 
@@ -314,7 +314,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------ | ----------- | -------------------------------------------- |
 | `user_id`    | uuid (FK)   | References `users.id`                        |
 | `permission` | text        | Permission string (e.g. `lexicons:create`)   |
-| `granted_at` | timestamptz |                                              |
+| `granted_at` | timestamp |                                              |
 | `granted_by` | uuid (FK)   | References `users.id`                        |
 | (PK)         |             | Composite primary key: (`user_id`, `permission`) |
 
@@ -328,9 +328,9 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `key_hash`   | text        | SHA-256 hash of the full key                 |
 | `key_prefix` | text        | First 11 characters for display              |
 | `permissions`| text (JSON) | Permissions granted to this key              |
-| `created_at` | timestamptz |                                              |
-| `last_used_at`| timestamptz|                                              |
-| `revoked_at` | timestamptz | Set when revoked (soft delete)               |
+| `created_at` | timestamp |                                              |
+| `last_used_at`| timestamp|                                              |
+| `revoked_at` | timestamp | Set when revoked (soft delete)               |
 
 ### `oauth_sessions`
 
@@ -339,8 +339,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `did`          | text (PK)   | User's atproto DID                       |
 | `session_data` | text        | Serialized OAuth session (managed by atrium) |
 | `signing_kid`  | text        | The client key that established the session  |
-| `created_at`   | timestamptz |                                              |
-| `updated_at`   | timestamptz |                                              |
+| `created_at`   | timestamp |                                              |
+| `updated_at`   | timestamp |                                              |
 
 ### `oauth_state`
 
@@ -348,7 +348,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------ | ----------- | -------------------------------------------- |
 | `state_key`  | text (PK)   | OAuth state parameter                        |
 | `state_data` | text        | Serialized state (managed by atrium)         |
-| `created_at` | timestamptz |                                              |
+| `created_at` | timestamp |                                              |
 
 ### `instance_settings`
 
@@ -356,7 +356,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------ | ----------- | -------------------------------------------- |
 | `key`        | text (PK)   | Setting name (e.g. `app_name`)               |
 | `value`      | text        | Setting value                                |
-| `updated_at` | timestamptz | Last modified                                |
+| `updated_at` | timestamp | Last modified                                |
 
 ### `event_logs`
 
@@ -367,8 +367,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `severity`   | text        | `info`, `warn`, or `error`                   |
 | `actor_did`  | text        | DID of the user who triggered the event      |
 | `subject`    | text        | What was affected (DID, NSID, URI, etc.)     |
-| `detail`     | jsonb       | Event-specific data                          |
-| `created_at` | timestamptz |                                              |
+| `detail`     | text (JSON)       | Event-specific data                          |
+| `created_at` | timestamp |                                              |
 
 ### `script_variables`
 
@@ -376,8 +376,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------ | ----------- | -------------------------------------------- |
 | `key`        | text (PK)   | Variable name                                |
 | `value`      | text        | Variable value                               |
-| `created_at` | timestamptz |                                              |
-| `updated_at` | timestamptz |                                              |
+| `created_at` | timestamp |                                              |
+| `updated_at` | timestamp |                                              |
 
 ### `spaces`
 
@@ -422,7 +422,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `author_did`   | text        | DID of the record author                         |
 | `collection`   | text        | Lexicon NSID                                     |
 | `rkey`         | text        | Record key                                       |
-| `record`       | jsonb       | Record value                                     |
+| `record`       | text (JSON)       | Record value                                     |
 | `cid`          | text        | Content identifier                               |
 | `indexed_at`   | text        |                                                  |
 
@@ -433,12 +433,12 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `id`           | text (PK)   |                                                  |
 | `space_id`     | text (FK)   | References `spaces.id`                           |
 | `author_did`   | text        | DID of the repo author                           |
-| `lthash_state` | bytea       | 2048-byte LtHash state                           |
+| `lthash_state` | bytes       | 2048-byte LtHash state                           |
 | `rev`          | text        | Current revision                                 |
-| `hash`         | bytea       | Content hash                                     |
-| `ikm`          | bytea       | Input keying material for deniable signatures    |
-| `sig`          | bytea       | Signature                                        |
-| `mac`          | bytea       | Message authentication code                      |
+| `hash`         | bytes       | Content hash                                     |
+| `ikm`          | bytes       | Input keying material for deniable signatures    |
+| `sig`          | bytes       | Signature                                        |
+| `mac`          | bytes       | Message authentication code                      |
 | `host_mode`    | text        | Where the repo lives: `polyfill`, `migrating` or `native` |
 | `sync_cursor`  | text        | Last rev consumed from the PDS in `native` mode  |
 | `updated_at`   | text        |                                                  |
@@ -479,7 +479,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `space_id`   | text (FK) | References `spaces.id`                           |
 | `repo_did`   | text      | DID of a repo the space tracks                   |
 | `rev`        | text      | The repo's latest revision                       |
-| `hash`       | blob      | The repo's latest LtHash digest                  |
+| `hash`       | bytes      | The repo's latest LtHash digest                  |
 | `space_rev`  | text      | Space revision assigned to this update           |
 | `updated_at` | text      |                                                  |
 
@@ -582,9 +582,9 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ----------------- | ----------- | -------------------------------------------------------- |
 | `id`              | uuid (PK)   |                                                          |
 | `collection`      | text        | Target collection (null = all)                           |
-| `did`             | text        | Target DID (null = all)                                  |
+| `did`             | text        | The account, when the job targets exactly one; null otherwise |
 | `status`          | text        | pending, running, pausing, paused, cancelling, cancelled, completed, failed |
-| `stage`           | text        | pending, discovering_repos, resolving_and_fetching, completed, failed, cancelled |
+| `stage`           | text        | `pending`; `resolving_pds` (an account backfill that has not started); `resolving_and_fetching` (a crawl at work); `replaying`, `replaying_accounts` and `retrying_blocks` (a replay); `completed`. A failed or cancelled job keeps the stage it reached. Jobs from older versions can also show `discovering_repos` or `fetching_records` |
 | `total_repos`     | integer     | Work units discovered (a unit is one account under one collection; one per account for account-targeted jobs) |
 | `resolved_repos`  | integer     | Units with PDS endpoint resolved                         |
 | `processed_repos` | integer     | Units with records fetched                               |
@@ -594,28 +594,31 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `source`          | text        | `crawl` or `replay`                                      |
 | `note`            | text        | What the backfill executor said about the job            |
 | `hook_stats`      | text (JSON) | What the job's records cost in record scripts            |
-| `started_at`      | timestamptz |                                                          |
-| `completed_at`    | timestamptz |                                                          |
-| `created_at`      | timestamptz |                                                          |
+| `started_at`      | timestamp |                                                          |
+| `completed_at`    | timestamp |                                                          |
+| `created_at`      | timestamp |                                                          |
 
 ## Testing
 
 ```sh
-# Unit tests (no database needed)
-cargo test --lib
+# Unit tests, with no database or fixtures (the tests that need them skip)
+HAPPYVIEW_ALLOW_SKIPS=1 cargo test --lib
 
 # Unit tests that run a script natively
 cargo test --features lua-reference --lib
 
-# All tests, against SQLite or Postgres
+# All tests: build the fixtures and fetch the Lua interpreter first
 bash scripts/build-plugin-fixtures.sh
-export TEST_DATABASE_URL='sqlite:///tmp/happyview-test.db?mode=rwc'
-cargo test
+bash scripts/fetch-lua-plugin.sh && export HAPPYVIEW_LUA_PLUGIN=tests/fixtures/lua-plugin
 
-# Or against Postgres
+# Then run them against Postgres
 docker compose -f docker-compose.test.yml up -d
-TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test cargo test
+TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test cargo test --tests
 docker compose -f docker-compose.test.yml down
+
+# Or against SQLite, one test at a time
+dir=$(mktemp -d)
+TEST_DATABASE_URL="sqlite://$dir/e2e.db?mode=rwc" cargo test --tests -- --test-threads=1
 ```
 
 End-to-end tests use `wiremock` to mock external services (PLC directory, PDSes) and a real database for full integration coverage. A test that needs `TEST_DATABASE_URL` or a built plugin fixture fails without it, so a green run means it ran. Set `HAPPYVIEW_ALLOW_SKIPS=1` to skip those tests instead.

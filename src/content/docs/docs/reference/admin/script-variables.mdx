@@ -1,5 +1,6 @@
 ---
 title: Script variables
+description: "Admin API endpoints for listing, setting and deleting the script variables scripts read from ctx.env."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -53,7 +54,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/script-variables
 ```
 
-Requires `script-variables:read`. Returns the variables ordered by key. Values are never returned, only a masked `preview`.
+Requires `script-variables:read`. Returns the variables ordered by key. Values are never returned, only a masked `preview`: the value's first four characters followed by `****`, or only asterisks for a value of four characters or fewer.
 
 **Response**: `200 OK`
 
@@ -61,7 +62,7 @@ Requires `script-variables:read`. Returns the variables ordered by key. Values a
 [
   {
     "key": "API_TOKEN",
-    "preview": "****",
+    "preview": "sk_l****",
     "created_at": "2026-03-01T00:00:00Z",
     "updated_at": "2026-03-01T00:00:00Z"
   }
@@ -74,7 +75,7 @@ Requires `script-variables:read`. Returns the variables ordered by key. Values a
 POST /admin/script-variables
 ```
 
-Requires `script-variables:create`.
+Requires `script-variables:create`. Sets `value` for `key`, creating the variable or replacing its value. Both fields are required strings.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -108,6 +109,7 @@ const response = await fetch("http://127.0.0.1:3000/admin/script-variables", {
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:3000/admin/script-variables")
     .bearer_auth(token)
@@ -125,6 +127,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/script-variables"
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

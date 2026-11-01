@@ -1,8 +1,9 @@
 ---
 title: Lex agent
+description: "Create an @atproto/lex Agent from a HappyView session, for type-safe XRPC calls with HappyView's DPoP authentication."
 ---
 
-The Lex agent adapter is the recommended way to interact with HappyView from JavaScript. It creates an [`@atproto/lex`](https://npmx.dev/package/@atproto/lex) `Agent` from a `HappyViewSession`, so you can use `@atproto/lex`'s type-safe `Client` to make XRPC calls with HappyView's DPoP authentication. All requests are routed to your HappyView instance, which handles its own lexicons locally and proxies standard atproto methods (e.g., `com.atproto.repo.createRecord`) to the user's PDS.
+The Lex agent adapter is the recommended way to interact with HappyView from JavaScript. It creates an [`@atproto/lex`](https://npmx.dev/package/@atproto/lex) `Agent` from a `HappyViewSession`, so you can use `@atproto/lex`'s type-safe `Client` to make XRPC calls with HappyView's DPoP authentication. All requests are routed to your HappyView instance. HappyView handles its own lexicons locally and passes any other method, such as `com.atproto.repo.createRecord`, to its [XRPC proxy](/docs/reference/lexicons#xrpc-routing-for-unknown-methods). The proxy forwards it to the user's PDS as the user only when the instance's proxy routing is `serviceproxy`.
 
 The adapter gives you lexicon-level type checking on parameters, input bodies, and responses, and works with any library or tool that accepts an `@atproto/lex` `Agent`.
 
@@ -30,6 +31,7 @@ const client = new HappyViewBrowserClient({
 // Restore an existing session
 const result = await client.init();
 const session = result?.session;
+if (!session) throw new Error("Not signed in");
 
 // Create a Lex agent from the session
 const agent = createAgent(session);
@@ -52,7 +54,7 @@ await lex.xrpc(myLexicons.com.example.createPost, {
 });
 ```
 
-The `Client` validates parameters and return types against the lexicon schema at the type level, so your IDE catches mismatches before runtime.
+The `Client` validates parameters and return types against the lexicon at the type level, so your IDE catches mismatches before runtime.
 
 ## API
 

@@ -1,5 +1,6 @@
 ---
 title: Database setup
+description: Choose between SQLite and Postgres, and what the compact record format changes for raw SQL.
 ---
 
 HappyView supports two database backends: **SQLite** (default) and **PostgreSQL**. The backend is auto-detected from your `DATABASE_URL` scheme, or you can set `DATABASE_BACKEND` explicitly.
@@ -17,12 +18,12 @@ The `?mode=rwc` parameter tells SQLite to create the file if it does not exist. 
 **When to use SQLite:**
 
 - Getting started or local development
-- Small to medium deployments
-- Single-server setups where simplicity is preferred
+- Small to medium instances
+- One instance on one machine, where simplicity is preferred
 
 ## PostgreSQL (optional)
 
-For larger deployments or when you need concurrent write scalability, use Postgres. Stacks in the HappyView repository run version 17.
+For larger instances or when you need concurrent write scalability, use Postgres. Stacks in the HappyView repository run version 17.
 
 ```sh
 DATABASE_URL=postgres://happyview:happyview@localhost/happyview
@@ -46,7 +47,7 @@ HappyView runs migrations automatically on startup for both backends.
 
 HappyView applies any pending migrations every time it starts, before it serves requests. Most take milliseconds. One that builds an index over `happyview_records` scales with that table, and so does the boot that applies it.
 
-**SQLite** builds an index inside the migration's transaction, which holds the database's write lock. On a records table of several gigabytes, expect a boot that takes minutes rather than seconds, during which HappyView is not serving. Plan for free disk of roughly two to three times the size of the new index while it runs: the build sorts every row, spilling to temporary storage, and writes the index into the write-ahead log, which is copied into the database file at the next checkpoint before the log is truncated. Let it finish: stopping the process rolls the migration back, and the next boot starts the build over.
+**SQLite** builds an index inside the migration's transaction, which holds the database's write lock. On a records table of several gigabytes, expect a boot that takes minutes rather than seconds, during which HappyView is not serving. Plan for free disk of roughly two to three times the size of the new index while it runs. The build sorts every row, spilling to temporary storage, and writes the index into the write-ahead log. The next checkpoint copies the log into the database file before truncating it. Let it finish: stopping the process rolls the migration back, and the next boot starts the build over.
 
 **Postgres** builds these indexes with `CREATE INDEX CONCURRENTLY`, which keeps reads and writes flowing while it builds but still has to scan the whole table. If a build fails partway, Postgres leaves an invalid index behind. HappyView drops it on the next boot and builds it again, so a restart is the fix.
 
@@ -63,7 +64,7 @@ Measured on 67,437 Bluesky posts and their 105,095 refs, against the v2 format:
 | SQLite database file | 164 MB | 58 MB | 31 MB |
 | Postgres record tables | 155 MB | 77 MB | not compressed |
 
-A synthetic set of a million records built from the same posts gave the same proportions: 2,285 MB, 855 MB and 451 MB on SQLite, and 2,047 MB and 1,061 MB for the Postgres record tables. On Postgres the saving comes from storing DIDs, collections, CIDs and timestamps compactly. Postgres's own compression only reaches bodies over about 2 KB, so post-sized records stay about the size they were.
+A synthetic set of a million records built from the same posts gave the same proportions. On SQLite it measured 2,285 MB, 855 MB and 451 MB; the Postgres record tables measured 2,047 MB and 1,061 MB. On Postgres the saving comes from storing DIDs, collections, CIDs and timestamps compactly. Postgres's own compression only reaches bodies over about 2 KB, so post-sized records stay about the size they were.
 
 ### Before you upgrade
 
@@ -73,14 +74,14 @@ This section applies to a database coming from v2. A new v3 database starts in t
 
 Make sure there is enough free disk:
 
-- **SQLite**: about half the size of the database file. The copy sits beside the old tables, at about a third of their size, and once the old tables are dropped HappyView returns their pages to the filesystem in steps of 32 MB, emptying the write-ahead log after each. In the measurements above the most extra disk in use was 0.40 times the database file. On a database that has never had incremental vacuum (`PRAGMA auto_vacuum` reports `0`), the pages are not returned: the file keeps its size, and SQLite reuses the freed pages for new records.
+- **SQLite**: about half the size of the database file. The copy sits beside the old tables, at about a third of their size. Once the old tables are dropped, HappyView returns their pages to the filesystem in steps of 32 MB, emptying the write-ahead log after each. In the measurements above the most extra disk in use was 0.40 times the database file. On a database that has never had incremental vacuum (`PRAGMA auto_vacuum` reports `0`), the pages are not returned: the file keeps its size, and SQLite reuses the freed pages for new records.
 - **Postgres**: about the current size of `happyview_records` and `happyview_record_refs` together. The copy takes about half of that inside the database. It also generates about the tables' size in write-ahead log, of which Postgres keeps up to `max_wal_size` (1 GB by default), or more when WAL archiving or a replication slot holds it back.
 
 **On Postgres, stop every HappyView instance before you start the new release.** An instance still running the old release can write to the old tables while the new one copies them. The copy picks up those writes, and the final check locks the old tables so that it sees every one, but if writes keep arriving, the upgrade stops with an error rather than drop them. Stop the old instances and start the new release again.
 
 **Your own indexes, triggers and views on the old tables.** The upgrade drops `happyview_records` and `happyview_record_refs` and puts views of the same names in their place, so what you built on the old tables goes with them:
 
-- **Indexes and triggers** you created on either table are dropped with it, on both backends. The upgrade logs each one first, at warn level, with its full definition (`record store upgrade: dropping an object on the old record tables that HappyView did not create`, with `kind`, `name` and `definition` fields), and then carries on. On Postgres, recreate an index on the table behind the view, where queries on the view use it; see [JSON indexes on Postgres](#after-the-upgrade):
+- **Indexes and triggers** you created on either table are dropped with it, on both backends, and so are rules on Postgres. The upgrade logs each one first, at warn level, with its full definition (`record store upgrade: dropping an object on the old record tables that HappyView did not create`, with `kind`, `name` and `definition` fields), and then carries on. On Postgres, recreate an index on the table behind the view, where queries on the view use it; see [JSON indexes on Postgres](#after-the-upgrade):
 
   ```sql
   CREATE INDEX ON happyview_records_v2 ((record::jsonb->>'via'));
@@ -94,7 +95,7 @@ Make sure there is enough free disk:
 
 **On SQLite, start one instance.** A second process started on the same file while the first is upgrading can exit with `database is locked`. Start it again once the first is serving: it finds the upgrade done.
 
-### What happens at the first start
+### The first start
 
 The upgrade runs once, after the migrations and before HappyView serves requests. On Postgres it holds the migration lock, so another instance that starts waits for it, as it waits for a migration.
 
@@ -114,13 +115,13 @@ Some rows are copied differently, with a warning in the log:
 
 ### After the upgrade
 
-**Page cursors.** A pagination cursor issued before the upgrade is refused once with `400` and `invalid cursor: request the first page again`. Clients that start again from the first page get cursors in the new form. A plugin that pages records with `host_records_query` gets an `INVALID_SPEC` error for such a cursor and chooses the status it answers with.
+**Page cursors.** A pagination cursor issued before the upgrade is refused once with `400` and `invalid cursor: request the first page again`. Apps that start again from the first page get cursors in the new form. A plugin that pages records with `host_records_query` gets an `INVALID_SPEC` error for such a cursor and chooses the status it answers with.
 
 **Compression on SQLite.** A collection's bodies are compressed once it holds `ZSTD_DICT_TRAIN_AT` records (5,000 by default). A background task, which runs within 30 seconds of startup and then every `RECORD_COMPRESSION_INTERVAL_SECS` seconds (600 by default), trains a dictionary for the collection from up to 20,000 of its most recently stored records. From then on new records in that collection are compressed as they are written, and the task compresses the existing ones in batches of 1,000. Bodies under 64 bytes or over 16 MiB, and bodies that compression would not make smaller, stay as they are. `RECORD_COMPRESSION=none` turns compression off; bodies already compressed stay readable. [`POST /admin/storage/retrain`](/docs/reference/admin/database#retrain-a-collections-compression-dictionary) trains a new dictionary for one collection, and records keep the dictionary they were compressed with. See [Configuration](/docs/reference/configuration#database) for the settings.
 
-**Reclaiming the compressed space on SQLite.** Compressing the records the upgrade copied leaves their pages partly empty, and SQLite does not shrink the file for that. In the measurement above, the file went from 58 MB to 57 MB when the task finished, and to 31 MB after a `VACUUM`. To get that space back, schedule the one-time vacuum from **System > Database** once the task has caught up. It runs at the next restart, takes the instance offline while it runs, and needs free disk about the size of the database. Records written after the upgrade are compressed as they are written and don't leave this gap.
+**Reclaiming the compressed space on SQLite.** Compressing the records the upgrade copied leaves their pages partly empty, and SQLite does not shrink the file for that. In the measurement above, the file went from 58 MB to 57 MB when the task finished, and to 31 MB after a `VACUUM`. To get that space back, schedule the one-time vacuum from **System > Database** once the task has caught up. It runs at the next restart and takes the instance offline while it runs. It needs free disk of 1.2 times the database's size, or 2.2 times when the temporary directory is on the same filesystem as the database. Records written after the upgrade are compressed as they are written and don't leave this gap.
 
-**The `sqlite3` command-line tool cannot read `happyview_records`.** Its `record`, `cid` and timestamp columns are computed by functions that only HappyView registers, so any query on that view from another program fails with `no such function: hv_record`, even one that selects only `uri`. `happyview_record_refs` uses no such function and reads normally. Query the records table behind the view instead:
+**The `sqlite3` command-line tool cannot read `happyview_records`.** Its `record`, `cid` and timestamp columns are computed by functions that only HappyView registers. Any query on that view from another program fails with `no such function: hv_record`, even one that selects only `uri`. `happyview_record_refs` uses no such function and reads normally. Query the records table behind the view instead:
 
 ```sql
 SELECT d.did, c.nsid AS collection, r.rkey
@@ -131,7 +132,7 @@ SELECT d.did, c.nsid AS collection, r.rkey
 
 `body` holds the record's JSON. When `body_dict` is `NULL` or `0` it is plain text (`CAST(body AS TEXT)`); otherwise it is compressed with the dictionary of that id in `happyview_zstd_dicts`, and only HappyView reads it. Backups with `sqlite3 happyview.db ".backup ..."` work as before.
 
-**JSON indexes on Postgres.** You can index a field of `record` on the table behind the view, connected with `psql` or another client (raw SQL from scripts and plugins cannot reach that table), and queries on the view use it:
+**JSON indexes on Postgres.** You can index a field of `record` on the table behind the view, and queries on the view use the index. Create it from `psql` or another client, since raw SQL from scripts and plugins cannot reach that table:
 
 ```sql
 CREATE INDEX ON happyview_records_v2 ((record::jsonb->>'via'));
@@ -205,7 +206,7 @@ For production, use `docker-compose.prod.postgres.yml`; [Docker](/docs/guides/se
 
 ## Scripts on either backend
 
-Both backends support the same libraries. A `happyview.db` chain is portable: the host generates the SQL for whichever backend is running. `happyview.sql`'s `raw` is not: the statement goes to the backend untranslated, so its placeholders (`?` on SQLite, `$1` on Postgres) and functions must be the running backend's, or for reads of the record views, [the raw read route's](#when-record-storage-offers-a-raw-read-route) when there is one. A script that has to run on both branches on `db.backend()`.
+Both backends support the same libraries. A `happyview.db` chain is portable: the host generates the SQL for whichever backend is running. `happyview.sql`'s `raw` is not: the statement goes to the backend untranslated. Its placeholders (`?` on SQLite, `$1` on Postgres) and functions must be the running backend's, or, for reads of the record views, [the raw read route's](#when-record-storage-offers-a-raw-read-route) when there is one. A script that has to run on both branches on `db.backend()`.
 
 `happyview_records` and `happyview_record_refs` are views; see [raw SQL on the record views](#raw-sql-on-the-record-views) for what changes when a `raw` statement writes them or filters them by `uri`.
 

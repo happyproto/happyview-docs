@@ -1,10 +1,11 @@
 ---
 title: Lexicon publishing
+description: "Admin API endpoints for publishing lexicons as schema records and managing the rules that decide where they go."
 ---
 
 Admin API endpoints for publishing lexicons as `com.atproto.lexicon.schema` records and managing the rules that decide where they go. For the concepts, DNS requirements and dashboard, see [Publishing lexicons](/docs/guides/publishing-lexicons).
 
-All endpoints are under `/admin/lexicon-publishing`. Reads need `lexicons:read` and writes need `lexicons:publish`. Choosing a linked repo as a rule's target also needs `linked-repos:read`; for a caller without it, every linked-repo target in a response keeps `kind`, `available` and `can_unpublish` and has `linked_repo_id`, `did`, `handle` and `unavailable_reason` set to `null`, as does a linked-repo rule's own `linked_repo_id`. Errors use the usual body, `{"error": "<message>"}`.
+All endpoints are under `/admin/lexicon-publishing`. Reads need `lexicons:read` and writes need `lexicons:publish`. Choosing a linked repo as a rule's target also needs `linked-repos:read`. For a caller without it, every linked-repo target in a response keeps `kind`, `available` and `can_unpublish`, and has `linked_repo_id`, `did`, `handle` and `unavailable_reason` set to `null`; a linked-repo rule's own `linked_repo_id` is `null` too. Errors use the usual body, `{"error": "<message>"}`.
 
 ```sh
 # All examples assume $TOKEN is an API key (hv_...)
@@ -27,7 +28,7 @@ A **target** is a place a lexicon can be published:
 }
 ```
 
-`kind` is `instance` or `linked_repo`. `available` is false when nothing can be written there now, and `unavailable_reason` says why. `can_unpublish` is true when the target can also delete records.
+`kind` is `instance` or `linked_repo`. `available` is false when nothing can be written there now, and `unavailable_reason` says why. `can_unpublish` is true when the target is available and can also delete records.
 
 A **rule**:
 
@@ -66,7 +67,15 @@ GET /admin/lexicon-publishing
       "rule_id": "7c1e0f3a-0f7e-4c35-9f43-6d2b8d1a9f10",
       "rule_pattern": "com.example.*",
       "auto_publish": true,
-      "target": {},
+      "target": {
+        "kind": "instance",
+        "linked_repo_id": null,
+        "did": "did:plc:abc123",
+        "handle": null,
+        "available": true,
+        "unavailable_reason": null,
+        "can_unpublish": true
+      },
       "status": "outdated",
       "publication": {
         "nsid": "com.example.notes.getNote",
@@ -87,7 +96,7 @@ GET /admin/lexicon-publishing
 - `usable`: whether any target can publish, or can remove a record HappyView put there. While it's `false`, the dashboard's publishing page shows what to set up instead of its rules.
 - `targets`: the instance first, then one per linked repo.
 - `rules`: most specific first.
-- `lexicons`: every publishable lexicon, sorted by NSID. `layer` is `manual` or `project`; network lexicons never appear. `rule_id`, `rule_pattern` and `target` are `null` when no rule matches, and `auto_publish` is then `false`. `status` is one of `no_rule`, `target_unavailable`, `unpublished`, `withdrawn`, `moved`, `outdated` or `current`. `publication` is `null` until something has been attempted; it carries only the error columns when every attempt has failed. `withdrawn_at` is set when the lexicon was unpublished and has not been published since; such a lexicon reports `withdrawn` (unless no rule matches or its target is unavailable) and auto-publish skips it.
+- `lexicons`: every publishable lexicon, sorted by NSID. `layer` is `manual` or `project`; network lexicons never appear. `rule_id`, `rule_pattern` and `target` are `null` when no rule matches, and `auto_publish` is then `false`. `status` is one of `no_rule`, `target_unavailable`, `unpublished`, `withdrawn`, `moved`, `outdated` or `current`. `publication` is `null` until HappyView has tried to publish the lexicon; it carries only the error columns when every attempt has failed. `withdrawn_at` is set when the lexicon was unpublished and has not been published since; such a lexicon reports `withdrawn` (unless no rule matches or its target is unavailable) and auto-publish skips it.
 
 - `orphans`: publication rows, in the same shape as `publication`, for records still in a repo whose lexicon is no longer publishable, such as one deleted after it was published. [Unpublish](#unpublish) works on them as on any other.
 
@@ -183,9 +192,9 @@ PATCH /admin/lexicon-publishing/rules/{id}
 
 **Permission:** `lexicons:publish`
 
-Any of `target_kind`, `linked_repo_id` and `auto_publish`. The pattern can't change; delete the rule and add another. The target is re-validated only when it changes, so you can still turn off auto-publish on a rule whose linked repo has gone away. Switching to `instance` clears `linked_repo_id`.
+The body takes any of `target_kind`, `linked_repo_id` and `auto_publish`. The pattern can't change; delete the rule and add another. The target is re-validated only when it changes, so you can still turn off auto-publish on a rule whose linked repo has gone away. Switching to `instance` clears `linked_repo_id`.
 
-Returns `200` with the rule and its target, `403` when it changes the target to a linked repo without `linked-repos:read`, or `404` for an unknown ID.
+Returns `200` with the rule and its target, or `404` for an unknown ID. A changed target is checked as on [create](#create-a-rule): `400` when it is malformed or unavailable, and `403` when it is a linked repo and the caller lacks `linked-repos:read`.
 
 ## Delete a rule
 
@@ -240,7 +249,7 @@ POST /admin/lexicon-publishing/unpublish
 
 **Body:** `{ "nsid": "com.example.notes.getNote" }`
 
-Deletes the record from the account it was published to, clears the stored `did`, `uri`, `cid` and `published_at`, and sets `withdrawn_at`. Auto-publish then leaves the lexicon alone until a [publish](#publish) succeeds for it. Returns `204`.
+Deletes the record from the account it was published to, clears the stored `did`, `uri`, `cid`, `published_at` and `last_error`, and sets `withdrawn_at`. Auto-publish then leaves the lexicon alone until a [publish](#publish) succeeds for it. Returns `204`.
 
 | Status | Cause                                                                                  |
 | ------ | -------------------------------------------------------------------------------------- |
@@ -248,6 +257,7 @@ Deletes the record from the account it was published to, clears the stored `did`
 | `409`  | No linked repo or attached account holds the DID the record was published to; nothing is changed |
 | `401`  | The attached account needs to sign in again, or a linked repo needs reauthorization |
 | `403`  | The linked repo's grant lacks the `delete` scope, or the attached account's PDS refused the delete for lack of scope (re-authenticate it from Service Identity) |
+| `500`  | A linked repo's PDS refused the delete                                                 |
 | `502`  | The attached account's PDS refused the delete for another reason                      |
 
 ## Events

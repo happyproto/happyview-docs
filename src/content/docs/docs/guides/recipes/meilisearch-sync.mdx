@@ -31,7 +31,7 @@ function handle(input, ctx)
       headers = headers,
     })
   else
-    res = http.post(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents", {
+    res = http.post(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents?primaryKey=id", {
       headers = headers,
       body = json.encode(json.to_array({
         {
@@ -49,7 +49,7 @@ function handle(input, ctx)
     error("meilisearch answered " .. res.status)
   end
 
-  -- `record` is absent on delete; `true` lets the delete proceed.
+  -- On delete `record` is null, which still lets the delete proceed.
   return input.record or true
 end
 ```
@@ -71,7 +71,7 @@ export default async function handle(input, ctx) {
 
   const res = input.action === "delete"
     ? await http.delete(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents/${id}`, { headers })
-    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents`, {
+    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents?primaryKey=id`, {
         headers,
         body: JSON.stringify([
           {
@@ -88,7 +88,7 @@ export default async function handle(input, ctx) {
     throw new Error(`meilisearch answered ${res.status}`);
   }
 
-  // `record` is absent on delete; `true` lets the delete proceed.
+  // `record` is null on delete, so this returns `true` and the delete proceeds.
   return input.record ?? true;
 }
 ```
@@ -105,7 +105,7 @@ interface RecordEvent {
   did: string;
   collection: string;
   rkey: string;
-  record?: Record<string, unknown>;
+  record: Record<string, unknown> | null;
 }
 
 interface Context {
@@ -123,7 +123,7 @@ export default async function handle(input: RecordEvent, ctx: Context) {
 
   const res = input.action === "delete"
     ? await http.delete(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents/${id}`, { headers })
-    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents`, {
+    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents?primaryKey=id`, {
         headers,
         body: JSON.stringify([
           {
@@ -140,7 +140,7 @@ export default async function handle(input: RecordEvent, ctx: Context) {
     throw new Error(`meilisearch answered ${res.status}`);
   }
 
-  // `record` is absent on delete; `true` lets the delete proceed.
+  // `record` is null on delete, so this returns `true` and the delete proceeds.
   return input.record ?? true;
 }
 ```
@@ -154,6 +154,10 @@ export default async function handle(input: RecordEvent, ctx: Context) {
 2. On **delete**: sends a `DELETE` request to remove the document from the index by its `id`.
 
 A Meilisearch document id may contain only letters, digits, `-` and `_`, so an AT URI cannot be one. The script builds the id from the DID, collection and rkey, replaces every other character with `_`, and stores the AT URI in a `uri` field.
+
+The `primaryKey=id` query parameter names `id` as the index's primary key. Without it, Meilisearch infers the key from the first document's attributes ending in `id`, finds both `id` and `did`, and refuses to add the document.
+
+Meilisearch answers a write with `202 Accepted` and applies it later as a task, so a document it refuses while processing the task does not fail the script. Check failed tasks in Meilisearch itself.
 
 `input` is the [record event](/docs/reference/scripts/contract#input-by-script-type). Meilisearch expects an array of documents, which Lua's `json.to_array` guarantees ([JSON](/docs/reference/scripts/json)). `happyview.http` returns a 4xx or 5xx answer as an ordinary result, so the script checks `status` and raises for it. A failed record script is [retried and then dead-lettered](/docs/reference/scripts/types-and-triggers#failures-and-retries).
 

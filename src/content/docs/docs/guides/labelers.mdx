@@ -1,14 +1,15 @@
 ---
 title: "Labelers"
+description: Subscribe your instance to atproto labelers and use the labels they emit in the dashboard and in scripts.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Labelers are external services that apply content labels to records. They operate out-of-band: labeler data does not appear in repos or flow through relays. HappyView can subscribe to labelers and store the labels they emit, making them available on records in the admin dashboard and to scripts.
+Labelers are external services that apply content labels to records. They operate out-of-band: labeler data does not appear in repos or flow through relays. HappyView can subscribe to labelers and store the labels they emit, which the admin dashboard shows on records and scripts can read.
 
 ## How labelers work
 
-A labeler is identified by its DID. When you subscribe to a labeler, HappyView connects directly to the labeler's WebSocket and streams label events in real time. Each label targets a specific record URI and carries a value like `nudity`, `spam`, or any custom string the labeler defines.
+A labeler is identified by its DID. When you subscribe to a labeler, HappyView connects directly to the labeler's WebSocket and streams label events in real time. Each label targets a URI, usually a record's, and carries a value like `nudity`, `spam`, or any custom string the labeler defines.
 
 Labels are stored in a `happyview_labels` table in the database. HappyView tracks a cursor per labeler subscription so it can resume from where it left off after a restart.
 
@@ -81,11 +82,19 @@ let response = client
 token := "hv_..." // your API key
 body := bytes.NewBufferString(`{"did": "did:plc:ar7c4by46qjdydhdevvrndac"}`)
 
-req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/labelers", body)
+req, err := http.NewRequest("POST", "http://127.0.0.1:3000/admin/labelers", body)
+if err != nil {
+	log.Fatal(err)
+}
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+	log.Fatal(err)
+}
+defer resp.Body.Close()
+fmt.Println(resp.Status) // 201 Created
 ```
 
 </TabItem>
@@ -159,14 +168,23 @@ let response = client
 <TabItem label="Go">
 
 ```go
+token := "hv_..." // your API key
 body := bytes.NewBufferString(`{"status": "paused"}`)
 
-req, _ := http.NewRequest("PATCH",
-  "http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac", body)
+req, err := http.NewRequest("PATCH",
+	"http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac", body)
+if err != nil {
+	log.Fatal(err)
+}
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+	log.Fatal(err)
+}
+defer resp.Body.Close()
+fmt.Println(resp.Status) // 204 No Content
 ```
 
 </TabItem>
@@ -234,11 +252,21 @@ let response = client
 <TabItem label="Go">
 
 ```go
-req, _ := http.NewRequest("DELETE",
-  "http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac", nil)
+token := "hv_..." // your API key
+
+req, err := http.NewRequest("DELETE",
+	"http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrndac", nil)
+if err != nil {
+	log.Fatal(err)
+}
 req.Header.Set("Authorization", "Bearer "+token)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+	log.Fatal(err)
+}
+defer resp.Body.Close()
+fmt.Println(resp.Status) // 204 No Content
 ```
 
 </TabItem>
@@ -266,11 +294,9 @@ Labels are also available in the records API response and in scripts via `get_la
 
 ## Using labels in your app
 
-Labeler subscriptions give your app content moderation signals without building your own moderation system:
+Labeler subscriptions give your app content moderation signals without building your own moderation system. A query script can exclude or down-rank flagged content: it checks labels with `get_labels` and filters results before returning them.
 
-- **Content filtering**: Use labels in query scripts to exclude or down-rank flagged content. Check labels with `get_labels` and filter results before returning them.
-- **Moderation dashboards**: Display labels alongside records in your admin dashboard to review flagged content. Labels appear automatically on the Records page once a labeler is subscribed.
-- **Custom labelers**: You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers or one you operate yourself for domain-specific moderation (e.g. labeling game content by age rating).
+You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers or one you operate yourself for domain-specific moderation, such as labeling game content by age rating.
 
 ## Permissions
 

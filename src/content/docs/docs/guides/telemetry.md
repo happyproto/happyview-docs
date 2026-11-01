@@ -7,7 +7,7 @@ Telemetry is off unless you turn it on. When it's on, an instance sends a JSON r
 
 ## Turn telemetry on or off
 
-Changing these settings needs the `settings:manage` permission. The admin API has the same controls under [Telemetry](/docs/reference/admin/telemetry).
+The page and its settings need the `settings:manage` permission. The admin API has the same controls under [Telemetry](/docs/reference/admin/telemetry).
 
 1. Open **System > Telemetry**.
 2. Read **Exactly what would be sent**. It's assembled from the instance as it stands, under the current settings.
@@ -25,7 +25,7 @@ To turn telemetry off, pick **Don't send anything**. The instance id, contact an
 
 The setup wizard asks the same question, and the dashboard prompts an operator on an instance where nobody has answered it. Declining counts as an answer, so you're not asked again.
 
-## What a report contains
+## Report contents
 
 Every report carries these fields:
 
@@ -60,4 +60,4 @@ A collector can answer with a comparison. After **Send and compare**, the page s
 
 ## Instances run by a hosting platform
 
-A hosting platform can require reporting by setting `TELEMETRY_MANAGED_BY`. The instance then sends a report every day whatever **System > Telemetry** says, and the report's `managed` field names the platform. The report covers the instance only: the contact and all three lexicon details are left out. The page says so and disables its controls, and the admin API answers `409` to any change. Self-hosted instances leave this variable unset. If the platform removes it, the stored settings apply again.
+A hosting platform can require reporting by setting `TELEMETRY_MANAGED_BY`. The instance then sends a report every day whatever **System > Telemetry** says, and the report's `managed` field names the platform. The report covers the instance only: the contact and all three lexicon details are left out. The page says so, disables the mode choice and hides the contact and lexicon settings, and the admin API answers `409` to any change. Self-hosted instances leave this variable unset. If the platform removes it, the stored settings apply again.

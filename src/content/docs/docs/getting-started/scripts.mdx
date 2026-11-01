@@ -3,7 +3,7 @@ title: Scripts
 description: What HappyView scripts are, where they run, and how the pieces fit together.
 ---
 
-A script is a small program HappyView runs when something happens: an XRPC request arrives, a record is created, a label is applied, or a background job is picked up. Without scripts, query endpoints return raw records and procedures proxy simple creates and updates. With them, you decide what an endpoint returns and what happens to each record before it is indexed.
+A script is a small program HappyView runs when something happens: an XRPC request arrives, a record is created, a label is applied, or a background job is picked up. Without scripts, query endpoints return raw records and procedures write their input as a record to the caller's PDS. With them, you decide what an endpoint returns and what happens to each record before it is indexed.
 
 ## Scripts run in interpreter plugins
 
@@ -15,7 +15,7 @@ HappyView does not run scripts itself. A script runs inside an **interpreter plu
 | JavaScript (QuickJS-ng) | `javascript` | `happyview-javascript` |
 | TypeScript (SWC, then QuickJS-ng) | `typescript` | `happyview-typescript` |
 
-A self-hosted instance starts with no interpreter. Until one is installed, no script can be saved or run, and the server logs this at boot:
+A self-hosted instance starts with no interpreter. Until one is installed, no script can be saved or run, and the instance logs this when it starts:
 
 ```
 no interpreter plugin is installed, so no script can be saved or run; install one from the plugins page in the dashboard

@@ -1,154 +1,13 @@
 ---
 title: "Permissions"
+description: How operator permissions, templates, superadmin and API key permissions control access to the admin API.
 ---
 
 HappyView uses a granular permission system to control access to the admin API. Each operator has a set of permissions that determine which endpoints they can access. Permissions can be assigned individually, via templates, or both.
 
 ## Permission list
 
-HappyView defines 53 permissions organized by category:
-
-### Lexicons
-
-| Permission        | Description                          |
-| ----------------- | ------------------------------------ |
-| `lexicons:create` | Upload and register new lexicon schemas |
-| `lexicons:read`   | View registered lexicon schemas      |
-| `lexicons:delete` | Remove lexicon schemas               |
-| `lexicons:publish` | Publish lexicons to the network and manage publishing rules |
-
-### Records
-
-| Permission                  | Description                             |
-| --------------------------- | --------------------------------------- |
-| `records:read`              | Browse indexed atproto records      |
-| `records:delete`            | Delete individual records from the index |
-| `records:delete-collection` | Bulk-delete all records in a collection |
-
-### Scripts
-
-| Permission       | Description                                       |
-| ---------------- | ------------------------------------------------- |
-| `scripts:read`   | View trigger-keyed scripts                        |
-| `scripts:manage` | Create, update, and delete trigger-keyed scripts  |
-
-### Script variables
-
-| Permission                | Description                                        |
-| ------------------------- | -------------------------------------------------- |
-| `script-variables:create` | Add or update environment variables for scripts     |
-| `script-variables:read`   | View script environment variable keys and values   |
-| `script-variables:delete` | Remove script environment variables                |
-
-### Users
-
-| Permission     | Description                            |
-| -------------- | -------------------------------------- |
-| `users:create` | Add new operators                      |
-| `users:read`   | View the operator list and their permissions |
-| `users:update` | Modify operator permissions            |
-| `users:delete` | Remove operators                       |
-
-### API keys
-
-| Permission        | Description                              |
-| ----------------- | ---------------------------------------- |
-| `api-keys:create` | Generate new API keys for admin access   |
-| `api-keys:read`   | View existing API keys                   |
-| `api-keys:delete` | Revoke existing API keys                 |
-
-### Backfill
-
-| Permission        | Description                               |
-| ----------------- | ----------------------------------------- |
-| `backfill:create` | Trigger historical record backfill jobs   |
-| `backfill:read`   | View backfill job status and progress     |
-
-### Labelers
-
-| Permission        | Description                           |
-| ----------------- | ------------------------------------- |
-| `labelers:create` | Subscribe to external labeler services |
-| `labelers:read`   | View subscribed labeler services      |
-| `labelers:delete` | Unsubscribe from labeler services     |
-
-### Settings
-
-| Permission        | Description                                         |
-| ----------------- | --------------------------------------------------- |
-| `settings:manage` | Modify instance settings, logo, and configuration   |
-
-### Plugins
-
-| Permission        | Description                                  |
-| ----------------- | -------------------------------------------- |
-| `plugins:read`    | View installed plugins and their configuration |
-| `plugins:create`  | Install and configure new plugins            |
-| `plugins:delete`  | Uninstall plugins                            |
-
-### API clients
-
-| Permission           | Description                              |
-| -------------------- | ---------------------------------------- |
-| `api-clients:view`   | View registered OAuth API clients        |
-| `api-clients:create` | Register new OAuth API clients           |
-| `api-clients:edit`   | Modify API client settings and credentials |
-| `api-clients:delete` | Remove registered API clients            |
-
-### Dead letters
-
-| Permission            | Description                            |
-| --------------------- | -------------------------------------- |
-| `dead-letters:read`   | View failed script runs                |
-| `dead-letters:manage` | Retry, re-index, or dismiss dead letters |
-
-### Spaces
-
-| Permission                  | Description                                |
-| --------------------------- | ------------------------------------------ |
-| `spaces:create`             | Create new permissioned data spaces        |
-| `spaces:read`               | View space details, metadata, and members  |
-| `spaces:update`             | Modify space settings                      |
-| `spaces:delete`             | Remove spaces and their data               |
-| `spaces:manage-members`     | Add or remove space members and roles      |
-| `spaces:manage-invites`     | Create and revoke space invitations        |
-| `spaces:manage-records`     | Read and write records within spaces       |
-| `spaces:manage-credentials` | Issue and revoke space access credentials  |
-
-### Jobs
-
-| Permission     | Description                                 |
-| -------------- | ------------------------------------------- |
-| `jobs:read`    | View background job status and progress     |
-| `jobs:create`  | Queue new background jobs                   |
-| `jobs:manage`  | Cancel, pause, and resume background jobs   |
-
-### Linked repos
-
-| Permission            | Description                                                  |
-| --------------------- | ------------------------------------------------------------ |
-| `linked-repos:read`   | View linked repos, their status, and their outstanding invites |
-| `linked-repos:create` | Add linked repos, start authorizations, mint and revoke invites |
-| `linked-repos:delete` | Revoke linked repos and delete their stored sessions          |
-
-Revoking an invite uses `linked-repos:create` rather than `linked-repos:delete`, because minting and revoking are one lifecycle. `linked-repos:delete` is reserved for destroying a grant and the OAuth session behind it. See [Linked Repos](/docs/guides/linked-repos).
-
-### Project
-
-| Permission       | Description                                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `project:deploy` | Replace the instance's project with a deployed bundle and start the backfills it declares       |
-
-It also covers reading what is deployed. A deploy can add, change and remove every lexicon and script the project owns, so it is as strong as `lexicons:create`, `lexicons:delete` and `scripts:manage` together, plus `backfill:create` for the backfills a project declares. See [Project](/docs/reference/admin/project).
-
-### System
-
-| Permission   | Description                              |
-| ------------ | ---------------------------------------- |
-| `stats:read` | View collection statistics and record counts |
-| `events:read` | View the event log                      |
-| `metrics:read` | View script run counts, latency, errors and resource use |
-| `events:purge` | Bulk-delete event log entries matching a filter |
+HappyView defines 53 permissions. The [permissions table](/docs/architecture/glossary#permissions) in the glossary lists each one, what it allows and the lowest template that grants it. It is generated from HappyView's own list, so it stays current.
 
 ## Permission templates
 
@@ -187,7 +46,7 @@ Superadmin is a privilege one operator holds. On a fresh instance, the first per
 - Cannot be deleted
 - Cannot have their permissions modified by other operators
 
-Usually one operator holds superadmin. A transfer, from the dashboard or the transfer endpoint in the Admin API, moves it to another operator and takes it from the previous holder. `SUPERADMIN_DID` only adds: the configured account gets superadmin at every boot, and anyone else who holds it keeps it.
+Usually one operator holds superadmin. A transfer, from the dashboard or the transfer endpoint in the admin API, moves it to another operator and takes it from the previous holder. `SUPERADMIN_DID` only adds: the configured account gets superadmin at every boot, and anyone else who holds it keeps it.
 
 ## Escalation guards
 
@@ -228,7 +87,7 @@ Go to **Access > Users** to view and manage operators' permissions. Click on an 
 - `PATCH /admin/users/{id}/permissions`: grant or revoke individual permissions
 - `POST /admin/users/transfer-super`: pass superadmin to another operator (superadmin only)
 
-See the [Admin API: Users](/docs/reference/admin/users) for full details.
+See [Admin API: Users](/docs/reference/admin/users) for full details.
 
 ## Next steps
 

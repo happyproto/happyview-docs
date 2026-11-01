@@ -1,5 +1,6 @@
 ---
 title: "Stats"
+description: "Admin API endpoints for record counts by collection, operator and API client counts, and the Jetstream consumer's status."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -60,6 +61,7 @@ GET /admin/stats
 interface CollectionCount {
   collection: string;
   count: number;
+  indexed: boolean;
 }
 
 interface Stats {
@@ -103,6 +105,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/stats", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -124,15 +130,15 @@ curl http://127.0.0.1:3000/admin/stats -H "$AUTH"
 }
 ```
 
-`indexed` is `false` for a collection that still has records but is no longer indexed.
+`collections` has one entry for every record lexicon on the instance, with a `count` of `0` when it has no records. `indexed` is `false` for a record lexicon installed without indexing, whose collection nothing subscribes to or backfills. Returns `503 Service Unavailable` when a collection's records live in external record storage that can't be reached.
 
-## Admin and client counts
+## Operator and client counts
 
 ```
 GET /admin/stats/counts
 ```
 
-Returns the number of operators (seats, including those with superadmin) and registered API clients. It is cheap to call often, unlike the record counts above. Requires `stats:read`.
+Returns the number of operators (seats, including those with superadmin) and registered API clients. The client count includes `hvc_hpy`, the built-in client `hpy` signs in with. It is cheap to call often, unlike the record counts above. Requires `stats:read`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -174,6 +180,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/stats/counts", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

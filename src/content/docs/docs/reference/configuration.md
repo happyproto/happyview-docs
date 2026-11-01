@@ -57,8 +57,8 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `DEFAULT_RATE_LIMIT_CAPACITY` | `100` | Request budget for a new API client. |
 | `DEFAULT_RATE_LIMIT_REFILL_RATE` | `2.0` | Requests per second a new API client's budget refills by. |
 | `ATTESTATION_PRIVATE_KEY` | stored, else generated | A hex secp256k1 key for [attestation signing](/docs/guides/attestation-signing). |
-| `ATTESTATION_KEY_ID` | `did:web:<PUBLIC_URL host>#attestation`; `did:web:localhost#attestation` when `ATTESTATION_PRIVATE_KEY` is set | The key's id in signatures. |
-| `ATTESTATION_SIG_TYPE` | `games.gamesgamesgamesgames.attestation` | The signature's `$type`. |
+| `ATTESTATION_KEY_ID` | `did:web:localhost#attestation` | The key's id in signatures. Read only when `ATTESTATION_PRIVATE_KEY` is set; otherwise the stored key's id is used, else `did:web:<PUBLIC_URL host>#attestation`. |
+| `ATTESTATION_SIG_TYPE` | `games.gamesgamesgamesgames.attestation` | The signature's `$type`. Read only when `ATTESTATION_PRIVATE_KEY` is set. |
 
 ## Network
 
@@ -87,7 +87,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `BACKFILL_REPLAY_MARKER_TAIL_HOURS` | `12` | How far back from the archive's newest data a network replay reads account and sync markers. `0` reads the job's whole range. |
 | `JETSTREAM_API_KEY` | none | Key for the Jetstream archive replay reads. |
 
-The three concurrency settings take effect on the next backfill; the backfill connection pool is sized from the environment at boot.
+The three concurrency settings take effect on the next backfill. The backfill connection pool is sized from them once, at boot, so a raised value reaches the pool only after a restart.
 
 ## Plugins
 
@@ -97,7 +97,7 @@ The three concurrency settings take effect on the next backfill; the backfill co
 | `PLUGIN_CACHE_DIR` | `plugin-cache` beside a SQLite database; none on Postgres | Where compiled plugins are cached on disk, so a restart doesn't recompile them. It must belong to the user HappyView runs as and be private to it, or the cache stays in memory. |
 | `PLUGIN_REGISTRY_URL` | `https://api.happyproto.at` | The plugin registry. Empty or `off` stops HappyView reading a registry. |
 | `HAPPYVIEW_DEFAULT_PLUGINS` | none | Plugins to install on the first boot whose value lists them, separated by commas. |
-| `PLUGIN_URLS` | none | Plugins to load from URLs at boot, as `id\|url\|sha256:<hash>`, separated by commas. |
+| `PLUGIN_URLS` | none | Plugins to load from manifest URLs at boot, as `id\|url`, optionally followed by `\|sha256:<hash>`, separated by commas. |
 | `PLUGIN_<ID>_<NAME>` | none | A plugin's secret, used when the instance holds none for that plugin. `<ID>` is the plugin's id upper-cased, with every other character as `_`. |
 
 ## Scripts and jobs
@@ -110,7 +110,7 @@ The three concurrency settings take effect on the next backfill; the backfill co
 | `JOB_WORKER_CONCURRENCY` | `1` | Background jobs run at once, up to `32`. |
 | `HOSTNAME` | `happyview` | Names this instance's job worker in each job's `claimed_by`. |
 | `HAPPYVIEW_INSTANCE_ID` | `HOSTNAME`, then the system's hostname, then a random id | Names this process in stored script metrics, trimmed and cut to 128 characters. Give each instance sharing a database its own. |
-| `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
+| `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script Performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
 | `FEATURE_SPACES_ENABLED` | `false` | `true` turns on [spaces](/docs/guides/spaces). Instance setting `feature.spaces_enabled`. |
 
 An out-of-range script limit in the environment is logged and the default is used; one saved as an instance setting is refused when saved. See [Limits](/docs/reference/scripts/limits).
@@ -132,7 +132,7 @@ An out-of-range script limit in the environment is logged and the default is use
 | --- | --- | --- |
 | `HAPPYVIEW_DEV_BACKFILL` | `false` | Whether `dev` backfills. Exactly `true` or `false`. `happyview.toml`: `[dev] backfill`. |
 | `HAPPYVIEW_WATCH_POLL_MS` | file events | Poll for changes every this many milliseconds, `50` to `60000`, instead of using file events. For `dev` and `test --watch`. |
-| `HAPPYVIEW_NETWORK` | none | Which network `dev` is on. `hpy happyview dev --network local` sets it to `local`; any other value prints a warning that writes reach your real PDS. |
+| `HAPPYVIEW_NETWORK` | none | Which network `dev` is on. `hpy happyview dev --network local` sets it to `local`. With any other value, or none, `dev` prints a warning that writes reach your real PDS. |
 
 [happyview dev](/docs/reference/cli#happyview-dev) lists the defaults `dev` fills in.
 
@@ -177,7 +177,7 @@ A project's `happyview.toml`. Every table is optional, and an unknown key anywhe
 | `[lexicons."<NSID>"] indexed` | boolean | `true` | `false` stops indexing the collection, keeping what's indexed. |
 | `[lexicons."<NSID>"] token_cost` | integer | the cost set for the lexicon's type | How much of an API client's rate-limit budget one call to this endpoint uses. |
 | `[scripts."<trigger>"] description` | string | none | Shown with the script in the dashboard. |
-| `[scripts."<trigger>"] outbound_xrpcs` | list of strings | empty | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
+| `[scripts."<trigger>"] outbound_xrpcs` | list of strings | the methods found in the script's source | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
 | `[modules."<name>"] language` | string | required | `rust`. |
 | `[modules."<name>"] path` | path | required | The module's crate, relative to the project and inside it. |
 | `[modules."<name>"] capabilities` | list of capabilities | empty | What the module is granted. |

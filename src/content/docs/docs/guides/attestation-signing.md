@@ -1,10 +1,11 @@
 ---
 title: Attestation signing
+description: Sign records with the instance's secp256k1 key from a script, and verify those signatures later.
 ---
 
 HappyView can sign records with an ECDSA (secp256k1) keypair so their origin can be verified later. Scripts call `sign` on `happyview.atproto` to attach an inline signature to a record and `verify_signature` to check one. HappyView's implementation follows the [atproto attestation spec](https://tangled.org/strings/did:plc:cbkjy5n7bk3ax2wplmtjofq2/3m3fy2xuahc22).
 
-## How it works
+## Signing and verification
 
 1. HappyView loads or generates a secp256k1 keypair on startup
 2. `atproto.sign(record)` encodes the record to DAG-CBOR, computes its CID, and signs the CID with the private key
@@ -50,9 +51,11 @@ local atproto = require("happyview.atproto")
 
 function handle(input, ctx)
   local body = { text = input.text, createdAt = time.to_iso8601(time.now()) }
-  local ref = record.create(ctx.collection, body)
 
   local sig = atproto.sign(body)
+  body.signatures = { sig }
+
+  local ref = record.create(ctx.collection, body)
   return { uri = ref.uri, cid = ref.cid, signature = sig }
 end
 ```
@@ -61,7 +64,7 @@ The returned signature object:
 
 ```json
 {
-  "$type": "your.app.attestation",
+  "$type": "games.gamesgamesgamesgames.attestation",
   "key": "did:web:happyview.example.com#attestation",
   "signature": {
     "$bytes": "base64-encoded-signature"
@@ -98,7 +101,7 @@ function handle(input, ctx)
 end
 ```
 
-`verify_signature` returns `false` only when it checked the signature and it didn't match. It **raises** `UNVERIFIABLE` when it couldn't check: signature bytes that aren't valid base64, a missing field, or a record that won't encode. Keep those apart: a script that treats "couldn't check" as `false` will report a fault in its own verification path as a forged record, which is a serious thing to tell a user about their own data.
+`verify_signature` returns `false` only when it checked the signature and it didn't match. It **raises** `UNVERIFIABLE` when it couldn't check: signature bytes that aren't valid base64, a missing field, or a record that won't encode. Keep those apart. A script that treats "couldn't check" as `false` reports a fault in its own verification path as a forged record, which is a serious thing to tell a user about their own data.
 
 ### Checking availability
 
@@ -134,10 +137,10 @@ privileged capability:
   triggered by an arbitrary network record, where the caller is the record's
   repo DID. Don't sign untrusted input (a network record, a request parameter)
   unless you intend the instance to vouch for it.
-- **Installing `happyview.atproto` grants `attest:sign`, and creating scripts requires
-  the `scripts:manage` permission.** The signing key is therefore only reachable by
-  operators you have trusted with that permission, so grant it accordingly, and review
-  scripts that call `sign`.
+- **Installing `happyview.atproto` grants `attest:sign`. Creating scripts requires
+  the `scripts:manage` permission, and deploying a project requires `project:deploy`.**
+  The signing key is therefore only reachable by operators you have trusted with one
+  of those permissions, so grant them accordingly, and review scripts that call `sign`.
 
 If you need signatures scoped to a specific verified subject, have the script
 verify the subject itself (e.g. confirm the record's `did` and content against the

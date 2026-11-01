@@ -30,13 +30,13 @@ chose (a language, a plugin type, a global), that part is shown as `<…>`.
 - At startup the log warns: `no interpreter plugin is installed, so no script
   can be saved or run; install one from the plugins page in the dashboard`.
 
-**Why.** v3 doesn't build a script runtime into HappyView. Scripts run inside an
+**Why.** v3 doesn't build an interpreter into HappyView. Scripts run inside an
 interpreter plugin, and a fresh instance has none. The record or label is
 still indexed; only the script didn't run.
 
 **Fix.** Install the interpreter for the script's language from **Integrations >
 Plugins > Add plugin** (`happyview-lua`, `happyview-javascript` or `happyview-typescript`),
-then retry. Replay the dead letters once it is installed.
+then retry. Retry the dead letters from **Dead Letters** once it is installed.
 
 ### A script uses a removed v2 global
 
@@ -65,10 +65,12 @@ then retry. Replay the dead letters once it is installed.
 `event`, `now()`, `json`, `http` and 24 others. A script is now
 `handle(input, ctx)` and loads what it needs with `require`.
 
-**Fix.** Run the codemod: **Migrate this script** on the script's page,
+**Fix.** Run the codemod: **Migrate** on the script's page,
 `POST /admin/scripts/{id}/codemod` with `{"apply": true}`, or the
-`happyview-codemod` CLI. Then finish any `-- codemod:` markers it leaves by hand.
-See [Migrating scripts to v3](/docs/guides/migrating-scripts).
+`happyview-codemod` CLI. The API refuses with `409` to store a rewrite that
+still has `-- codemod:` markers unless the body also has `"allow_markers": true`.
+Then finish any markers by hand.
+See [Migrating from v2](/docs/guides/migrating-scripts).
 
 ### A script hits its limits
 
@@ -111,9 +113,9 @@ environment.
 { "error": "Failed to load plugin: <type> plugins need an api_version: \"2\" manifest declaring capabilities (got api_version \"1\"); republish the plugin with a capabilities-declaring manifest" }
 ```
 
-For a plugin that was already installed, startup logs an error starting
-`Failed to load plugin` (from the registry, from DB, or WASM, depending on how
-it was installed) with the same text, and the plugin isn't loaded. **The instance still
+For a plugin that was already installed, startup logs an error with the same
+text, and the plugin isn't loaded. The log line starts `Failed to load plugin`,
+and how it continues depends on how the plugin was installed. **The instance still
 starts**, so anything that depended on the plugin (account linking through an
 auth plugin, say) stops working without any other error.
 
@@ -198,7 +200,7 @@ script that reads records:
 **Why.** The instance keeps some collections in an external
 [record storage](/docs/architecture/glossary#record-storage), and that storage couldn't be
 reached. HappyView answers 503 instead of returning an empty or partial
-result, so a client knows to retry. A stock instance has no external storage
+result, so a caller knows to retry. A stock instance has no external storage
 and never sends this.
 
 **Fix.** Retry; the request is safe to repeat. If it persists, check the

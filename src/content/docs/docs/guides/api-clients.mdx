@@ -1,10 +1,11 @@
 ---
 title: "API clients"
+description: Create an API client for your app, choose between public and confidential types, and authenticate users.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-An API client identifies your app to a HappyView instance. Authenticated XRPC requests must include its client key, and public queries should, so that they're rate limited as your app. This guide covers creating a client, choosing between public and confidential types, and authenticating users.
+An API client identifies your app to a HappyView instance. Authenticated XRPC requests must include its client key, and public queries should, so that they're rate limited as your app.
 
 For the admin CRUD endpoints, see the [API reference](/docs/reference/admin/api-clients). For the JavaScript SDK, see the [SDK docs](/docs/reference/sdk).
 
@@ -28,7 +29,7 @@ Choose based on where your code runs:
 | **Use when**           | Server-side apps, CLI tools, bots          | Browser apps, mobile apps                   |
 | **Authentication**     | `X-Client-Key` + `X-Client-Secret` headers | `X-Client-Key` + `Origin` header + PKCE     |
 | **Can keep a secret?** | Yes                                        | No                                          |
-| **Origin validation**  | No                                         | Yes, `Origin` must match `allowed_origins` |
+| **Origin validation**  | No                                         | Yes, `Origin` must match `allowed_origins` when it's set |
 | **PKCE required?**     | No                                         | Yes (S256)                                  |
 
 :::tip
@@ -62,13 +63,10 @@ const TOKEN = "hv_..."; // your API key
 interface ClientResponse {
   id: string;
   client_key: string;
-  client_secret?: string;
+  client_secret?: string; // confidential clients only
   name: string;
   client_id_url: string;
-  client_uri: string;
-  redirect_uris: string[];
   client_type: string;
-  allowed_origins: string[];
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/api-clients", {
@@ -154,11 +152,18 @@ body := bytes.NewBufferString(`{
   "allowed_origins": ["https://example.com"]
 }`)
 
-req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/api-clients", body)
+req, err := http.NewRequest("POST", "http://127.0.0.1:3000/admin/api-clients", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -190,7 +195,7 @@ HappyView looks for the client key in this order:
 1. `X-Client-Key` request header (preferred)
 2. `client_key` query parameter
 
-An authenticated request without a key is refused. A public query without one still runs, under the rate limit shared by every caller that names no client.
+An authenticated request without a key is refused. A public query without one still runs, as an anonymous caller.
 
 ### Unauthenticated queries
 
@@ -240,11 +245,18 @@ let response = client
 ```go
 clientKey := "hvc_a1b2c3..." // your API client key
 
-req, _ := http.NewRequest("GET",
+req, err := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.example.feed.getHot", nil)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -298,6 +310,8 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
+let client_key = "hvc_a1b2c3..."; // your API client key
 let client_secret = "hvs_d4e5f6..."; // your API client secret
 
 let response = client
@@ -312,14 +326,22 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_a1b2c3..."    // your API client key
 clientSecret := "hvs_d4e5f6..." // your API client secret
 
-req, _ := http.NewRequest("GET",
+req, err := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.example.feed.getHot", nil)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("X-Client-Secret", clientSecret)
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -338,104 +360,7 @@ curl 'https://happyview.example.com/xrpc/com.example.feed.getHot' \
 
 Procedures, and queries whose scripts need to know who the caller is, require a user's OAuth session. This uses [DPoP authentication](/docs/reference/authentication#dpop-key-provisioning-for-third-party-apps), where each request includes a cryptographic proof that the caller holds the right key.
 
-<Tabs syncKey="lang">
-<TabItem label="TypeScript">
-
-```ts
-const CLIENT_KEY = "hvc_..."; // your API client key
-const ACCESS_TOKEN = "..."; // DPoP access token
-const DPOP_PROOF = "..."; // DPoP proof JWT
-
-const response = await fetch(
-  "https://happyview.example.com/xrpc/com.example.createPost",
-  {
-    method: "POST",
-    headers: {
-      "X-Client-Key": CLIENT_KEY,
-      Authorization: `DPoP ${ACCESS_TOKEN}`,
-      DPoP: DPOP_PROOF,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: "Hello world" }),
-  },
-);
-```
-
-</TabItem>
-<TabItem label="JavaScript">
-
-```js
-const CLIENT_KEY = "hvc_..."; // your API client key
-const ACCESS_TOKEN = "..."; // DPoP access token
-const DPOP_PROOF = "..."; // DPoP proof JWT
-
-const response = await fetch(
-  "https://happyview.example.com/xrpc/com.example.createPost",
-  {
-    method: "POST",
-    headers: {
-      "X-Client-Key": CLIENT_KEY,
-      Authorization: `DPoP ${ACCESS_TOKEN}`,
-      DPoP: DPOP_PROOF,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: "Hello world" }),
-  },
-);
-```
-
-</TabItem>
-<TabItem label="Rust">
-
-```rust
-let client_key = "hvc_..."; // your API client key
-let access_token = "..."; // DPoP access token
-let dpop_proof = "..."; // DPoP proof JWT
-
-let response = client
-    .post("https://happyview.example.com/xrpc/com.example.createPost")
-    .header("X-Client-Key", client_key)
-    .header("Authorization", format!("DPoP {}", access_token))
-    .header("DPoP", dpop_proof)
-    .json(&serde_json::json!({ "text": "Hello world" }))
-    .send()
-    .await?;
-```
-
-</TabItem>
-<TabItem label="Go">
-
-```go
-clientKey := "hvc_..."  // your API client key
-accessToken := "..."    // DPoP access token
-dpopProof := "..."      // DPoP proof JWT
-
-body := bytes.NewBufferString(`{"text": "Hello world"}`)
-
-req, _ := http.NewRequest("POST",
-  "https://happyview.example.com/xrpc/com.example.createPost", body)
-req.Header.Set("X-Client-Key", clientKey)
-req.Header.Set("Authorization", "DPoP "+accessToken)
-req.Header.Set("DPoP", dpopProof)
-req.Header.Set("Content-Type", "application/json")
-
-resp, err := http.DefaultClient.Do(req)
-```
-
-</TabItem>
-<TabItem label="cURL">
-
-```sh
-curl -X POST 'https://happyview.example.com/xrpc/com.example.createPost' \
-  -H 'X-Client-Key: hvc_...' \
-  -H 'Authorization: DPoP <access_token>' \
-  -H 'DPoP: <proof_jwt>' \
-  -H 'Content-Type: application/json' \
-  -d '{"text": "Hello world"}'
-```
-
-</TabItem>
-</Tabs>
+Once the user has signed in, sign each request with a DPoP proof and send it with your client key. [Phase 4](#phase-4-make-authenticated-xrpc-requests) of the manual flow has the request in each language.
 
 ## Authenticating users
 
@@ -451,7 +376,7 @@ const client = new HappyViewBrowserClient({
   clientKey: "hvc_your_client_key",
 });
 
-// Sign in — redirects to the user's PDS
+// Sign in: redirects to the user's PDS
 await client.signIn("alice.bsky.social");
 ```
 
@@ -513,11 +438,12 @@ Content-Type: application/json
     "x": "...",
     "y": "...",
     "d": "..."
-  }
+  },
+  "confidential": false
 }
 ```
 
-The `dpop_key` is the full private JWK. Store it securely, because you'll use it to sign DPoP proofs.
+The `dpop_key` is the full private JWK. Store it securely, because you'll use it to sign DPoP proofs. `confidential` says whether HappyView reads your `client_id_url` document as declaring `private_key_jwt`, which decides whether you need the client assertions below.
 
 #### Phase 2: OAuth with the user's PDS
 
@@ -554,11 +480,14 @@ Content-Type: application/json
 {
   "client_assertion": "eyJhbG...",
   "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-  "expires_in": 60
+  "expires_in": 60,
+  "kid": "..."
 }
 ```
 
-`issuer` is the `issuer` field from the PDS authorization server's metadata (step 3 above). Call this endpoint once before submitting the PAR request, attaching `client_assertion` and `client_assertion_type` as form parameters alongside your other PAR fields, and again before the token exchange request, attaching them there too. Public clients skip this, because PKCE is their proof of possession.
+`issuer` is the `issuer` field from the PDS authorization server's metadata (step 3 above). Call this endpoint once before submitting the PAR request, and attach `client_assertion` and `client_assertion_type` as form parameters alongside your other PAR fields. Call it again before the token exchange request, and attach them there too. `kid` names the key that signed the assertion; pass it back as `kid` in the body when you sign a refresh, so the session keeps the key it was established under.
+
+A public client has no secret. It authenticates this call by sending, in the body, the `provision_id` and the PKCE verifier from phase 1 as `pkce_verifier`, along with an `Origin` that matches `allowed_origins` when it's set.
 
 In the [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) SDK, `client.getClientAssertion(issuer)` wraps this endpoint. See [Client assertions](/docs/reference/sdk/oauth-client#client-assertions).
 
@@ -662,6 +591,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let client_key = "hvc_..."; // your API client key
 let access_token = "..."; // DPoP access token
 let dpop_proof = "..."; // DPoP proof JWT
@@ -686,14 +616,21 @@ dpopProof := "..."      // DPoP proof JWT
 
 body := bytes.NewBufferString(`{"text": "Hello world"}`)
 
-req, _ := http.NewRequest("POST",
+req, err := http.NewRequest("POST",
   "https://happyview.example.com/xrpc/com.example.createPost", body)
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -769,10 +706,11 @@ Validation rules:
 
 - `htm` must match the HTTP method (case-insensitive)
 - `htu` must match the request URL (scheme + host + path, no query string)
-- `iat` must be within 5 minutes of the instance's clock
+- `iat` must be no more than 5 minutes old and no more than 30 seconds ahead of the instance's clock
 - `ath` must be the base64url-encoded SHA-256 hash of the access token
 - The JWK thumbprint (RFC 7638, SHA-256) must match the key used during provisioning
 - The signature must verify against the embedded public JWK
+- `jti` must not repeat a proof the instance has already accepted from the same key
 
 ## Scopes
 

@@ -33,7 +33,7 @@ function handle(input, ctx)
     error("webhook answered " .. res.status)
   end
 
-  -- `record` is absent on delete; `true` lets the delete proceed.
+  -- On delete `record` is null, which still lets the delete proceed.
   return input.record or true
 end
 ```
@@ -59,7 +59,7 @@ export default async function handle(input, ctx) {
     throw new Error(`webhook answered ${res.status}`);
   }
 
-  // `record` is absent on delete; `true` lets the delete proceed.
+  // `record` is null on delete, so this returns `true` and the delete proceeds.
   return input.record ?? true;
 }
 ```
@@ -74,7 +74,7 @@ interface RecordEvent {
   action: "create" | "update" | "delete";
   uri: string;
   did: string;
-  record?: Record<string, unknown>;
+  record: Record<string, unknown> | null;
 }
 
 interface Context {
@@ -96,7 +96,7 @@ export default async function handle(input: RecordEvent, ctx: Context) {
     throw new Error(`webhook answered ${res.status}`);
   }
 
-  // `record` is absent on delete; `true` lets the delete proceed.
+  // `record` is null on delete, so this returns `true` and the delete proceeds.
   return input.record ?? true;
 }
 ```

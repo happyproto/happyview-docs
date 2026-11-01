@@ -1,5 +1,6 @@
 ---
 title: "Jobs"
+description: "Admin API endpoints for listing, cancelling, pausing and resuming background jobs, and reading their logs."
 ---
 
 Admin API endpoints for managing background jobs. For a conceptual overview, see [Background jobs](/docs/getting-started/background-jobs).
@@ -40,14 +41,16 @@ Returns a paginated list of jobs, newest first.
       "api_client_id": null,
       "dpop_key_id": null,
       "attempt": 1,
-      "started_at": "2026-07-01T12:00:05Z",
-      "completed_at": "2026-07-01T12:02:30Z",
-      "created_at": "2026-07-01T12:00:00Z"
+      "started_at": "2026-07-01T12:00:05+00:00",
+      "completed_at": "2026-07-01T12:02:30+00:00",
+      "created_at": "2026-07-01T12:00:00+00:00"
     }
   ],
-  "cursor": "next-page-cursor"
+  "cursor": "2026-07-01T12:00:00+00:00"
 }
 ```
+
+`cursor` is the last job's `created_at` when there are more jobs, and `null` otherwise. A `status` that names no status answers an empty list.
 
 ## Get job
 
@@ -84,7 +87,7 @@ Request cancellation of a job. If the job is `pending` or `paused`, it's immedia
 | Status | Condition                                      |
 | ------ | ---------------------------------------------- |
 | 404    | Job not found                                  |
-| 409    | Job is already completed, failed, or cancelled |
+| 409    | Job is not `pending`, `running` or `paused` (it is `completed`, `failed`, `cancelled`, `cancelling` or `pausing`) |
 | 409    | The job's status changed while the request ran; reload and try again |
 
 ## Pause job
@@ -166,7 +169,7 @@ Returns the lines a job's script logged with `internal.logging`, oldest first. L
       "jobId": "550e8400-e29b-41d4-a716-446655440000",
       "level": "info",
       "message": "processing item",
-      "createdAt": "2026-07-01T12:00:06Z"
+      "createdAt": "2026-07-01T12:00:06+00:00"
     }
   ],
   "cursor": null
@@ -186,7 +189,7 @@ Returns the lines a job's script logged with `internal.logging`, oldest first. L
 | `progress`     | object       | Last progress update from `ctx.job.progress()`                                  |
 | `result`       | object\|null | Return value of the script on completion                                        |
 | `error`        | string\|null | Error message on failure                                                        |
-| `created_by`   | string       | DID of the user who enqueued the job                                            |
+| `created_by`   | string       | DID of the user or operator who enqueued the job                                |
 | `inherit_auth` | boolean      | Whether the job inherits the creator's PDS auth                                 |
 | `api_client_id` | string\|null | The API client whose session the job inherited, when it did                    |
 | `dpop_key_id`  | string\|null | The DPoP key of the session the job inherited, when it did                     |

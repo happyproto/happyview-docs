@@ -1,5 +1,6 @@
 ---
 title: Event logs
+description: The events HappyView records, what each one's detail holds, and how to query and retain them.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -16,7 +17,7 @@ Events follow a `category.action` naming convention. Each event has a severity l
 | ----------------- | -------- | ------------ | ---------------------------------- |
 | `lexicon.created` | info     | Lexicon NSID | `revision`, `source`               |
 | `lexicon.updated` | info     | Lexicon NSID | `revision`, `source`               |
-| `lexicon.deleted` | info     | Lexicon NSID | `job_id` and `collection` when its records are deleted too |
+| `lexicon.deleted` | info     | Lexicon NSID | `delete_records_job` and `records_at_delete` when its records are deleted too |
 | `lexicon.published` | info   | Lexicon NSID | `did`, `uri`, `cid`                |
 | `lexicon.publish_failed` | warn | Lexicon NSID | `error`                         |
 | `lexicon.unpublished` | info | Lexicon NSID | `did`, `uri`                       |
@@ -42,9 +43,12 @@ Logged when a project is deployed through [`PUT /admin/project`](/docs/reference
 | `record.skip_ignored` | warn | Record AT URI | `collection`, `did`, `rkey`, `ignored`, `reason` |
 | `record.cid_mismatch` | warn | Record AT URI | `collection`, `did`, `rkey`, `claimed_cid`, `reason` |
 | `record.index_failed` | warn | Record AT URI | `error` |
-| `record.delete_hook_failed` | error | Record AT URI | `origin`, `job_id`, `cid`, `error` |
+| `record.unstored_claimed` | warn | Record AT URI | `collection`, `did`, `rkey` |
+| `record.delete_hook_failed` | warn | Record AT URI | `origin`, `job_id`, `cid`, `error` |
 
-Logged when records are received from Jetstream and stored or removed from the local database, or skipped because a record script returned `nil`. These are system-triggered events (`actor_did` is null). They write one row per record, so successful operations are only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. If a database error occurs, the same event type is logged with `error` severity regardless of that setting, and the error message is included in the detail.
+Logged when records are received from Jetstream and stored or removed from the local database, or skipped because a record script returned `nil`. An update is logged as `record.created`. These are system-triggered events (`actor_did` is null). They write one row per record, so successful operations are only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. If a database error occurs, the same event type is logged with `error` severity regardless of that setting, and the error message is included in the detail.
+
+`record.unstored_claimed` is a record of a collection that an [external record storage](/docs/guides/record-providers#claimed-collections) claims, arriving from somewhere other than that storage; HappyView refuses it. `record.delete_hook_failed` and the `record.deleted` events whose `origin` is `happyview.reconcile-collection` come from the job that removes records their PDS no longer holds. That job logs every record it deletes, whatever `verbose_event_logging` says.
 
 ### Script events
 
@@ -61,9 +65,9 @@ Logged when records are received from Jetstream and stored or removed from the l
 
 For XRPC query and procedure scripts, `script.executed` is written on every call and stores the full request and response, so it is only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. `script.error` is always logged, with what you need to reproduce the failure: the error message, the complete script source, the input that triggered it, and the caller's DID.
 
-For [record and label scripts](/docs/getting-started/reacting-to-records), `script.executed` fires once per record or label that reaches a script, so it too is only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. `script.dead_lettered` means a script failed all retry attempts; see [Dead Letters](#dead-letters) below.
+For [record and label scripts](/docs/getting-started/reacting-to-records), `script.executed` fires once per record or label that reaches a script, so it too is only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. `script.dead_lettered` means a script failed all retry attempts; see [Dead letters](#dead-letters) below.
 
-`script.log` is a line from `require("internal.logging")`, with the severity the script named.
+`script.log` is a line from `require("internal.logging")`, with the severity the script named. A `debug` line is never stored.
 
 :::note
 For query scripts, `input` and `caller_did` are left out of the detail, and `script.executed` carries `params` instead.
@@ -98,7 +102,7 @@ Logged when an operator attempts to access an endpoint they don't have permissio
 
 Logged when an operator reads a space's records or blobs through the [admin spaces API](/docs/reference/admin/spaces). `action` is `list_records` or `get_blob`. A `list_records` event includes the `repo` and `collection` filters and the `uris` returned. A `get_blob` event includes the blob `cid` and the `repo` that references it. Listing spaces and viewing their metadata or members is not logged.
 
-### API Key events
+### API key events
 
 | Event Type        | Severity | Subject  | Detail                      |
 | ----------------- | -------- | -------- | --------------------------- |
@@ -116,8 +120,8 @@ Logged when an operator reads a space's records or blobs through the [admin spac
 
 | Event Type                 | Severity | Subject         | Detail                                          |
 | -------------------------- | -------- | --------------- | ----------------------------------------------- |
-| `backfill.started`         | info     | Collection NSID | `job_id`, `scope`, `account_count`, `source`    |
-| `backfill.completed`       | info     | Collection NSID | `job_id`, `total_repos`, `total_records`, or `source` for a replay |
+| `backfill.started`         | info     | Collection NSID | `job_id`, `scope`, `account_count`, `source`; a gap replay has no subject and adds `reason`, `after_seq` and `tip_seq` |
+| `backfill.completed`       | info     | Collection NSID | `job_id`, `total_records`, and `total_repos` for a crawl or `source` otherwise (a replay adds `bytes_downloaded`) |
 | `backfill.cancelling`, `.cancelled`, `.pausing`, `.resumed` | info | none | `job_id` |
 | `backfill.retry_started`   | info     | Collection NSID | `job_id`, `source_job_id`, and `retried_repos` or `blocks` |
 | `backfill.discovery_failed` | warn    | Collection NSID | `job_id`, `collection`, `error`                 |
@@ -164,7 +168,7 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 
 `jetstream.account_deleted` is logged when an account this instance holds records for is deleted: its records (other than local writes not yet echoed back) are removed. `jetstream.account_takendown` is logged the same way for an account that is taken down or suspended. A tombstone is written for every deleted, taken-down or suspended account, but the event is logged only when this instance held, and purged, records for it. The tombstone means a late or replayed copy of the account's records is refused. `jetstream.account_status_mismatch` is logged instead when the relay reports an account deleted (`status`) but the account's current PDS (`pds`) says it is active: HappyView keeps its records and writes no tombstone. This happens when the relay is still relaying a PDS the account moved away from. Takedowns and suspensions are never checked this way, because a relay may impose them without the account's PDS knowing. `jetstream.account_inactive` is logged when such an account is deactivated, desynchronized or throttled; its records are kept. When an account becomes active again, its tombstone is lifted, but removed records come back only through a new [backfill](/docs/guides/backfill). `jetstream.sync_purged` is logged when an account's repo is resynced: its records in registered collections are removed, and the current ones that follow in the stream replace them. Events for accounts this instance holds nothing for are not logged.
 
-`jetstream.record_invalid` is logged once for an event HappyView skips immediately because retrying cannot help: a create or update with no record body, an unknown operation, data the database rejects, or a network lexicon schema that cannot be applied.
+`jetstream.record_invalid` is logged once for an event HappyView skips immediately because retrying cannot help. That is a create or update with no record body, an unknown operation, data the database rejects, or a network lexicon schema that cannot be applied.
 
 `jetstream.apply_failed` is logged when an event keeps failing for a reason that is not a database outage. HappyView retries it for about 31 seconds, logs this event and skips it, so one bad event does not stall the stream. Database outages are never skipped: see [Real-time indexing](/docs/architecture#real-time-indexing).
 
@@ -185,16 +189,17 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | `dpop_session.created` | info, or warn when not refreshable | Client key | `scopes`, `refreshable` |
 | `dpop_session.deleted` | info | Client key | none |
 | `dpop_session.device_deleted` | info | Client key | `session_id` |
-| `delegation.account_linked` | info | Account DID | `did` |
+| `delegation.account_linked` | info | Account DID | none |
 | `delegation.account_unlinked` | info | Account DID | none |
 | `delegation.delegate_added` | info | Delegate's DID | `account_did`, `role` |
 | `delegation.delegate_removed` | info | Delegate's DID | `account_did` |
 | `domain.created`, `domain.deleted`, `domain.primary_changed` | info | Domain URL | `id` |
 | `external_auth.refreshed` | info | Plugin id | `expires_at` |
 | `external_auth.refresh_failed` | warn | Plugin id | `reason` |
-| `plugin.added`, `plugin.reloaded`, `plugin.secrets_updated` | info | Plugin id | none |
+| `plugin.added`, `plugin.reloaded` | info | Plugin id | `url`, or `registry` (`did`, `name`, `channel`, `version`); `capabilities` when the operator consented to them |
+| `plugin.secrets_updated` | info | Plugin id | none |
 | `plugin.allowed_hosts_updated` | info | Plugin id | `allowed_hosts` |
-| `plugin.removed` | info | Plugin id | `removed` |
+| `plugin.removed` | info | Plugin id | none; one event per plugin a cascading removal takes |
 | `plugin.log` | as logged | Plugin id | `level`, `message` |
 | `labeler.added`, `labeler.deleted` | info | Labeler DID | none |
 | `labeler.updated` | info | Labeler DID | `status` |
@@ -208,7 +213,7 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | `setting.updated` | info | Setting key | `value`, or `content_type` and `size_bytes` for the logo |
 | `setting.deleted` | info | Setting key | none |
 | `setup.completed` | info | none | none |
-| `event_logs.purged` | warn | The purge job's id | `job_id` |
+| `event_logs.purged` | warn | The purge job's id | The purge's filter: `event_type`, `category`, `severity`, `subject`, `after`, `before` |
 
 ## Querying events
 
@@ -350,29 +355,35 @@ let page: serde_json::Value = client
 ```go
 token := "hv_..." // your API key
 
+get := func(url string) []byte {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return body
+}
+
 // Get all errors
-req, _ := http.NewRequest("GET",
-	"http://127.0.0.1:3000/admin/events?severity=error", nil)
-req.Header.Set("Authorization", "Bearer "+token)
-errors, err := http.DefaultClient.Do(req)
+fmt.Println(string(get("http://127.0.0.1:3000/admin/events?severity=error")))
 
 // Get script errors for a specific lexicon
-req, _ = http.NewRequest("GET",
-	"http://127.0.0.1:3000/admin/events?event_type=script.error&subject=com.example.feed.like", nil)
-req.Header.Set("Authorization", "Bearer "+token)
-scriptErrors, err := http.DefaultClient.Do(req)
+fmt.Println(string(get("http://127.0.0.1:3000/admin/events?event_type=script.error&subject=com.example.feed.like")))
 
 // Get all lexicon-related events
-req, _ = http.NewRequest("GET",
-	"http://127.0.0.1:3000/admin/events?category=lexicon", nil)
-req.Header.Set("Authorization", "Bearer "+token)
-lexiconEvents, err := http.DefaultClient.Do(req)
+fmt.Println(string(get("http://127.0.0.1:3000/admin/events?category=lexicon")))
 
 // Paginate through results
-req, _ = http.NewRequest("GET",
-	"http://127.0.0.1:3000/admin/events?limit=20&cursor=2026-03-01T11:59:00Z", nil)
-req.Header.Set("Authorization", "Bearer "+token)
-page, err := http.DefaultClient.Do(req)
+fmt.Println(string(get("http://127.0.0.1:3000/admin/events?limit=20&cursor=2026-03-01T11:59:00Z")))
 ```
 
 </TabItem>
@@ -407,7 +418,7 @@ Set the value to `0` to disable automatic cleanup and keep logs indefinitely.
 
 See the [Configuration reference](/docs/reference/configuration#logging-retention-and-telemetry) for the other retention settings.
 
-## Dead Letters
+## Dead letters
 
 When a record or label script fails after all retry attempts, the event is stored as a dead letter. You can manage dead letters from the **Data > Dead Letters** page in the dashboard.
 

@@ -1,14 +1,15 @@
 ---
 title: Hardening an instance
+description: Narrow the OAuth authority an instance holds, through API client scopes, the XRPC proxy, linked repos and key backups.
 ---
 
-A HappyView instance holds OAuth credentials for its users and will act with them on behalf of the applications you register. This guide is about narrowing that authority: what each setting actually grants, and why the narrow option is worth the extra work.
+A HappyView instance holds OAuth credentials for its users and will act with them on behalf of the applications you register.
 
-The recurring theme is that **a scope you grant is a scope some application can use**, and several of these settings cannot be changed after the fact without re-consent. Getting them narrow the first time is much cheaper than widening and re-narrowing later.
+**A scope you grant is a scope some application can use**, and several of these settings cannot be changed after the fact without re-consent. Getting them narrow the first time is much cheaper than widening and re-narrowing later.
 
 ## Scope your API clients
 
-An API client's registered scopes are the ceiling on what any token issued to it can carry. HappyView refuses to issue a token carrying scopes the client is not registered for, so this is the single most effective control you have.
+An API client's registered scopes are the ceiling on what a session registered through it can carry. HappyView refuses to register a session whose token carries scopes the client is not registered for, so registered scopes are the most effective control you have.
 
 ### Prefer granular scopes to `transition:generic`
 
@@ -40,7 +41,7 @@ A `permission-set` lexicon lets you declare a group of permissions once and refe
 atproto include:com.example.appAccess
 ```
 
-Two properties make this safer than it looks:
+Two properties make permission sets safer than they look:
 
 - **Authority containment.** A permission set may only grant NSIDs under its own authority group. `com.example.appAccess` can grant `com.example.*` and nothing else. Publishing a permission set is therefore not a way to vouch for somebody else's collections.
 - **No pinned audiences.** An `rpc` permission inside a set may declare `aud: "*"` or inherit the audience from the `include:` scope, but may not name a concrete service itself. A set cannot quietly aim your users' credentials at a service of its own choosing.
@@ -57,7 +58,7 @@ Under **System > XRPC Proxy** you can change this to:
 - **Allowlist**: only NSIDs matching a listed pattern are proxied. Patterns may be exact (`com.example.feed.getHot`) or wildcards (`com.example.*`).
 - **Blocklist**: everything except the listed patterns.
 
-Allowlist mode is the one to reach for. Enumerate the NSIDs your app actually calls and list those. It is more work up front, and it means a new dependency fails visibly at deploy time rather than silently widening what your instance will fetch on a caller's behalf.
+Allowlist mode is the one to reach for. Enumerate the NSIDs your app actually calls and list those. It is more work up front, and it means a call to a method you haven't listed is refused rather than silently widening what your instance will fetch on a caller's behalf.
 
 :::note
 Set the mode explicitly even if you want **Open**, so your configuration states what your instance does.
@@ -65,25 +66,25 @@ Set the mode explicitly even if you want **Open**, so your configuration states 
 
 ### Choose a routing mode deliberately
 
-Separately from *whether* a method may be proxied, **Routing** decides *where* it goes. The two are independent axes.
+Separately from *whether* a method may be proxied, **Routing** decides *where* it goes.
 
-- **Lexicon authority** (the default) resolves the NSID's authority via DNS and forwards there, unauthenticated. This answers "who defines this schema", not "who serves this request". For `com.atproto.repo.*` those have different answers: the authority is whoever publishes the `com.atproto` lexicons, which has no access to your users' repos, so such requests arrive unauthenticated and are refused.
+- **Lexicon authority** (the default) resolves the NSID's authority via DNS and forwards there, unauthenticated. This answers "who defines this lexicon", not "who serves this request". For `com.atproto.repo.*` those have different answers: the authority is whoever publishes the `com.atproto` lexicons, which has no access to your users' repos, so such requests arrive unauthenticated and are refused.
 - **Service proxy** forwards to the caller's own PDS, authenticated as them, following the [service proxying](https://atproto.com/specs/xrpc#service-proxying) model. Absent an `atproto-proxy` header the PDS handles the request itself, which is what makes `com.atproto.repo.createRecord` work through HappyView. With one, the header is passed through for the PDS to relay onwards.
 
 Prefer **Service proxy**. Two consequences to weigh before switching:
 
-- **Anonymous unrecognized queries stop working.** Under authority routing an unauthenticated caller can hit an unrecognized NSID and get an answer. Under service proxy there is no PDS to forward to, so it returns 401. If clients rely on that, they need to authenticate first.
+- **Anonymous unrecognized queries stop working.** Under authority routing an unauthenticated caller can hit an unrecognized NSID and get an answer. Under service proxy there is no PDS to forward to, so it returns 401. Apps that rely on that need to authenticate first.
 - **Authenticated clients reach more.** Requests are forwarded with the user's token, so what a client can do is bounded by that token's scopes rather than by which lexicons you have registered. Scope your API clients before switching, per the section above.
 
-HappyView checks repo writes and blob uploads against the session's granted scopes before forwarding, and the PDS enforces scopes on every request. Scope your API clients to what each one needs.
+HappyView checks repo writes and blob uploads against the session's granted scopes before forwarding, and the PDS enforces scopes on every request.
 
 ## Scope linked repos narrowly, because you cannot edit them
 
 A [linked repo](/docs/guides/linked-repos) is an admin-managed OAuth grant over somebody's repo. Its scopes are **immutable**: changing them means revoking the grant and creating a new one, which requires the account holder to complete the invite again.
 
-Decide the scopes before you send the invite. A grant created with `repo:*` to "get it working" is a grant you will have to ask someone to re-authorize in order to narrow.
+Decide the scopes before you send the invite. A grant created with `repo:*` to "get it working" is a grant you will have to ask someone to re-authorize to narrow.
 
-Two rules apply when you write one:
+Two rules apply when you write a grant's scopes:
 
 - `putRecord` is an upsert, so it needs **both** `create` and `update` unless the caller supplies `swap_cid`. Passing `swap_cid` is a real no-create guarantee, which narrows the requirement to `update` alone.
 - Repo reads need no scope at all. There is no read permission in the grammar because repo records are public.
@@ -98,8 +99,7 @@ is established, to the exact `kid` that signed it. A refresh is only ever
 attempted with that same key, never with whatever key happens to be current
 later.
 
-**Losing the row for a key that sessions are pinned to destroys every one of
-those sessions permanently.** There is no key to sign their next refresh
+**Losing the row for a key destroys every session pinned to it, permanently.** There is no key to sign their next refresh
 with, and the authorization server has no way to accept one signed by a
 substitute. This applies to a `retiring` key just as much as to `current`:
 rotating a key keeps the old one so its existing sessions keep working, and
@@ -110,11 +110,11 @@ in the same database as every other table, so your regular
 [database backup](/docs/guides/self-hosting/production#backups) covers it,
 and restoring that backup restores it.
 
-## Understand what `atproto-proxy` forwarding means
+## Understand `atproto-proxy` forwarding
 
 When a request carries an `atproto-proxy` header, it is asking to be relayed onwards to a named service. HappyView forwards that header to the user's PDS rather than resolving it, because the token that accompanies a relayed request is signed by the *user's own identity key*, which only their PDS holds.
 
-The decision to sign for a given audience belongs to the party holding the key, which is the PDS. You decide who gets to make such a request at all, because registering a third-party API client is what grants it. Register clients deliberately, and scope them as above.
+The decision to sign for a given audience belongs to the party holding the key, which is the PDS. You decide who gets to make such a request at all, because registering an API client is what grants it. Register clients deliberately, and scope them as above.
 
 ## A checklist
 

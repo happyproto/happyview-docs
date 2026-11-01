@@ -145,13 +145,24 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..."  // your API client key
+accessToken := "..."    // DPoP access token
+dpopProof := "..."      // DPoP proof JWT
+
 body := `{ "text": "Hello world" }`
-req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.example.createPost", bytes.NewBufferString(body))
+req, err := http.NewRequest("POST", "http://127.0.0.1:3000/xrpc/xyz.example.createPost", bytes.NewBufferString(body))
+if err != nil {
+  log.Fatal(err)
+}
 req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

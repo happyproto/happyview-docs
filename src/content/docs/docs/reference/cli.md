@@ -6,7 +6,7 @@ description: "Every command, flag, environment variable and exit code of hpy and
 Two command-line tools work with HappyView:
 
 - **`hpy`**, HappyProto's CLI, is what you use day to day: it creates projects, runs them locally, tests them and deploys them. Its `happyview` commands download and run the right `happyview` binary for you.
-- **`happyview`** is the HappyView server itself. You run it directly when you self-host an instance.
+- **`happyview`** is HappyView itself, the program that serves an instance. You run it directly when you self-host an instance.
 
 ## hpy
 
@@ -88,7 +88,7 @@ Add plugins to `happyview.toml` and `happyview.lock` and download them. With no 
 | `hpy happyview types [--locked]` | Write editor types into `.happyview/types/`, and the `tsconfig.json` or `.luarc.json` that points editors at them. |
 | `hpy happyview build` | Build every compiled script module in `happyview.toml` into `.happyview/build/`. |
 
-`check`, `test` and `types` exit with the `happyview` binary's own code; see [happyview check](#happyview-check) and the commands after it.
+Their exit codes are under [hpy exit codes](#hpy-exit-codes).
 
 ### hpy happyview login, logout, whoami and deploy
 
@@ -102,7 +102,7 @@ Add plugins to `happyview.toml` and `happyview.lock` and download them. With no 
 
 | Flag | Default | What it does |
 | --- | --- | --- |
-| `--url <url>` | `HPY_HV_URL`, else the only instance you're signed in to | The instance, such as `https://happyview.example.com`. `login` asks for it when it's missing. |
+| `--url <url>` | `HPY_HV_URL`, else the only instance you're signed in to | The instance, such as `https://happyview.example.com`. `login` asks for it when it's missing, and `logout` falls back only to the one instance you're signed in to. |
 | `--no-browser` | off | Print the sign-in URL instead of opening it. |
 | `--key-stdin` | off | Read an API key from standard input instead of using a browser. Can't go with `[identifier]` or `--no-browser`. |
 | `--dry-run` | off | Show what would change on the instance without changing it. |
@@ -153,7 +153,7 @@ Add plugins to `happyview.toml` and `happyview.lock` and download them. With no 
 | `--wait` | off | Wait until the registry has copied the version's blobs. |
 | `-y`, `--yes` | off | Don't ask for confirmation. |
 
-`lifecycle` takes `[version] [event]`, or just `[event]` with `--project`. `event` is `endOfDevelopment`, `endOfSupport`, `supersededBy`, `endOfDistribution` or `endOfLife`.
+`lifecycle` takes `[version] [event]`, or only `[event]` with `--project`. `event` is `endOfDevelopment`, `endOfSupport`, `supersededBy`, `endOfDistribution` or `endOfLife`.
 
 | Flag | What it does |
 | --- | --- |
@@ -185,7 +185,7 @@ These are read from the environment only.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `HPY_HV_URL` | none | The instance to sign in to or deploy to. Wins over stored sign-ins. |
+| `HPY_HV_URL` | none | The instance to deploy to when `--url` isn't given. Wins over stored sign-ins. `login` and `logout` don't read it. |
 | `HPY_HV_API_KEY` | none | An `hv_` API key for that instance, for CI. Needs `HPY_HV_URL` or `--url`. Wins over a stored sign-in. |
 | `HPY_CREDENTIAL` | none | A registry credential from `hpy registry login --export`, for CI. |
 | `HPY_CACHE_DIR` | your platform's cache directory plus `hpy`, such as `~/.cache/hpy` | Where downloaded HappyView binaries and plugins are cached. |
@@ -229,7 +229,7 @@ Run `happyview` with no arguments to serve an instance. It reads its configurati
 
 | Variable | What it does |
 | --- | --- |
-| `HAPPYVIEW_PROJECT` | A project directory to build and serve at boot. If it doesn't build, the server prints every problem and exits `1`. |
+| `HAPPYVIEW_PROJECT` | A project directory to build and serve at boot. If it doesn't build, `happyview` prints every problem and exits `1`. |
 | `RUST_LOG` | The log filter. Default: `happyview=debug,tower_http=debug,sqlx=warn`. |
 
 It exits `1` if its configuration doesn't load.

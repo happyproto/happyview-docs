@@ -1,5 +1,6 @@
 ---
 title: Publishing lexicons
+description: Publish your uploaded and project lexicons as schema records so other apps can resolve them.
 ---
 
 Other apps can only resolve your lexicons if they're published on the network. HappyView can publish the lexicons it owns as `com.atproto.lexicon.schema` records, into either the instance's attached account or a [linked repo](/docs/guides/linked-repos), and can keep them up to date automatically.
@@ -37,9 +38,9 @@ Each rule sends lexicons to one of two places.
 
 ### The instance's account
 
-Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **attach account** mode (see [Service Identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
+Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **Attached account** mode (see [Service Identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
 
-Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If its session lacks that permission, or the account last signed in through the ordinary dashboard login, the target shows as unavailable with what the session was granted: press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
+Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If its session lacks that permission, or the account last signed in through the ordinary dashboard login, the target shows as unavailable and says to re-authenticate. Press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
 
 ### A linked repo
 
@@ -55,7 +56,7 @@ Add `&action=delete` as well if you want to be able to unpublish from it:
 repo:com.atproto.lexicon.schema?action=create&action=update&action=delete
 ```
 
-Both `create` and `update` are required, because publishing is an upsert. The **Link a repo** dialog has a preset that adds all three.
+Both `create` and `update` are required, because publishing is an upsert. The **Link a repo** panel has a **Lexicon publishing** preset that adds all three.
 
 Scopes on a grant are immutable. If a grant is missing one, the target shows as unavailable and says what to add; delete the grant and link the repo again with the right scopes. A linked repo that is pending, or needs reauthorization, is unavailable until it's active again.
 
@@ -115,7 +116,7 @@ Only one run happens at a time. A trigger that arrives mid-run doesn't start a s
 
 **Nothing ever unpublishes automatically.** Deleting a lexicon, deleting a rule, or pointing a rule somewhere else leaves published records where they are. A published schema is a public contract that other apps resolve, and removing one can break them.
 
-To remove a record, use **Unpublish**. A record whose lexicon you've since deleted is listed under **Published records without a lexicon** on the publishing page, with its own **Unpublish** button. It deletes the record from the account it was published to, using whichever credential holds that DID: the attached account, or the linked repo bound to it. If nothing HappyView holds can act as that account any more, unpublishing is refused and names the DID.
+To remove a record, use **Unpublish**. A record whose lexicon you've since deleted is listed under **Published records without a lexicon** on the publishing page, with its own **Unpublish** button. Unpublishing deletes the record from the account it was published to, using whichever credential holds that DID: the attached account, or the linked repo bound to it. If nothing HappyView holds can act as that account any more, unpublishing is refused and names the DID.
 
 Unpublishing also withdraws the lexicon from auto-publish: its status becomes `withdrawn`, and no auto-publish run puts the record back, even under a rule with auto-publish on. Publishing it by hand clears that and returns it to its rule's normal handling.
 

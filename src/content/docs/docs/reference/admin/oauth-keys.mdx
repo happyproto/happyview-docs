@@ -1,5 +1,6 @@
 ---
 title: OAuth keys
+description: "Admin API endpoints for listing, rotating and revoking the key the instance signs its OAuth client assertions with."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -8,7 +9,7 @@ Manage the ES256 key HappyView signs OAuth client assertions with. As a confiden
 
 Every session records the `kid` of the key that established it and is refreshed with **that** key, never with whichever key happens to be current later. That is what makes rotation safe: an authorization server treats a mismatched `kid` as grounds to destroy the session, not merely to refuse the request.
 
-Two operations, with very different consequences:
+Rotating and revoking a key have different consequences:
 
 - **Rotate** mints a new key, which becomes `current` after 75 minutes (or at once with `immediate`) and marks the previous one `retiring`. A retiring key stays published in the JWKS and keeps signing every session established with it, so nothing is logged out. Rotation is safe and cheap.
 - **Revoke** removes a key from the JWKS immediately and permanently breaks every session pinned to it. It is the response to a leaked or compromised key, not routine maintenance.
@@ -42,7 +43,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -64,7 +65,7 @@ GET /admin/oauth/instance-key
 
 Returns every key the instance holds, ordered `pending`, `current`, `retiring`, then `revoked`. Revoked keys are included deliberately, so an operator can confirm a revoke took effect.
 
-`session_count` is the number of live sessions pinned to that key, counted across the dashboard, linked-repo, and DPoP session tables. For a **revoked** key the number is retained rather than zeroed: revoking does not delete session rows, so the count tells you how many users that revoke forced to re-authenticate.
+`session_count` is the number of live sessions pinned to that key, counted across the dashboard, linked-repo, and DPoP session tables. For a **revoked** key the number is retained rather than zeroed: revoking does not delete session rows, so the count tells you how many sessions that revoke ended.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -117,6 +118,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/oauth/instance-key", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -135,14 +140,14 @@ curl -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key
     {
       "kid": "f0c3a1e2-...",
       "status": "current",
-      "created_at": "2026-08-29T10:14:02Z",
+      "created_at": "2026-08-29T10:14:02.512+00:00",
       "activates_at": null,
       "session_count": 128
     },
     {
       "kid": "8b41d0aa-...",
       "status": "retiring",
-      "created_at": "2026-02-11T08:02:55Z",
+      "created_at": "2026-02-11T08:02:55.084+00:00",
       "activates_at": null,
       "session_count": 37
     }
@@ -156,7 +161,7 @@ curl -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key
 POST /admin/oauth/instance-key/rotate
 ```
 
-Mints a new key. By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating while a key is pending returns that pending key. An instance with no current key gets its new key as `current` at once.
+Mints a new key. By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating while a key is pending returns that pending key, and with `immediate` makes that pending key `current` rather than minting another. An instance with no current key gets its new key as `current` at once.
 
 Nothing is logged out: the retiring key stays in the published JWKS and keeps signing refreshes for every session established with it. New sessions use the new key once it is current.
 
@@ -217,6 +222,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/oauth/instance-key/rotate", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -233,7 +242,7 @@ curl -X POST -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key/rotate
 {
   "kid": "f0c3a1e2-...",
   "status": "pending",
-  "activates_at": "2026-08-29T11:29:02+00:00",
+  "activates_at": "2026-08-29T11:29:02.512Z",
   "orphaned_sessions": 0
 }
 ```
@@ -244,7 +253,7 @@ curl -X POST -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key/rotate
 DELETE /admin/oauth/instance-key/{kid}
 ```
 
-Removes the key from the published JWKS immediately and destroys every session pinned to it, and those users must log in again. Use this when a key has leaked, not to tidy up old keys; a retiring key with no remaining sessions is revoked automatically.
+Removes the key from the published JWKS immediately and destroys every session pinned to it, so whoever held one of those sessions must log in again. Use this when a key has leaked, not to tidy up old keys: an hourly cleanup revokes every retiring key that no session is pinned to.
 
 `sessions_destroyed` reports how many sessions the revoke invalidated.
 
@@ -301,10 +310,16 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+kid := "..." // the key to revoke
+
 url := "http://127.0.0.1:3000/admin/oauth/instance-key/" + kid
 req, _ := http.NewRequest("DELETE", url, nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -327,8 +342,8 @@ curl -X DELETE -H "$AUTH" \
 
 ## Responding to a leaked key
 
-1. `POST /admin/oauth/instance-key/rotate` with `{ "immediate": true }`. The leaked key becomes `retiring`, a fresh key becomes `current`, and the instance keeps working throughout.
-2. `GET /admin/oauth/instance-key`. Confirm the leaked key is now `retiring` and note its `session_count`, which is how many users step 3 will sign out.
+1. `POST /admin/oauth/instance-key/rotate` with `{ "immediate": true }`. The leaked key becomes `retiring`, a new key (the pending one, if a rotation was waiting) becomes `current`, and the instance keeps working throughout.
+2. `GET /admin/oauth/instance-key`. Confirm the leaked key is now `retiring` and note its `session_count`, which is how many sessions step 3 will end.
 3. `DELETE /admin/oauth/instance-key/{kid}` on the leaked key.
 
-Doing this in the other order is refused: the current key cannot be revoked, because that would leave the instance with no key to authenticate with.
+Doing this in the other order is refused, because the current key cannot be revoked.

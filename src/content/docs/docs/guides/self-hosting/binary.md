@@ -1,5 +1,6 @@
 ---
 title: Native binary
+description: Run HappyView from a release archive, with its dashboard and migrations built in.
 ---
 
 Every v3 alpha release publishes a self-contained `happyview` binary for macOS (Apple silicon and Intel) and Linux (x86_64 and arm64, glibc and static musl). It carries its dashboard and its database migrations, so it needs nothing beside it but a database. There is no Windows build.
@@ -14,7 +15,7 @@ Every v3 alpha release publishes a self-contained `happyview` binary for macOS (
    cd happyview-<target>
    ```
 
-4. Start the server:
+4. Start HappyView:
 
    ```bash
    DATABASE_URL="sqlite://$PWD/data/happyview.db?mode=rwc" \
@@ -29,6 +30,6 @@ The startup log warns that no interpreter is installed. Install one before savin
 
 The archive also holds `happyview-codemod`, `migrate-lua-sql` and `migrate-space-cids`; [Other binaries](/docs/reference/cli#other-binaries) describes them.
 
-The dashboard is served from inside the binary, and `BASE_PATH` is applied to it as it is served. Set `STATIC_DIR` to serve a different build from disk instead. The server does not rewrite files read from a directory, so that build has to be exported for the subpath you serve it under; the Docker image does this itself at startup, which is why `BASE_PATH` works there. A `STATIC_DIR` that is set but empty counts as unset.
+The dashboard is served from inside the binary, and `BASE_PATH` is applied to it as it is served. Set `STATIC_DIR` to serve a different build from disk instead. HappyView does not rewrite files read from a directory, so that build has to be exported for the subpath you serve it under. The Docker image rewrites its own copy at startup, which is why `BASE_PATH` works there. A `STATIC_DIR` that is set but empty counts as unset.
 
 Set `PLUGIN_REGISTRY_URL=off` on an instance with no outbound network to stop it reading the official registry.

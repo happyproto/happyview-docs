@@ -1,5 +1,6 @@
 ---
 title: "Records"
+description: "Write, read and list records in a space, and read a repo's commit, operation log, CAR export, writer set and blobs."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -16,12 +17,12 @@ at:// did:plc:abcdefghijklmnop1234567890 / space / com.example.forum / main     
 ```
 
 :::note
-When a repository has moved to its author's PDS, HappyView forwards record writes to that PDS. This bridge is deprecated. A write returns `403` when HappyView holds no session for the author.
+When a repository has moved to its author's PDS, HappyView forwards `createRecord`, `putRecord` and `deleteRecord` to that PDS. This bridge is deprecated. A write returns `403` when HappyView holds no session for the author.
 :::
 
 ## Creating a record
 
-Requires `write` membership in the space. The rkey is auto-generated using a TID.
+The caller must be a member with `write` access. HappyView generates the rkey as a TID.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -104,6 +105,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "collection": "com.example.forum.post",
@@ -120,6 +125,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -166,7 +175,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.space.createRecord'
 
 ## Updating a record
 
-Requires `write` membership in the space.
+The caller must be a member with `write` access.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -252,6 +261,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "collection": "com.example.forum.post",
@@ -269,6 +282,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -314,15 +331,15 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.space.putRecord' \
 }
 ```
 
-The author DID is taken from the authenticated user. You can only write records as yourself, so the URI's author component will always be your DID.
+HappyView takes the author DID from the authenticated caller, so you can write records only as yourself and the URI's author component is always your DID.
 
 `putRecord` performs an upsert: if a record with the same collection + rkey already exists for this author in this space, it's overwritten. Use `swapRecord` to prevent unintended overwrites (see [Optimistic concurrency](#optimistic-concurrency) below).
 
 ## Getting a record
 
-Requires `read` membership (or a valid [space credential](/docs/guides/spaces/credentials)).
+The caller must be a member with `read` access, or present a valid [space credential](/docs/guides/spaces/credentials).
 
-Members with `read_self` access can only retrieve their own records. Attempting to read another user's record returns `403 Forbidden`.
+Members with `read_self` access can read only their own records. Reading another author's record returns `403 Forbidden`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -396,6 +413,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.getRecord?space=at://did:web:happyview.example.com/space/com.example.forum/main&collection=com.example.forum.post&rkey=3k2abc",
   nil)
@@ -403,6 +424,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -423,10 +448,11 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getRecord?space=at://
 | Field        | Type          | Required | Description                     |
 | ------------ | ------------- | -------- | ------------------------------- |
 | `space`      | string        | Yes      | The space containing the record |
+| `repo`       | string        | No       | The author's DID                |
 | `collection` | string (NSID) | Yes      | The record collection           |
 | `rkey`       | string        | Yes      | The record key                  |
 
-`getRecord` finds a record by space, collection and rkey only. If two authors use the same rkey in the same collection, the result is ambiguous.
+Without `repo`, HappyView returns the caller's own record when one exists, and otherwise the record whose author DID sorts first. A caller with a [space credential](/docs/guides/spaces/credentials) reads the repo its request is addressed to, and a `read_self` member reads only their own. Pass `repo` when several authors may use the same rkey.
 
 **Response:**
 
@@ -444,7 +470,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getRecord?space=at://
 
 ## Listing records
 
-Requires `read` membership (or a valid [space credential](/docs/guides/spaces/credentials)). Members with `read_self` access list only their own records.
+The caller must be a member with `read` access, or present a valid [space credential](/docs/guides/spaces/credentials). Members with `read_self` access list only their own records.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -524,6 +550,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.listRecords?space=at://did:web:happyview.example.com/space/com.example.forum/main&collection=com.example.forum.post&limit=20",
   nil)
@@ -531,6 +561,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -555,7 +589,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRecords?space=at:
 | `collection`    | string  | No       |         | Filter by collection NSID                     |
 | `limit`         | integer | No       | 50      | Max records to return (1-100)                 |
 | `cursor`        | string  | No       |         | Pagination cursor                             |
-| `reverse`       | boolean | No       | `false` | Reverse sort order (oldest first)             |
+| `reverse`       | boolean | No       | `false` | List newest first. By default the oldest record comes first. |
 | `includeValues` | boolean | No       | `false` | Include each record's `value` in the response |
 
 **Response:**
@@ -574,15 +608,15 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRecords?space=at:
       }
     }
   ],
-  "cursor": "MjAyNi0wNS0wOVQxMjowMDowMFp8YXRzOi8vZGlkOnBsYzphYmMxMjMvY29tLmV4YW1wbGUuZm9ydW0vbWFpbg"
+  "cursor": "MjAyNi0wNS0wOVQxMjowMDowMCswMDowMHxhdDovL2RpZDp3ZWI6aGFwcHl2aWV3LmV4YW1wbGUuY29tL3NwYWNlL2NvbS5leGFtcGxlLmZvcnVtL21haW4vZGlkOnBsYzphdXRob3IvY29tLmV4YW1wbGUuZm9ydW0ucG9zdC8zazJhYmM="
 }
 ```
 
-`value` is only present when `includeValues` is `true`. By default each entry carries just `collection`, `rkey`, and `cid`.
+`value` is only present when `includeValues` is `true`. By default each entry carries only `collection`, `rkey`, and `cid`.
 
 ## Deleting a record
 
-You can only delete your own records. Requires `write` membership.
+You can delete only your own records, and must be a member with `write` access.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -646,6 +680,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "collection": "com.example.forum.post",
@@ -658,6 +696,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -688,11 +730,11 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.space.deleteRecord'
 | `rkey`       | string        | Yes      | The record key                                                   |
 | `swapRecord` | string        | No       | Expected CID of the existing record (for optimistic concurrency) |
 
-Attempting to delete another user's record returns `403 Forbidden`.
+HappyView builds the record's URI from your DID, so a `collection` and `rkey` that only another author uses return `404 Not Found`.
 
 ## Batch writes (applyWrites)
 
-`applyWrites` performs multiple create, update, and delete operations in a single request. Requires `write` membership.
+`applyWrites` performs multiple create, update, and delete operations in a single request. The caller must be a member with `write` access.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -814,6 +856,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "writes": [
@@ -843,6 +889,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -913,11 +963,11 @@ Each entry in `results` corresponds to the write at the same index. Create and u
 
 ## Optimistic concurrency
 
-`swapRecord` and `swapCommit` provide optimistic concurrency control to prevent lost updates when multiple clients write to the same space.
+`swapRecord` and `swapCommit` provide optimistic concurrency control to prevent lost updates when several writers change the same space.
 
 ### swapRecord
 
-Pass the `swapRecord` field on `putRecord`, `deleteRecord`, or individual operations within `applyWrites`. The value is the CID of the record you expect to be replacing. If the record's current CID doesn't match, the operation fails with `409 Conflict`.
+Pass the `swapRecord` field on `putRecord`, `deleteRecord`, or individual operations within `applyWrites`. The value is the CID of the record you expect to be replacing. If the record's current CID doesn't match, the operation fails with `409 Conflict`, and if no such record exists, with `404 Not Found`.
 
 ```json
 {
@@ -931,9 +981,9 @@ Pass the `swapRecord` field on `putRecord`, `deleteRecord`, or individual operat
 
 ### swapCommit
 
-Pass the `swapCommit` field on `applyWrites` to assert the space's current revision. If another client has written to the space since you last read its state, the operation fails with `409 Conflict` before any writes are applied.
+Pass the `swapCommit` field on `applyWrites` to assert the space's current revision. If another write has reached the space since you last read its state, the operation fails with `409 Conflict` before any writes are applied.
 
-The space's current revision is available as `revision` in the space object returned by `com.atproto.simplespace.getSpace`.
+The space's current revision is `revision` in the space object returned by [`com.atproto.simplespace.getSpace`](/docs/guides/spaces/managing-spaces#getting-a-space). Only the space's creator, an operator with superadmin, or a caller with a space credential can read it there.
 
 ```json
 {
@@ -945,7 +995,7 @@ The space's current revision is available as `revision` in the space object retu
 
 ## Latest commit
 
-Returns the per-user signed commit for a space, including the current revision and deniable commit data.
+`getLatestCommit` returns the per-user signed commit for a space, including the current revision and deniable commit data.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -965,10 +1015,10 @@ interface LatestCommitResponse {
   rev: string | null;
   commit: {
     ver: number;
-    hash: string;
-    ikm: string;
-    sig: string;
-    mac: string;
+    hash: { $bytes: string };
+    ikm: { $bytes: string };
+    sig: { $bytes: string };
+    mac: { $bytes: string };
     rev: string;
   } | null;
 }
@@ -1014,6 +1064,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.getLatestCommit?space=at://did:web:happyview.example.com/space/com.example.forum/main&did=did:plc:author",
   nil)
@@ -1021,6 +1075,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -1052,7 +1110,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getLatestCommit?space
 
 ## Record operation log
 
-Returns the operation log for a user in a space. Each write (create, update, delete) is recorded as an oplog entry.
+`listRepoOps` returns the operation log for a user in a space. HappyView records each write (create, update, delete) as an oplog entry.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1111,6 +1169,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at://did:web:happyview.example.com/space/com.example.forum/main&did=did:plc:author",
   nil)
@@ -1118,6 +1180,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -1160,7 +1226,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
       "cid": "bafyrei...",
       "prev": null,
       "value": { "text": "hello world" },
-      "created_at": "2026-05-09T12:00:00Z"
+      "created_at": "2026-05-09T12:00:00.482913+00:00"
     }
   ],
   "cursor": "3l2tkbx7225co:0",
@@ -1175,13 +1241,13 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
 }
 ```
 
-Each entry records a single write operation. The `action` is one of `create`, `update`, or `delete`. The `prev` field contains the CID of the record before the operation (for updates and deletes). The `value` field contains the record's current value (omitted for deletes or when `excludeValues=true`). Entry fields are snake_case.
+Each entry records a single write operation. The `action` is one of `create`, `update`, or `delete`. The `prev` field contains the CID of the record before the operation (for updates and deletes). The `value` field contains the record value the operation wrote, and is omitted for deletes, when `excludeValues=true`, and once a later write has replaced or deleted that record. Entry fields are snake_case.
 
-`cursor` is the position of the last entry returned, as `{rev}:{idx}`; pass it back to read the next page. `commit` is the repo's current commit, so a syncer can fetch the ops and verify them in one round trip.
+`cursor` is the position of the last entry returned, as `{rev}:{idx}`; pass it back to read the next page. It is `null` when no more entries remain. `commit` is the repo's current commit, so a syncer can fetch the ops and verify them in one round trip.
 
 ## Repo export
 
-Exports a user's full repo within a space as a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
+`getRepo` exports a user's full repo within a space as a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1239,6 +1305,10 @@ let bytes = response.bytes().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.getRepo?space=at://did:web:happyview.example.com/space/com.example.forum/main&did=did:plc:author",
   nil)
@@ -1246,6 +1316,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -1273,9 +1347,9 @@ The response body is a CAR v1 file with content type `application/vnd.ipld.car`.
 
 ## Listing repos
 
-Returns the space's writer set: every repo whose writes the space has accepted, with its current revision and LtHash digest. A repo joins the writer set when it commits to the space and passes the space's [write policy](/docs/guides/spaces/managing-spaces#policies).
+`listRepos` returns the space's writer set: every repo whose writes the space has accepted, with its current revision and LtHash digest. A repo joins the writer set when it commits to the space and passes the space's [write policy](/docs/guides/spaces/managing-spaces#policies).
 
-Syncers call this to find every repo in the space, and to catch up after missing a [write notification](/docs/guides/spaces/notifications). The caller must be a member, or present a [space credential](/docs/guides/spaces/credentials) whose audience is the space authority's DID.
+Syncers call this to find every repo in the space, and to catch up after missing a [write notification](/docs/guides/spaces/notifications). The caller must be a member with `read` access to the whole space, or present a [space credential](/docs/guides/spaces/credentials) whose audience is the space authority's DID.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1340,6 +1414,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.listRepos?space=at://did:web:happyview.example.com/space/com.example.forum/main",
   nil)
@@ -1347,6 +1425,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -1405,7 +1487,7 @@ To stay in sync, a syncer keeps the last `spaceRev` it processed and passes it a
 
 ## Getting a blob
 
-Retrieves a blob from a space. The blob is fetched from the author's PDS and proxied through HappyView with access control.
+`getBlob` returns a blob from a space. The blob must be referenced by a record in the space, or the call returns `404 Not Found`. HappyView fetches it from the author's PDS and passes it through with access control.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1463,6 +1545,10 @@ let bytes = response.bytes().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.getBlob?space=at://did:web:happyview.example.com/space/com.example.forum/main&cid=bafyrei...",
   nil)
@@ -1470,6 +1556,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -1497,7 +1587,7 @@ The response body is the raw blob data with the original `Content-Type` header p
 
 ## Listing blobs
 
-Lists the CIDs of the blobs a repo's records reference.
+`listBlobs` lists the CIDs of the blobs a repo's records reference.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1556,6 +1646,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.listBlobs?space=at://did:web:happyview.example.com/space/com.example.forum/main&repo=did:plc:author",
   nil)
@@ -1563,6 +1657,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

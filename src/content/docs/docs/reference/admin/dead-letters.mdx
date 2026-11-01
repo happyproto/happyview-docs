@@ -1,12 +1,13 @@
 ---
 title: Dead letters
+description: "Admin API endpoints for listing, dismissing, retrying and reindexing script runs that failed every attempt."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: the legacy record-index path (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). Both tables are surfaced through a single unified API.
 
-Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/reference/configuration)). Unresolved ones are kept until someone deals with them.
+Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/reference/configuration)). Unresolved ones are kept until an operator dismisses, retries or reindexes them.
 
 Read endpoints require `dead-letters:read`. Action endpoints (dismiss, retry, reindex) require `dead-letters:manage`.
 
@@ -37,7 +38,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -106,6 +107,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters?limit=10", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -197,6 +202,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters/count", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -265,6 +274,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters/42", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -279,7 +292,7 @@ curl "http://127.0.0.1:3000/admin/dead-letters/42" -H "$AUTH"
 
 **Response**: `200 OK`
 
-The response includes all fields from the list view plus a `record` field containing the original record data (if available). Returns `404` if the dead letter is not found.
+The response includes all fields from the list view plus a `record` field. For a record dead letter it holds the original record data, or `null` when none was kept; for a label dead letter it holds the whole label. Returns `404` if the dead letter is not found.
 
 ## Dismiss a dead letter
 
@@ -331,6 +344,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/dismiss", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -345,7 +362,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/42/dismiss" -H "$AUTH"
 
 **Response**: `200 OK` with `{"ok": true}`
 
-Returns `404` if the dead letter is not found.
+Returns `404` if the dead letter is not found. Dismissing a dead letter that is already resolved succeeds and sets its `resolved_at` to the current time.
 
 ## Retry a dead letter
 
@@ -399,6 +416,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/retry", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -421,7 +442,7 @@ Returns `404` if no matching script binding is found, or if the dead letter is n
 POST /admin/dead-letters/{id}/reindex
 ```
 
-Fetches the record fresh from the author's PDS and re-runs the full record indexing pipeline. On success the dead letter is marked resolved. Label-arrival dead letters cannot be reindexed and return `400 Bad Request`.
+Fetches the record fresh from the author's PDS and re-runs the full record indexing pipeline. Once the PDS has returned the record, the dead letter is marked resolved, whatever the pipeline then does with it. A PDS that can't be reached or answers with an error returns `500 Internal Server Error` and leaves the dead letter unresolved. Label-arrival dead letters cannot be reindexed and return `400 Bad Request`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -465,6 +486,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/reindex", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -478,6 +503,8 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/42/reindex" -H "$AUTH"
 </Tabs>
 
 **Response**: `200 OK` with `{"ok": true}`
+
+Returns `404` if the dead letter is not found or already resolved.
 
 ## Bulk dismiss
 
@@ -493,7 +520,7 @@ Dismiss multiple dead letters at once.
 | `all`        | boolean  | no       | Set to `true` to dismiss all unresolved dead letters  |
 | `collection` | string   | no       | When `all` is true, limit to this collection          |
 
-One of `ids` or `all: true` is required.
+One of `ids` or `all: true` is required; without either the request returns `400 Bad Request`. When `all` is `true`, `ids` is ignored.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -572,6 +599,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -588,6 +619,8 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss" \
 </Tabs>
 
 **Response**: `200 OK` with `{"ok": true}`
+
+With `ids`, the dead letters are dismissed in order, and the first id that matches no dead letter stops the request with `404`. The ones before it stay dismissed.
 
 ## Bulk retry
 
@@ -662,6 +695,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -761,6 +798,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

@@ -1,5 +1,6 @@
 ---
 title: "Spaces"
+description: "Admin API endpoints for browsing spaces, their members, records and blobs for moderation, and for space migration status."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -35,7 +36,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -102,6 +103,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces?limit=20", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -192,6 +197,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-...", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -275,6 +284,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.example.forum.post", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -306,7 +319,7 @@ curl "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.exa
 }
 ```
 
-`cursor` is omitted when there are no more results.
+`cursor` is returned whenever a page is full, so the last page can be empty. Each request is logged with the URIs of the records it returned.
 
 ## Get a blob in a space
 
@@ -360,6 +373,10 @@ let bytes = response.bytes().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei...", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -396,7 +413,7 @@ How far each space's repositories have moved from HappyView-hosted copies to the
 }
 ```
 
-- `polyfill`, `migrating` and `native` count the space's repositories by where they're hosted: still on HappyView, moving, or on the author's PDS.
+- `polyfill`, `migrating` and `native` count the space's repositories by where they're hosted: still on HappyView, moving, or on the author's PDS. A space with no repositories is not listed.
 - `awaitingAuthorization` counts accounts whose repositories are still on HappyView and who haven't signed in with a session granting `space:` access, so they can't move yet.
-- `detection` is what HappyView last found out about each PDS's support for spaces, and what it's `missing`. `tier` says how it found out: `descriptor` (the PDS lists its own methods), `probe` (inferred from how it answers a method that needs auth) or `unreachable` (it couldn't be reached, which says nothing about it).
+- `detection` is what HappyView last found out about each PDS's support for spaces, and what it's `missing`. `tier` says how it found out: `descriptor` (the PDS lists its own methods), `probe` (inferred from how it answers a method that needs auth) or `unreachable` (HappyView couldn't reach the PDS, which says nothing about its support).
 

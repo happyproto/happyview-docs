@@ -1,5 +1,6 @@
 ---
 title: "API keys"
+description: "Admin API endpoints for creating, listing and revoking your own admin API keys."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -33,7 +34,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -128,6 +129,10 @@ req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/api-keys", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -149,7 +154,7 @@ curl -X POST http://127.0.0.1:3000/admin/api-keys \
 | Field         | Type     | Required | Description                                                                           |
 | ------------- | -------- | -------- | ------------------------------------------------------------------------------------- |
 | `name`        | string   | yes      | A label to identify this key's usage                                                  |
-| `permissions` | string[] | yes      | Permissions to grant the key. A permission you don't hold yourself returns `403 Forbidden` |
+| `permissions` | string[] | yes      | Permissions to grant the key. A permission you don't hold yourself returns `403 Forbidden`. A string that names no permission is stored but grants nothing |
 
 **Response**: `201 Created`
 
@@ -163,7 +168,7 @@ curl -X POST http://127.0.0.1:3000/admin/api-keys \
 }
 ```
 
-The `key` field contains the full API key. It is only returned in this response, so store it securely. The key's effective permissions are the **intersection** of the permissions specified here and the creating operator's permissions at the time of each request.
+The `key` field contains the full API key. It is only returned in this response, so store it securely. The key's effective permissions are the **intersection** of the permissions specified here and the creating operator's permissions at the time of each request. A key never carries the superadmin privilege, even when its operator holds it, so a superadmin-only endpoint such as `POST /admin/users/transfer-super` refuses every API key.
 
 ## List API keys
 
@@ -177,10 +182,20 @@ Requires `api-keys:read` permission.
 <TabItem label="TypeScript">
 
 ```ts
+interface ApiKeySummary {
+  id: string;
+  name: string;
+  key_prefix: string;
+  permissions: string[];
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
 const response = await fetch("http://127.0.0.1:3000/admin/api-keys", {
   headers,
 });
-const data: ApiKey[] = await response.json();
+const data: ApiKeySummary[] = await response.json();
 ```
 
 </TabItem>
@@ -197,6 +212,7 @@ const data = await response.json();
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 let response = client
     .get("http://127.0.0.1:3000/admin/api-keys")
     .bearer_auth(token)
@@ -212,6 +228,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/api-keys", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -274,6 +294,7 @@ const response = await fetch(
 <TabItem label="Rust">
 
 ```rust
+let client = reqwest::Client::new();
 client
     .delete("http://127.0.0.1:3000/admin/api-keys/550e8400-e29b-41d4-a716-446655440000")
     .bearer_auth(token)
@@ -289,6 +310,10 @@ req, _ := http.NewRequest("DELETE",
   "http://127.0.0.1:3000/admin/api-keys/550e8400-e29b-41d4-a716-446655440000", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

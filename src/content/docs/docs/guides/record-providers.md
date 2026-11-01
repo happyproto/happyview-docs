@@ -1,12 +1,13 @@
 ---
 title: "Record providers"
+description: "The traits a record source or record storage implements to run HappyView with its own providers, and the conformance kit that tests one."
 ---
 
 HappyView gets its records from a record source and, optionally, keeps some of them in an external record storage. Both are traits in an open crate, so you can build your own and run HappyView with them. The built-in setup is the Jetstream source with no external storage, which is what `happyview` runs unless you change it. Everything in [Backfill](/docs/guides/backfill) and the Jetstream settings in the [configuration reference](/docs/reference/configuration) (`JETSTREAM_URL` and the rest) describe that built-in source.
 
 You only need this page if you are writing a provider. If you run HappyView as it ships, nothing here changes anything for you.
 
-## What a provider is
+## Sources and storages
 
 A provider is one or both of:
 
@@ -57,11 +58,11 @@ This is what HappyView gives a provider.
 | `migrations(backend) -> Option<&'static Migrator>` | The source's own schema for that backend. HappyView runs it after its own migrations. |
 | `start(Arc<Self>, Arc<dyn Host>)` | Spawn live ingest and resume interrupted jobs, then return. |
 | `admin_routes() -> axum::Router` | Mounted under `/admin`, behind HappyView's auth layer. The layer inserts an `AdminCaller` with the caller's DID and permission strings. A route takes `AdminCaller` or `AdminUser` (which also refuses the managed-hosting platform key) and calls `require("some:permission")`. A refusal is logged the way HappyView's own are. |
-| `start_backfill(BackfillRequest) -> Result<Option<String>, BackfillError>` | For automatic and gap backfills. `None` means the source decided no job was needed. Otherwise the job id. |
+| `start_backfill(BackfillRequest) -> Result<Option<String>, BackfillError>` | Start a backfill of kind `Manual`, `Automatic` or `Gap { after_seq }`. HappyView itself asks only for automatic ones. `None` means the source decided no job was needed. Otherwise the job id. |
 | `has_backfill(collection)`, `backfill_running(collection)` | Whether a backfill exists or is running for a collection. |
 | `status() -> serde_json::Value`, `metrics() -> Vec<(String, i64)>` | For the admin status page and telemetry. |
 
-### What a source owes HappyView
+### A source's obligations
 
 - Deliver every commit for the tracked collections, and always for `com.atproto.lexicon.schema`, whatever the tracked list says. Also deliver account, identity and sync events.
 - Send every record through `Host::ingest` or `ingest_batch`. A source never writes records itself.
@@ -98,7 +99,7 @@ For a collection a storage claims:
 - **Writes** from HappyView go through the storage too. A local write is a `Pending` delta until the record comes back from the source.
 - **Deletes** from an event clear the delta unconditionally: a `Proceed` with `for_rev: None`, so no `Replace` or `Hide` outlives the record and covers a later re-create of the same key. The storage owns removing the record itself. An admin delete does not clear anything. It hides the record with a `Hide` delta, also with `for_rev: None`.
 - **Events** carry `stored: true` when the body is already in the storage. HappyView then runs the record script and writes only its delta. HappyView refuses an event for a claimed collection that is not marked stored, with a `record.unstored_claimed` warning in the event log, so nothing is ever written to the local tables.
-- **Raw SQL** writes the local tables as before for unclaimed collections, and without a raw route it reads them as before too. Read-only raw SQL that reads only `happyview_records` and `happyview_record_refs` runs on the storage's `raw_route` when it offers one, so it sees claimed records, and so does a table query (`host_table_query`, or `sql.from` in Lua) of either view. Every read of those views then goes to the route, so records of unclaimed collections held in the local tables can't be read through them. A raw write runs locally whatever it reads, so `INSERT … SELECT FROM happyview_records` sees only local rows. To read one local collection quickly, see [Reading one collection](/docs/guides/database/database-setup#reading-one-collection). Placeholders and SQL dialect follow the route's backend. A query that mixes those views with other tables is refused, because it cannot run in one place. While the storage is unavailable, a routed query fails with `STORAGE_UNAVAILABLE`, which a script that passes it on answers as a 503; any other database error from the route is reported with a note of which backend ran the query. Without a raw route, a claimed collection's records are queryable only in the storage's own database. Writes to claimed collections stay refused: a `db.raw` write that names one of their records fails with an error that says to use `records.indexPut`, so a record script cannot create a local row that reads never see. While a storage is configured, a raw write to `happyview_records` that names no collection or record URI is refused too, because HappyView cannot tell whether it touches a claimed record.
+- **Raw SQL** writes the local tables for unclaimed collections as it does on an instance with no storage, and without a raw route it reads them the same way. Read-only raw SQL that reads only `happyview_records` and `happyview_record_refs` runs on the storage's `raw_route` when it offers one, so it sees claimed records. So does a table query (`host_table_query`, or `sql.from` in Lua) of either view. Every read of those views then goes to the route, so records of unclaimed collections held in the local tables can't be read through them. A raw write runs locally whatever it reads, so `INSERT … SELECT FROM happyview_records` sees only local rows. To read one local collection quickly, see [Reading one collection](/docs/guides/database/database-setup#reading-one-collection). Placeholders and SQL dialect follow the route's backend. A query that mixes those views with other tables is refused, because it cannot run in one place. While the storage is unavailable, a routed query fails with `STORAGE_UNAVAILABLE`, which a script that passes it on answers as a 503. Any other database error from the route is reported with a note of which backend ran the query. Without a raw route, a claimed collection's records are queryable only in the storage's own database. Writes to claimed collections stay refused, so a record script cannot create a local row that reads never see. A `sql.raw` write that names one of their records fails with an error that says to use `records.indexPut`; from a script, that is `save_local` in the `happyview.record` library. While a storage is configured, a raw write to `happyview_records` that names no collection or record URI is refused too, because HappyView cannot tell whether it touches a claimed record.
 - **Outages.** When the storage is down (`unavailable` says so), requests for a claimed collection answer 503 `ServiceUnavailable`, which a client can retry:
   - every XRPC read, whether the default get and list or a script's record queries;
   - a write that fails before anything else accepted it: a script's index write or index delete, and an admin delete.
@@ -160,7 +161,7 @@ The binary accepts the same commands as `happyview`, and `run` prints the usage 
 
 ## Testing a provider
 
-The conformance kit runs a fixed set of cases against your providers. Each case boots a fresh instance, feeds it records, and checks what HappyView then serves: record scripts that replace, skip or leave a record on create, a skip on update, updates, deletes, history from a backfill, account removal, redelivery, and the 503 a claimed read answers while the storage is down. A provider passes by behaving as the built-in one does.
+The conformance kit runs a fixed set of cases against your providers. Each case boots a fresh instance, feeds it records, and checks what HappyView then serves. The cases cover record scripts that replace, skip or leave a record on create, a skip on update, updates, deletes, history from a backfill, account removal and redelivery. Two more check the 503 a claimed read answers while the storage is down, and that a storage's raw route shows the same body XRPC serves (skipped for a storage with no raw route). A provider passes by behaving as the built-in one does.
 
 You supply two things: a function that builds your `Providers`, and a `Feeder` that puts records into your provider's world. The kit calls the function once per case so cases do not share state.
 
@@ -180,22 +181,22 @@ async fn my_provider_conforms() {
 
 `Feeder::new(put, delete)` takes two functions, each given a `RecordEvent`. For a source, they deliver the event the way your source would. For a claiming storage, `put` writes the stored row first and then delivers the event with `stored: true`, and `delete` removes the row and then delivers the delete. `Feeder::after_each` adds a check of your own after each case, and `without_delete_bodies` says your deletes carry no body. The cases use the collection `conformance::COLLECTION`. A storage claims that one, and must also give `Feeder::make_unavailable`, a function that takes the storage down so its reads fail as `unavailable` recognises. The 503 case fails, saying so, when a claiming storage leaves it out. For providers that claim nothing, that case checks only that the query serves.
 
-`tests/conformance.rs` in the repository has two complete runs: the default providers with a scripted source, and an external store.
+`tests/conformance.rs` in the repository has two complete runs: the default providers with a scripted source, and an external storage.
 
-In your own crate, depend on HappyView with its `testkit` feature in `[dev-dependencies]`, and on the contract crate's `testkit` feature if you use `ScriptedSource`. The contract crate lives in the same repository as HappyView, so take both from the same git source:
+In your own crate, depend on HappyView with its `testkit` feature in `[dev-dependencies]`, and on the contract crate's `testkit` feature if you use `ScriptedSource`. The contract crate lives in the same repository as HappyView, so take both from the same git source. While v3 is in alpha, that is the `alpha` branch:
 
 ```toml
 [dev-dependencies]
-happyview = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", features = ["testkit"] }
-happyview-provider = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", features = ["testkit"] }
+happyview = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "alpha", features = ["testkit"] }
+happyview-provider = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "alpha", features = ["testkit"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-Put the test above in `tests/conformance.rs` and run it with the `testkit` feature:
+Put the test above in `tests/conformance.rs` and run it. The `[dev-dependencies]` entries already turn the `testkit` features on, so the command names none:
 
 ```bash
 TEST_DATABASE_URL=postgres://... HAPPYVIEW_LUA_PLUGIN=/path/to/lua-plugin \
-  cargo test --features testkit --test conformance
+  cargo test --test conformance
 ```
 
 - `HAPPYVIEW_LUA_PLUGIN` is required because the record scripts are real Lua. Point it at the Lua interpreter plugin. CI fetches it with `scripts/fetch-lua-plugin.sh`.

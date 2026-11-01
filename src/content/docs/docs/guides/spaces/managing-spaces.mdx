@@ -1,5 +1,6 @@
 ---
 title: Managing spaces
+description: "Create, read, list, update and delete spaces, and set their read and write policies, app access and configuration."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -120,6 +121,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "spaceType": "com.example.forum",
   "skey": "main",
@@ -135,6 +140,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -293,6 +302,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.getSpace?space=at://did:web:happyview.example.com/space/com.example.forum/main",
   nil)
@@ -300,6 +313,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -338,8 +355,8 @@ curl 'https://happyview.example.com/xrpc/com.atproto.simplespace.getSpace?space=
       "allowedCollections": ["com.example.forum.post"]
     },
     "revision": "3l2tkbx7225co",
-    "created_at": "2026-09-30T12:00:00Z",
-    "updated_at": "2026-09-30T12:00:00Z"
+    "created_at": "2026-09-30T12:00:00.482913+00:00",
+    "updated_at": "2026-09-30T12:00:00.482913+00:00"
   },
   "config": {
     "$type": "com.atproto.simplespace.defs#spaceConfig",
@@ -356,7 +373,7 @@ Only the space's creator, an operator with superadmin, or a caller presenting a 
 
 ## Listing spaces
 
-Returns spaces where the authenticated user is a member.
+`com.atproto.space.listSpaces` returns spaces where the authenticated user is a member.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -419,6 +436,10 @@ let data: serde_json::Value = response.json().await?;
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 req, _ := http.NewRequest("GET",
   "https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20",
   nil)
@@ -426,6 +447,10 @@ req.Header.Set("X-Client-Key", clientKey)
 req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -459,7 +484,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20' 
       "isOwner": true
     }
   ],
-  "cursor": "MjAyNi0wOS0zMFQxMjowMDowMFp8YXQ6Ly9kaWQ6d2ViOmhhcHB5dmlldy5leGFtcGxlLmNvbS9zcGFjZS9jb20uZXhhbXBsZS5mb3J1bS9tYWlu"
+  "cursor": "MjAyNi0wOS0zMFQxMjowMDowMCswMDowMHxhdDovL2RpZDp3ZWI6aGFwcHl2aWV3LmV4YW1wbGUuY29tL3NwYWNlL2NvbS5leGFtcGxlLmZvcnVtL21haW4="
 }
 ```
 
@@ -531,6 +556,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{
   "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
   "displayName": "Updated Forum Name",
@@ -543,6 +572,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -628,6 +661,10 @@ let response = client
 <TabItem label="Go">
 
 ```go
+clientKey := "hvc_..." // your API client key
+accessToken := "..." // DPoP access token
+dpopProof := "..." // DPoP proof JWT for this request
+
 body := bytes.NewBufferString(`{"space": "at://did:web:happyview.example.com/space/com.example.forum/main"}`)
 req, _ := http.NewRequest("POST",
   "https://happyview.example.com/xrpc/com.atproto.simplespace.deleteSpace", body)
@@ -636,6 +673,10 @@ req.Header.Set("Authorization", "DPoP "+accessToken)
 req.Header.Set("DPoP", dpopProof)
 req.Header.Set("Content-Type", "application/json")
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -662,5 +703,5 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.deleteS
 ```
 
 :::caution
-Deleting a space cascades to all associated records, members, repo state, oplog entries, notification registrations, and credentials. This deletes local data only. For a repository that has moved to its author's PDS, the records on that PDS are not deleted.
+Deleting a space cascades to all associated records, members, invites, repo state, oplog entries, the writer set, notification registrations, and credentials. HappyView tells the services registered for the space that it was deleted; see [Notifying space deletion](/docs/guides/spaces/notifications#notifying-space-deletion). The delete removes only the data HappyView holds. For a repository that has moved to its author's PDS, the records on that PDS are not deleted.
 :::

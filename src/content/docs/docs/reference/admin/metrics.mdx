@@ -38,7 +38,7 @@ let token = "hv_..."; // your API key
 <TabItem label="Go">
 
 ```go
-token := "hv_..." // your API key
+const token = "hv_..." // your API key
 ```
 
 </TabItem>
@@ -69,7 +69,7 @@ A `7d` or `30d` response adds two fields:
 
 Stored metrics follow the event log's retention: `event_log_retention_days` (default `30`), where `0` keeps them indefinitely. Minute rows more than two days old are folded into hour rows, which answer the same counts and percentiles.
 
-Each stored row records the instance that wrote it, named by `HAPPYVIEW_INSTANCE_ID`, else the hostname, else a random id for that boot. Give each replica a stable, distinct `HAPPYVIEW_INSTANCE_ID`. A name that changes on every deploy still counts, but the replica can't read its own history back after a restart, so its last hour and day start empty.
+Each stored row records the instance that wrote it, named by `HAPPYVIEW_INSTANCE_ID`, else the hostname, else a random id for that boot. Give each instance a stable, distinct `HAPPYVIEW_INSTANCE_ID`. A name that changes on every deploy still counts, but the instance can't read its own history back after a restart, so its last hour and day start empty.
 
 ## What a run measures
 
@@ -109,7 +109,7 @@ A run ends in one of these outcomes:
 GET /admin/metrics/scripts
 ```
 
-One row per script that ran inside the window, busiest first. A script is keyed by its trigger, its kind and its layer (`project` for a project file, `dashboard` for a script saved in the dashboard), so one trigger served by both layers in the window has two rows.
+One row per script that ran inside the window, busiest first. A script is keyed by its trigger, its kind and its layer: `project` for a project file, `dashboard` for a script saved in the dashboard. One trigger served by both layers in the window has two rows.
 
 | Param | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -155,6 +155,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/scripts?window=24h", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -201,7 +205,7 @@ curl "http://127.0.0.1:3000/admin/metrics/scripts?window=24h" -H "$AUTH"
 }
 ```
 
-`overflow` counts scripts that weren't recorded because 1,024 were already held. Scripts with nothing left inside the last day make room for new ones.
+`overflow` counts the runs that weren't recorded because 1,024 scripts were already held, plus the ingest records dropped because 1,024 collection and action pairs were; the [ingest](#ingest) endpoint returns the same count. Scripts with nothing left inside the last day make room for new ones.
 
 ## Get one script
 
@@ -256,6 +260,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -366,6 +374,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/ingest?window=24h", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>
@@ -482,6 +494,10 @@ let data: serde_json::Value = response.json().await?;
 req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/live", nil)
 req.Header.Set("Authorization", "Bearer "+token)
 resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
 ```
 
 </TabItem>

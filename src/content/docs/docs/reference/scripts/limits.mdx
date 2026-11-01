@@ -16,13 +16,13 @@ Jobs have no instruction limit and no wall clock, because running long is what a
 
 ## Instructions
 
-The instruction limit stops runaway loops. What counts as one instruction depends on the language's engine, so the same setting allows a different amount of work in each language.
+The instruction limit stops runaway loops. What counts as one instruction depends on the language's interpreter, so the same setting allows a different amount of work in each language.
 
 A run can't recover from a spent budget. `pcall` and `try`/`catch` don't stop it, and the run fails with `timeout`.
 
 ## Wall clock
 
-A run that hits the wall clock fails with `timeout`. In a JavaScript or TypeScript script, library calls still in flight when the run is cut short are dropped with it.
+A run that hits the wall clock fails with `timeout`. Library calls still in flight when the run is cut short are dropped with it.
 
 ## Memory
 
@@ -32,7 +32,7 @@ Each run may allocate up to 64 MiB. Running out is a normal script error with `e
 
 In JavaScript and TypeScript, runaway recursion throws `RangeError: Maximum call stack size exceeded`, which a script can catch.
 
-## What a client sees
+## What the caller sees
 
 For a query or procedure:
 
@@ -58,7 +58,7 @@ Each value is read from the dashboard setting first, then the environment variab
 
 - A `ctx.job.wait(seconds)` call is clamped to between 0 and 3600 seconds.
 - A record query through `happyview.db` returns 20 records by default and at most 100 per page. Paginate with the cursor for more.
-- A script description can be up to 300 characters.
+- A script description can be up to 300 bytes.
 - A test file run by `happyview test` may spend up to 60 seconds of its own time, outside the triggers it fires.
 
 ## Next steps

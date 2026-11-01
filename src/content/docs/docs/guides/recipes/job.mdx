@@ -92,7 +92,7 @@ export default async function handle(input, ctx) {
       return { partial: true, processed: i };
     }
 
-    log.info("processing", { job_id: ctx.job.id, index: i });
+    log.info("processing", { job_id: ctx.job.id, index: i + 1 });
     ctx.job.progress({ processed: i + 1, total });
   }
 
@@ -121,7 +121,7 @@ export default async function handle(input: { items: unknown[] }, ctx: { job: Jo
       return { partial: true, processed: i };
     }
 
-    log.info("processing", { job_id: ctx.job.id, index: i });
+    log.info("processing", { job_id: ctx.job.id, index: i + 1 });
     ctx.job.progress({ processed: i + 1, total });
   }
 

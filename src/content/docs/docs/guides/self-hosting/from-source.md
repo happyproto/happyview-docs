@@ -1,5 +1,6 @@
 ---
 title: From source
+description: Build and run HappyView from a clone of its alpha branch with cargo.
 ---
 
 This guide runs HappyView directly with `cargo run`, from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md. To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).

@@ -1,8 +1,9 @@
 ---
 title: Node client
+description: "HappyViewNodeClient: the server-side OAuth flow for Node.js apps signing users in to a HappyView instance."
 ---
 
-Server-side OAuth client for authenticating with a HappyView instance using atproto. Built on top of [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client), matching the API surface of [`@atproto/oauth-client-node`](https://www.npmjs.com/package/@atproto/oauth-client-node).
+The Node client is a server-side OAuth client for authenticating with a HappyView instance using atproto. It is built on top of [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) and matches the API surface of [`@atproto/oauth-client-node`](https://www.npmjs.com/package/@atproto/oauth-client-node).
 
 ## Installation
 
@@ -61,7 +62,7 @@ interface StorageAdapter {
 
 ## Authorize
 
-Generate an authorization URL and redirect the user:
+Generate an authorization URL and redirect the user. `authorize` takes a handle; unlike the browser client, it doesn't accept a DID.
 
 ```typescript
 const url = await client.authorize("alice.bsky.social");
@@ -86,7 +87,7 @@ const url = await client.authorize("alice.bsky.social", {
 | `scopes`                 | Deprecated alias for `scope`. `scope` takes priority if both passed.         |
 | `state`                  | Custom state value. Defaults to a random hex string.                         |
 | `redirect_uri`           | Override the redirect URI for this request                                   |
-| `signal`                 | `AbortSignal` for cancellation                                               |
+| `signal`                 | Accepted for compatibility with upstream; not used                           |
 | `display`                | Display hint: `"page"`, `"popup"`, `"touch"`, or `"wap"`                     |
 | `prompt`                 | Prompt mode (e.g. `"login"` to force re-authentication)                      |
 | `nonce`                  | OIDC nonce value                                                             |
@@ -158,7 +159,7 @@ const response = await session.fetchHandler(
 const data = await response.json();
 ```
 
-Pass a relative path (prepends the HappyView instance URL) or a full URL (used as-is).
+Pass a relative path (prepends the HappyView instance URL) or a full URL (used as-is). The DPoP and authorization headers go with every request, so pass only URLs on your HappyView instance.
 
 ### Token info
 
@@ -219,7 +220,7 @@ const client = new HappyViewNodeClient({
 ```
 
 - `onSessionUpdate(did)` fires after a new session is registered (from `callback()`).
-- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `forgetSession()` or `session.signOut()`).
+- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `forgetSession()` or `session.signOut()`). The client doesn't pass a `cause`.
 
 ## Error handling
 
@@ -239,7 +240,7 @@ try {
 }
 ```
 
-If the authorization server returns an error (e.g., the user denied access), the `params` contain the `error` and `error_description` fields from the server response. If the token exchange fails, the underlying `TokenExchangeError` is available as `err.cause`.
+If the authorization server returns an error (e.g., the user denied access), the `params` contain the `error` and `error_description` fields from its response. If the token exchange fails, the underlying `TokenExchangeError` is available as `err.cause`.
 
 ## Using with @atproto/api
 
@@ -271,9 +272,9 @@ Or from the session itself:
 await session.signOut();
 ```
 
-The stored session is always cleared, even if the server refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
+The stored session is always cleared, even if HappyView refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
 
-To clear a session locally without contacting the server:
+To clear a session locally without contacting HappyView:
 
 ```typescript
 await client.forgetSession("did:plc:abc123");
