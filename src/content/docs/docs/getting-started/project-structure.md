@@ -1,7 +1,6 @@
 ---
 title: "Project structure"
 description: "How a HappyView project is laid out: happyview.toml, happyview.lock, src/ and .happyview/, and how a file's path decides what it is."
-type: conceptual
 prerequisites:
   - /docs/getting-started/running-locally
 ---

@@ -218,7 +218,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
         className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:!duration-0"
         style={{ gridTemplateRows: showLogin ? '1fr' : '0fr' }}
       >
-        <div className="overflow-hidden">
+        <div className="overflow-hidden" inert={!showLogin}>
           <InlineLogin
             action={actionLabel}
             onSubmit={handleLogin}
@@ -253,7 +253,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
 function SkeletonPill() {
   return (
     <div
-      className="rounded-full animate-pulse"
+      className="rounded-full animate-pulse motion-reduce:animate-none"
       style={{
         width: '120px',
         height: '36px',
@@ -331,21 +331,15 @@ function InlineLogin({
               if (validationError) setValidationError('');
             }}
             placeholder="yourname.bsky.social"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             tabIndex={visible ? 0 : -1}
             className="hp-field w-full"
             aria-invalid={!!validationError}
             aria-describedby={validationError ? errorId : undefined}
           />
-          {validationError && (
-            <p
-              id={errorId}
-              role="alert"
-              className="mt-1.5 text-xs"
-              style={{ color: 'var(--hp-color-danger)' }}
-            >
-              {validationError}
-            </p>
-          )}
         </div>
         <button
           type="submit"
@@ -353,7 +347,7 @@ function InlineLogin({
           tabIndex={visible ? 0 : -1}
           className="hp-button hp-button-primary"
         >
-          Log in
+          Sign in
         </button>
         <button
           type="button"
@@ -363,6 +357,16 @@ function InlineLogin({
         >
           Cancel
         </button>
+        {validationError && (
+          <p
+            id={errorId}
+            role="alert"
+            className="basis-full text-xs"
+            style={{ color: 'var(--hp-color-danger)' }}
+          >
+            {validationError}
+          </p>
+        )}
       </form>
     </div>
   );

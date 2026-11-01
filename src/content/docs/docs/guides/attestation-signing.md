@@ -1,5 +1,5 @@
 ---
-title: "Attestation Signing"
+title: Attestation signing
 ---
 
 HappyView can sign records with an ECDSA (secp256k1) keypair so their origin can be verified later. Scripts call `sign` on `happyview.atproto` to attach an inline signature to a record and `verify_signature` to check one. HappyView's implementation follows the [atproto attestation spec](https://tangled.org/strings/did:plc:cbkjy5n7bk3ax2wplmtjofq2/3m3fy2xuahc22).

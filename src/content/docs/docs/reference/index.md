@@ -1,7 +1,6 @@
 ---
 title: Reference
 description: The exact shape of HappyView's commands, configuration, script API and HTTP APIs.
-type: reference
 ---
 
 - [CLI](/docs/reference/cli): the `happyview` and `hpy` commands.

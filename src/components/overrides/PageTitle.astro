@@ -1,37 +1,42 @@
 ---
 // Where the page sits, the title beside a button that copies the page's
-// Markdown source, then what kind of page this is and what to read first.
-import { getEntry } from 'astro:content';
+// Markdown source, then what to read first.
+import { getCollection, getEntry } from 'astro:content';
 import type { StarlightRouteData } from '@astrojs/starlight/route-data';
 
 // Starlight's PAGE_TITLE_ID, which the package does not export.
 const PAGE_TITLE_ID = '_top';
 
 const { entry, sidebar } = Astro.locals.starlightRoute;
-const { title, type, prerequisites } = entry.data as {
-  title: string;
-  type?: 'conceptual' | 'how-to' | 'reference';
-  prerequisites?: string[];
-};
-const typeLabel = { conceptual: 'Concept', 'how-to': 'How-to', reference: 'Reference' } as const;
+const { title, prerequisites } = entry.data as { title: string; prerequisites?: string[] };
 const isV2 = entry.id.startsWith('docs/v2/') || entry.id === 'docs/v2';
-const markdownUrl = isV2 ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
+const markdownUrl = isV2 || entry.id === '404' ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
 
-// The sidebar groups holding the current page, outermost first.
+// The sidebar groups holding the current page, outermost first. A group whose
+// first entry is its Overview links there.
 type Entry = StarlightRouteData['sidebar'][number];
-const trail = (entries: Entry[]): string[] | null => {
+type Crumb = { label: string; href?: string };
+const trail = (entries: Entry[]): Crumb[] | null => {
   for (const item of entries) {
     if (item.type === 'link') {
       if (item.isCurrent) return [];
     } else {
       const inner = trail(item.entries);
-      if (inner) return [item.label, ...inner];
+      if (!inner) continue;
+      const first = item.entries[0];
+      const href = first?.type === 'link' && first.label === 'Overview' ? first.href : undefined;
+      return [{ label: item.label, href }, ...inner];
     }
   }
   return null;
 };
 const crumbs = trail(sidebar) ?? [];
-const searchTitle = crumbs.length ? `${title} · ${crumbs[crumbs.length - 1]}` : title;
+const searchTitle = crumbs.length ? `${title} · ${crumbs[crumbs.length - 1].label}` : title;
+
+// The same page in the other version, for the version switch to land on.
+const pageIds = new Set((await getCollection('docs')).map((page) => page.id));
+const counterpartId = isV2 ? entry.id.replace(/^docs\/v2/, 'docs') : entry.id.replace(/^docs/, 'docs/v2');
+const counterpart = pageIds.has(counterpartId) ? `/${counterpartId}/` : undefined;
 
 const prereqs = await Promise.all(
   (prerequisites ?? []).map(async (href) => {
@@ -43,10 +48,10 @@ const prereqs = await Promise.all(
 
 {crumbs.length > 0 && (
   <nav class="crumbs not-content" aria-label="Breadcrumb" data-pagefind-ignore>
-    <ol role="list">{crumbs.map((crumb) => <li>{crumb}</li>)}</ol>
+    <ol role="list">{crumbs.map((crumb) => <li>{crumb.href ? <a href={crumb.href}>{crumb.label}</a> : crumb.label}</li>)}</ol>
   </nav>
 )}
-<div class="title-row">
+<div class="title-row" data-counterpart={counterpart}>
   <h1 id={PAGE_TITLE_ID} data-pagefind-meta="title[data-search-title]" data-search-title={searchTitle}>{title}</h1>
   {markdownUrl && (
     <span class="copy-page not-content">
@@ -55,7 +60,6 @@ const prereqs = await Promise.all(
     </span>
   )}
 </div>
-{type && <p class="page-type not-content"><span class="hp-tag" data-tone="brand">{typeLabel[type]}</span></p>}
 {prereqs.length > 0 && (
   <p class="prerequisites">
     Read first:{' '}
@@ -102,29 +106,74 @@ const prereqs = await Promise.all(
   revealCurrentPage();
   sidebar?.addEventListener('toggle', revealCurrentPage);
 
-  // A scroller is a tab stop only while it has somewhere to scroll.
+  // The version switch lands on this page's counterpart when there is one.
+  const counterpart = document.querySelector<HTMLElement>('[data-counterpart]')?.dataset.counterpart;
+  if (counterpart) {
+    const switchTo = counterpart.startsWith('/docs/v2/') ? '/docs/v2/' : '/docs/';
+    const topic = sidebar?.querySelector<HTMLAnchorElement>(`.starlight-sidebar-topics a[href="${switchTo}"]`);
+    if (topic) topic.href = counterpart;
+  }
+
+  // A scroller is a tab stop, and a landmark, only while it has somewhere to
+  // scroll.
   const syncScroller = (el: Element) => {
-    if (el.scrollWidth > el.clientWidth + 1) el.setAttribute('tabindex', '0');
-    else el.removeAttribute('tabindex');
+    if (el.scrollWidth > el.clientWidth + 1) {
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'region');
+    } else {
+      el.removeAttribute('tabindex');
+      el.removeAttribute('role');
+    }
   };
   const scrollers = new ResizeObserver((entries) => entries.forEach((entry) => syncScroller(entry.target)));
   document.querySelectorAll('.table-scroll').forEach((el) => scrollers.observe(el));
 
-  // Pagefind builds its search field after this runs.
-  document.querySelector('site-search dialog')?.addEventListener('focusin', () => {
+  // Expressive Code makes an overflowing block a region but gives it no name.
+  document.querySelectorAll('.expressive-code pre[role="region"]').forEach((pre) => {
+    const language = pre.getAttribute('data-language');
+    pre.setAttribute('aria-label', language ? `Code: ${language}` : 'Code');
+  });
+
+  // Pagefind builds its search field after this runs. Its results take Tab
+  // only, so add the arrows, and Enter from the field opens the first result.
+  const search = document.querySelector('site-search dialog');
+  search?.addEventListener('focusin', () => {
     document.querySelector('.pagefind-ui__search-input')?.setAttribute('aria-label', 'Search the docs');
+  });
+  search?.addEventListener('keydown', (event) => {
+    const { key, target } = event as KeyboardEvent;
+    if (key !== 'ArrowDown' && key !== 'ArrowUp' && key !== 'Enter') return;
+    const input = search.querySelector<HTMLElement>('.pagefind-ui__search-input');
+    const links = [...search.querySelectorAll<HTMLAnchorElement>('.pagefind-ui__result-link')];
+    if (key === 'Enter') {
+      if (target === input && links[0]) links[0].click();
+      return;
+    }
+    event.preventDefault();
+    const stops = [input, ...links];
+    const here = stops.indexOf(target as HTMLElement);
+    const next = stops[Math.min(Math.max(here + (key === 'ArrowDown' ? 1 : -1), 0), stops.length - 1)];
+    next?.focus();
   });
 
   // Diagrams: load mermaid only on pages that have one, and draw them from
-  // the site's tokens, again whenever the theme changes.
+  // the site's tokens, again whenever the theme changes. On a narrow screen a
+  // left-to-right flowchart runs top to bottom instead. Theme changes arriving
+  // mid-render collapse into one more.
   const diagrams = [...document.querySelectorAll<HTMLElement>('pre.mermaid')];
   if (diagrams.length) {
     const { default: mermaid } = await import('mermaid');
-    const sources = new Map(diagrams.map((el) => [el, el.textContent ?? '']));
+    const narrow = matchMedia('(max-width: 49.99rem)').matches;
+    const sources = new Map(
+      diagrams.map((el) => {
+        const source = el.textContent ?? '';
+        return [el, narrow ? source.replace(/^(\s*(?:flowchart|graph)) LR\b/m, '$1 TD') : source];
+      }),
+    );
+    // Mermaid can't parse the tokens' oklch, so read each back as hex.
+    const paint = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
     const render = async () => {
       const css = getComputedStyle(document.documentElement);
-      // Mermaid can't parse the tokens' oklch, so read each back as hex.
-      const paint = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
       const token = (name: string) => {
         paint.fillStyle = css.getPropertyValue(`--hp-color-${name}`).trim();
         paint.fillRect(0, 0, 1, 1);
@@ -138,12 +187,15 @@ const prereqs = await Promise.all(
           background: token('bg'),
           primaryColor: token('surface-raised'),
           primaryTextColor: token('fg'),
-          primaryBorderColor: token('border-strong'),
+          primaryBorderColor: token('fg-muted'),
           secondaryColor: token('surface'),
           tertiaryColor: token('surface'),
           lineColor: token('fg-muted'),
           textColor: token('fg'),
           edgeLabelBackground: token('bg'),
+          noteBkgColor: token('surface-raised'),
+          noteTextColor: token('fg'),
+          noteBorderColor: token('fg-muted'),
           fontFamily: css.getPropertyValue('--hp-font-sans').trim(),
         },
       });
@@ -155,14 +207,23 @@ const prereqs = await Promise.all(
       for (const el of diagrams) {
         const svg = el.querySelector('svg');
         if (!svg) continue;
-        el.style.setProperty('--diagram-width', svg.style.maxWidth);
+        el.style.setProperty('--diagram-floor', `${0.75 * svg.viewBox.baseVal.width}px`);
         el.setAttribute('aria-label', svg.querySelector('title')?.textContent || 'Diagram');
-        el.setAttribute('role', 'group');
         syncScroller(el);
       }
     };
-    await render();
-    new MutationObserver(render).observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    let rendering = false;
+    let again = false;
+    const rerender = async () => {
+      again = rendering;
+      if (rendering) return;
+      rendering = true;
+      await render();
+      rendering = false;
+      if (again) rerender();
+    };
+    await rerender();
+    new MutationObserver(rerender).observe(document.documentElement, { attributeFilter: ['data-theme'] });
     diagrams.forEach((el) => scrollers.observe(el));
   }
 </script>
@@ -176,6 +237,13 @@ const prereqs = await Promise.all(
     list-style: none;
     color: var(--hp-color-fg-muted);
     font-size: var(--hp-text-sm);
+  }
+  .crumbs a {
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+  .crumbs a:hover {
+    color: var(--hp-color-fg);
   }
   .crumbs li + li::before {
     content: '/';
@@ -210,9 +278,6 @@ const prereqs = await Promise.all(
   }
   .copy-status :global(a) {
     color: var(--hp-color-accent);
-  }
-  .page-type {
-    margin-block-start: var(--hp-space-3);
   }
   .prerequisites {
     margin-block-start: var(--hp-space-3);

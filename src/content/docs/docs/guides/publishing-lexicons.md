@@ -1,5 +1,5 @@
 ---
-title: "Publishing Lexicons"
+title: Publishing lexicons
 ---
 
 Other apps can only resolve your lexicons if they're published on the network. HappyView can publish the lexicons it owns as `com.atproto.lexicon.schema` records, into either the instance's attached account or a [linked repo](/docs/guides/linked-repos), and can keep them up to date automatically.

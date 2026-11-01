@@ -100,15 +100,15 @@ export function PostComments({ atUri }: PostCommentsProps) {
     return (
       <section>
         <div
-          className="rounded-lg animate-pulse mb-4"
+          className="rounded-lg animate-pulse motion-reduce:animate-none mb-4"
           style={{ width: '140px', height: '28px', backgroundColor: 'var(--hp-color-surface)' }}
         />
-        <div className="rounded-xl animate-pulse mb-6" style={{ height: '120px', backgroundColor: 'var(--hp-color-surface)' }} />
+        <div className="rounded-xl animate-pulse motion-reduce:animate-none mb-6" style={{ height: '120px', backgroundColor: 'var(--hp-color-surface)' }} />
         <div className="flex flex-col gap-4">
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="rounded-xl animate-pulse"
+              className="rounded-xl animate-pulse motion-reduce:animate-none"
               style={{ height: '80px', backgroundColor: 'var(--hp-color-surface)' }}
             />
           ))}

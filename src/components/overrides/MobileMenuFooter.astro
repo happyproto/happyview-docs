@@ -1,12 +1,12 @@
 ---
 // Starlight's menu footer, under the site's links: the header hides them on
-// a phone, so the menu has to carry them.
+// a phone, so the menu has to carry them. Changelog is already in the sidebar.
 import Default from '@astrojs/starlight/components/MobileMenuFooter.astro';
 import { nav, repo } from '../../site';
 ---
 
 <nav class="mobile-site-nav" aria-label="Site">
-  {nav.map((link) => <a href={link.href}>{link.label}</a>)}
+  {nav.filter((link) => link.label !== 'Changelog').map((link) => <a href={link.href}>{link.label}</a>)}
   <a href={repo.happyview}>GitHub</a>
 </nav>
 <Default />

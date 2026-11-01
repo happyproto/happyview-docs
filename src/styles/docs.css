@@ -74,10 +74,10 @@ body {
   letter-spacing: var(--hp-tracking-tight);
 }
 
-/* One focus ring across the site, the design system's. */
-:focus-visible {
-  outline: 2px solid var(--hp-color-accent);
-  outline-offset: 2px;
+/* The focus ring is the design system's, set in focus.css. The banner's
+   ground is the accent, so its link takes its own ink instead. */
+.sl-banner a:focus-visible {
+  outline-color: currentColor;
 }
 
 /* No rule between the title and the page: the heading already separates them. */
@@ -146,9 +146,10 @@ main .content-panel + .content-panel {
 }
 
 /* Tables. rehype-tables wraps each in a scroller; the edge shadows appear
-   only while there is more to scroll to. Under 40rem a table of three or more
-   columns stacks, each row a block and each cell naming its column. */
-.table-scroll {
+   only while there is more to scroll to. Under 40rem a table stacks, each row
+   a block and each cell naming its column. */
+.table-scroll,
+pre.mermaid {
   overflow-x: auto;
   background:
     linear-gradient(to right, var(--hp-color-bg) 40%, transparent) left / 2rem 100% no-repeat local,
@@ -162,8 +163,13 @@ main .content-panel + .content-panel {
   margin: 0;
   overflow: visible;
 }
-.sl-markdown-content td:first-child code {
-  white-space: nowrap;
+.sl-markdown-content td code {
+  overflow-wrap: anywhere;
+}
+@media (min-width: 40rem) {
+  .sl-markdown-content td:first-child code {
+    white-space: nowrap;
+  }
 }
 @media (max-width: 39.99rem) {
   .sl-markdown-content table.stack,
@@ -202,10 +208,6 @@ main .content-panel + .content-panel {
     font-size: var(--hp-text-xs);
     font-weight: var(--hp-weight-medium);
   }
-  .sl-markdown-content table.stack td code {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
 }
 
 /* Code blocks: Expressive Code's frame on the raised surface. */
@@ -213,18 +215,25 @@ main .content-panel + .content-panel {
   --ec-brdRad: var(--hp-radius-md);
 }
 
-/* Diagrams keep their natural size under 50rem and scroll, because scaling
-   one to a phone's width leaves its labels unreadable. --diagram-width is
-   set where the diagram renders. */
+/* A diagram never scales below labels of about 12px; past that it scrolls.
+   --diagram-floor is set where the diagram renders. Until then the source is
+   hidden and its room held, unless scripts are off and it's all there is. */
 pre.mermaid {
-  background: transparent;
   border: 0;
-  overflow-x: auto;
 }
-@media (max-width: 49.99rem) {
-  pre.mermaid svg {
-    min-inline-size: var(--diagram-width, auto);
+pre.mermaid svg {
+  min-inline-size: var(--diagram-floor, auto);
+}
+@media (scripting: enabled) {
+  pre.mermaid:not([data-processed]) {
+    min-block-size: 18rem;
+    color: transparent;
   }
+}
+
+/* Splash pages have no column to hold their measure. */
+:root:not([data-has-sidebar]) .sl-markdown-content {
+  max-inline-size: 70ch;
 }
 
 /* Phone targets. */
@@ -243,10 +252,19 @@ pre.mermaid {
     color: var(--hp-color-fg);
   }
   #starlight__sidebar :is(a, summary),
+  ul.isMobile a,
+  starlight-tabs a[role='tab'],
   .sl-link-button,
   .hp-button-small {
     min-block-size: 2.75rem;
     align-items: center;
+  }
+  ul.isMobile a,
+  starlight-tabs a[role='tab'] {
+    display: flex;
+  }
+  #starlight__sidebar .large {
+    font-size: var(--hp-text-sm);
   }
   #starlight__sidebar a {
     display: flex;

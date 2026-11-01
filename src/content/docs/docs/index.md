@@ -1,7 +1,6 @@
 ---
 title: "Introduction"
 description: "What HappyView is, the idea it's built on, and where to start."
-type: conceptual
 ---
 
 HappyView is an open-source AppView for atproto. You describe your app's data and API with lexicons, and HappyView indexes the matching records from the network and serves your API from them.

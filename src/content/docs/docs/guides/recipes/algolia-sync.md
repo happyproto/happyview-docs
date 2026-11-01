@@ -1,5 +1,5 @@
 ---
-title: "Algolia Sync"
+title: Algolia sync
 ---
 
 Push records to an Algolia search index whenever they are created, updated, or deleted on the network.

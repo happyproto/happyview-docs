@@ -1,5 +1,5 @@
 ---
-title: "SQLite to Postgres Migration"
+title: SQLite to Postgres migration
 ---
 
 This guide covers migrating an existing HappyView deployment from SQLite to Postgres. If you are staying on SQLite, no action is required.

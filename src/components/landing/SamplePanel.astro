@@ -65,6 +65,7 @@ const { tabs } = Astro.props;
     text-align: start;
   }
   .lp-tabs {
+    flex-wrap: nowrap;
     gap: var(--hp-space-1);
     overflow-x: auto;
   }
@@ -92,6 +93,13 @@ const { tabs } = Astro.props;
   .lp-tabs button:focus-visible {
     outline: 2px solid var(--hp-color-accent);
     outline-offset: -2px;
+  }
+  /* One height for every tab, so the page doesn't move under the pointer.
+     Only the longest file scrolls. Without JavaScript every panel shows, so
+     each takes its own height. */
+  .lp-sample[data-enhanced] .lp-panel {
+    block-size: 24rem;
+    overflow-y: auto;
   }
   .lp-panel {
     padding: var(--hp-space-4);

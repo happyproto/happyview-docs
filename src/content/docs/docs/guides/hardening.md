@@ -1,5 +1,5 @@
 ---
-title: "Hardening an Instance"
+title: Hardening an instance
 ---
 
 A HappyView instance holds OAuth credentials for its users and will act with them on behalf of the applications you register. This guide is about narrowing that authority: what each setting actually grants, and why the narrow option is worth the extra work.

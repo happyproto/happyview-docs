@@ -1,5 +1,5 @@
 ---
-title: "Expanded Query"
+title: Expanded query
 ---
 
 List statuses and include the profile of each user who created one.

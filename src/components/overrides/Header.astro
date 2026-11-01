@@ -96,4 +96,11 @@ const current = (href: string) =>
       align-content: center;
     }
   }
+  /* Just past the breakpoint the sidebar's reserved width pushes the theme
+     picker out of the header. */
+  @media (min-width: 50rem) and (max-width: 53rem) {
+    .header {
+      grid-template-columns: auto 1fr auto;
+    }
+  }
 </style>

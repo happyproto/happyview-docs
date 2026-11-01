@@ -1,7 +1,6 @@
 ---
 title: "Lexicons"
 description: "How HappyView treats each kind of lexicon, where lexicons come from, and how it resolves and routes the ones it doesn't have."
-type: reference
 ---
 
 ## Supported lexicon types

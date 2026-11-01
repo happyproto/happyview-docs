@@ -2,8 +2,8 @@
 // happyproto.at's SiteHeader (src/components/SiteHeader.astro), with
 // HappyView's logo and the site's links in place of the beta sign-up.
 import { Image } from 'astro:assets';
-import logoDark from '../../assets/logo.dark.png';
-import logoLight from '../../assets/logo.light.png';
+import logoDark from '../../assets/logo.dark.webp';
+import logoLight from '../../assets/logo.light.webp';
 import { nav, repo } from '../../site';
 
 const path = Astro.url.pathname;
@@ -94,6 +94,25 @@ const path = Astro.url.pathname;
   }
   .mk-header-actions {
     gap: var(--hp-space-4);
+  }
+  @media (max-width: 30rem) {
+    .mk-header-actions {
+      flex-wrap: nowrap;
+      gap: var(--hp-space-2);
+    }
+    .theme-picker select {
+      max-inline-size: 4rem;
+    }
+  }
+  /* Too narrow for one row, and two rows pinned would take a quarter of the
+     screen. */
+  @media (max-width: 24rem) {
+    :global(.mk-header) {
+      position: static;
+    }
+    .mk-header-actions {
+      flex-wrap: wrap;
+    }
   }
   .mk-header-actions .mk-link {
     min-inline-size: 0;

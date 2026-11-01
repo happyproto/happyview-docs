@@ -1,7 +1,6 @@
 ---
 title: "Lua standard libraries"
 description: "The parts of Lua 5.4's standard library a script can use in the Lua interpreter."
-type: reference
 ---
 
 The Lua interpreter (`happyview-lua`) keeps these Lua 5.4 standard libraries and builtins. JavaScript and TypeScript scripts get their engine's own built-ins; see [Languages](/docs/reference/scripts/languages).

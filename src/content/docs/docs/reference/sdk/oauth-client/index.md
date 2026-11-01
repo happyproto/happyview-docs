@@ -1,5 +1,5 @@
 ---
-title: "OAuth Client"
+title: OAuth client
 ---
 
 The core OAuth client handles DPoP key provisioning, session registration, and session restoration against a HappyView instance. It's platform-agnostic — you provide a `CryptoAdapter` and optional `StorageAdapter` for your environment.

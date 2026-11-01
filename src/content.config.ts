@@ -9,8 +9,6 @@ export const collections = {
     loader: docsLoader(),
     schema: docsSchema({
       extend: z.object({
-        // What kind of page this is, shown beside the title.
-        type: z.enum(['conceptual', 'how-to', 'reference']).optional(),
         // Pages to read first, as paths such as /docs/getting-started/scripts.
         prerequisites: z.array(z.string()).optional(),
       }),

@@ -1,12 +1,10 @@
 // Wraps each Markdown table in a scroller that names itself after the heading
 // above it, and labels each cell with its column so that CSS can stack a table
-// of three or more columns on a phone. Stacking changes the display of every
+// on a phone. Stacking changes the display of every
 // table part, which drops their table semantics, so those tables state their
 // roles outright.
 import type { Element, ElementContent, Root } from 'hast';
 import { SKIP, visit } from 'unist-util-visit';
-
-const STACK_FROM_COLUMNS = 3;
 
 const text = (node: ElementContent | Element): string =>
   node.type === 'text' ? node.value : 'children' in node ? node.children.map(text).join('') : '';
@@ -18,7 +16,7 @@ function labelCells(table: Element) {
   const thead = elements(table, 'thead')[0];
   const headRow = thead && elements(thead, 'tr')[0];
   const columns = headRow ? elements(headRow, 'th', 'td').map((cell) => text(cell).trim()) : [];
-  if (columns.length < STACK_FROM_COLUMNS) return;
+  if (columns.length < 2) return;
 
   table.properties.className = ['stack'];
   table.properties.role = 'table';

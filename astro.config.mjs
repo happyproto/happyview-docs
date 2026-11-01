@@ -21,8 +21,8 @@ export default defineConfig({
       title: 'HappyView',
       description: 'An open-source AppView for atproto.',
       logo: {
-        light: './src/assets/logo.light.png',
-        dark: './src/assets/logo.dark.png',
+        light: './src/assets/logo.light.webp',
+        dark: './src/assets/logo.dark.webp',
         replacesTitle: true,
       },
       favicon: '/img/favicon.png',
@@ -33,6 +33,7 @@ export default defineConfig({
       customCss: [
         '@happyview/design-system/tokens.css',
         '@happyview/design-system/components.css',
+        './src/styles/focus.css',
         './src/styles/docs.css',
       ],
       components: {

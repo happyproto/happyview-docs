@@ -1,5 +1,5 @@
 ---
-title: "Linked Repos"
+title: Linked repos
 ---
 
 Linked repos give your AppView durable write access to a specific atproto repo. Once an admin links a repo, any script can write to it through the `happyview.linked_repos` library. You can think of these repos like service accounts: an account that your AppView may post on behalf of, a partner repo into which you mirror data, or an operator account your instance maintains on its own.

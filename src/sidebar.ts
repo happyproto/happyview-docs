@@ -108,6 +108,7 @@ export const v3Sidebar: Sidebar = [
   },
   {
     label: 'Operating',
+    collapsed: true,
     items: [
       {
         label: 'Self-hosting',
@@ -140,6 +141,7 @@ export const v3Sidebar: Sidebar = [
   },
   {
     label: 'Reference',
+    collapsed: true,
     items: [
       { label: 'Overview', slug: d('reference') },
       d('reference/cli'),

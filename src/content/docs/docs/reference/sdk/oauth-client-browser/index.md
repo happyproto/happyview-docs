@@ -1,5 +1,5 @@
 ---
-title: "Browser Client"
+title: Browser client
 ---
 
 The browser client handles the full OAuth redirect flow for browser apps authenticating with a HappyView instance. It wraps the [OAuth Client](/docs/reference/sdk/oauth-client) with Web Crypto, localStorage, and atproto handle/DID resolution.
