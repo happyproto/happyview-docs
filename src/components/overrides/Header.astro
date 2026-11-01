@@ -60,10 +60,17 @@ const current = (href: string) =>
     font-size: var(--hp-text-sm);
     font-weight: var(--hp-weight-medium);
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
   }
   .site-nav a:hover,
   .site-nav a[aria-current='page'] {
     color: var(--hp-color-fg);
+  }
+  .site-nav a[aria-current='page'] {
+    text-decoration: underline;
+    text-underline-offset: 0.35em;
   }
   @media (min-width: 50rem) {
     :global(:root[data-has-sidebar]) {

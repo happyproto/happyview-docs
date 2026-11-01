@@ -24,6 +24,7 @@ HappyView is an AppView: it reads records from the atproto network, keeps the on
 
 ```mermaid
 flowchart LR
+  accTitle: How a record reaches your app
   user([A user]) -- writes a record --> pds[(Their PDS)]
   pds -- the change --> jetstream[Jetstream]
   jetstream -- records in collections it indexes --> instance[Your HappyView instance]

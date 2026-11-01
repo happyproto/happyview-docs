@@ -1,7 +1,47 @@
 /* The comment and engagement components are written with Tailwind's
-   utility classes. Only the utilities are loaded, not Tailwind's reset, so
-   nothing else on the page changes. */
+   utility classes. Those utilities need Tailwind's theme for their spacing
+   and type scales, and neither emits anything the components don't use. The
+   reset stays out, so nothing else on the page changes; the button rules
+   below stand in for it on the buttons they hold. */
+@import 'tailwindcss/theme';
 @import 'tailwindcss/utilities' source('../components/blog');
+
+:is(.post-controls, .post-foot) button:not(.hp-button) {
+  appearance: none;
+  min-block-size: 2.75rem;
+  border: 0 solid transparent;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+:is(.post-controls, .post-foot) button:not(.hp-button):disabled {
+  cursor: default;
+}
+
+@keyframes toast-in-out {
+  0%,
+  100% {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+  8%,
+  92% {
+    opacity: 1;
+    translate: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes toast-in-out {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    8%,
+    92% {
+      opacity: 1;
+    }
+  }
+}
 
 .post-body {
   max-inline-size: 70ch;

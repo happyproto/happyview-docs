@@ -21,11 +21,55 @@ const path = Astro.url.pathname;
         <a class="mk-link" href={link.href} aria-current={path.startsWith(link.href) ? 'page' : undefined}>{link.label}</a>
       ))}
       <a class="mk-link" href={repo.happyview}>GitHub</a>
+      <label class="theme-picker">
+        <span>Theme</span>
+        <select data-theme-picker>
+          <option value="auto">Auto</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
     </nav>
   </div>
 </header>
 
+<script>
+  // The docs' theme picker stores its choice under the same key.
+  const picker = document.querySelector<HTMLSelectElement>('[data-theme-picker]');
+  if (picker) {
+    picker.value = document.documentElement.dataset.theme ?? 'auto';
+    picker.addEventListener('change', () => {
+      const theme = picker.value;
+      if (theme === 'auto') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = theme;
+      try {
+        localStorage.setItem('starlight-theme', theme === 'auto' ? '' : theme);
+      } catch {}
+    });
+  }
+</script>
+
 <style>
+  .theme-picker span {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .theme-picker {
+    display: inline-flex;
+    align-items: center;
+  }
+  .theme-picker select {
+    min-block-size: 2.75rem;
+    border: 0;
+    background: none;
+    color: var(--hp-color-fg-muted);
+    font: inherit;
+    font-size: var(--hp-text-sm);
+    cursor: pointer;
+  }
   .site-logo {
     display: block;
     inline-size: auto;
@@ -51,7 +95,18 @@ const path = Astro.url.pathname;
   .mk-header-actions {
     gap: var(--hp-space-4);
   }
-  .mk-header-actions a[aria-current='page'] {
+  .mk-header-actions .mk-link {
+    min-inline-size: 0;
+    justify-content: flex-start;
+    color: var(--hp-color-fg-muted);
+    text-decoration: none;
+  }
+  .mk-header-actions .mk-link:hover,
+  .mk-header-actions .mk-link[aria-current='page'] {
     color: var(--hp-color-fg);
+  }
+  .mk-header-actions .mk-link[aria-current='page'] {
+    text-decoration: underline;
+    text-underline-offset: 0.35em;
   }
 </style>

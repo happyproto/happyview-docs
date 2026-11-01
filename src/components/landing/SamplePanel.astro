@@ -9,18 +9,18 @@ interface Props { tabs: SampleTab[] }
 const { tabs } = Astro.props;
 ---
 
-<section class="hp-window lp-sample" aria-label="Sample project">
-  <header class="hp-window-bar lp-tabs" role="tablist" aria-label="Files">
+<section class="hp-window lp-sample" data-theme="dark" aria-label="Sample project">
+  <div class="hp-window-bar lp-tabs" role="tablist" aria-label="Files">
     {tabs.map((tab, i) => (
       <button type="button" role="tab" id={`lp-tab-${i}`} aria-controls={`lp-panel-${i}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
         {tab.label}
       </button>
     ))}
-  </header>
+  </div>
   {tabs.map((tab, i) => (
     <div class="lp-panel" role="tabpanel" id={`lp-panel-${i}`} aria-labelledby={`lp-tab-${i}`} data-index={i}>
       {tab.path && <p class="lp-path">{tab.path}</p>}
-      <Code code={tab.code.trimEnd()} lang={tab.lang as never} themes={{ light: 'github-light', dark: 'github-dark' }} />
+      <Code code={tab.code.trimEnd()} lang={tab.lang as never} theme="github-dark-default" />
     </div>
   ))}
 </section>
@@ -41,9 +41,15 @@ const { tabs } = Astro.props;
     tabs.forEach((tab, i) => {
       tab.addEventListener('click', () => select(i));
       tab.addEventListener('keydown', (event) => {
-        const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-        if (!step) return;
-        const next = (i + step + tabs.length) % tabs.length;
+        const targets: Record<string, number> = {
+          ArrowRight: (i + 1) % tabs.length,
+          ArrowLeft: (i - 1 + tabs.length) % tabs.length,
+          Home: 0,
+          End: tabs.length - 1,
+        };
+        const next = targets[event.key];
+        if (next === undefined) return;
+        event.preventDefault();
         select(next);
         tabs[next].focus();
       });
@@ -53,6 +59,9 @@ const { tabs } = Astro.props;
 
 <style>
   .lp-sample {
+    inline-size: min(100%, 56rem);
+    background: var(--hp-color-surface);
+    color: var(--hp-color-fg);
     text-align: start;
   }
   .lp-tabs {
@@ -101,16 +110,7 @@ const { tabs } = Astro.props;
     line-height: var(--hp-leading-normal);
     overflow-x: auto;
   }
-  @media (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme='light'])) .lp-panel :global(.astro-code),
-    :global(:root:not([data-theme='light'])) .lp-panel :global(.astro-code span) {
-      color: var(--shiki-dark) !important;
-      background-color: var(--shiki-dark-bg) !important;
-    }
-  }
-  :global(:root[data-theme='dark']) .lp-panel :global(.astro-code),
-  :global(:root[data-theme='dark']) .lp-panel :global(.astro-code span) {
-    color: var(--shiki-dark) !important;
-    background-color: var(--shiki-dark-bg) !important;
+  .lp-panel :global(.astro-code) {
+    background-color: transparent !important;
   }
 </style>

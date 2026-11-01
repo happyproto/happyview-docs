@@ -14,7 +14,8 @@
 
   --sl-color-white: var(--hp-color-fg);
   --sl-color-gray-1: var(--hp-color-fg);
-  --sl-color-gray-2: var(--hp-color-fg);
+  /* Between fg and muted, so Starlight's gray-2 to white hover is visible. */
+  --sl-color-gray-2: color-mix(in oklab, var(--hp-color-fg) 72%, var(--hp-color-fg-muted));
   --sl-color-gray-3: var(--hp-color-fg-muted);
   --sl-color-gray-4: var(--hp-color-fg-muted);
   --sl-color-gray-5: var(--hp-color-border);
@@ -73,9 +74,65 @@ body {
   letter-spacing: var(--hp-tracking-tight);
 }
 
-/* One hairline between header, sidebar and page, as on happyproto.at. */
-.header {
-  border-block-end: 1px solid var(--hp-color-border);
+/* One focus ring across the site, the design system's. */
+:focus-visible {
+  outline: 2px solid var(--hp-color-accent);
+  outline-offset: 2px;
+}
+
+/* No rule between the title and the page: the heading already separates them. */
+main .content-panel + .content-panel {
+  border-block-start: 0;
+  padding-block-start: 0;
+}
+
+/* Sidebar: group labels lead, and links and nested groups share one quiet
+   weight. The current page is a tint, not a filled block. */
+#starlight__sidebar .top-level > li > details > summary .large {
+  font-size: var(--hp-text-sm);
+  font-weight: var(--hp-weight-semibold);
+  color: var(--hp-color-fg);
+}
+#starlight__sidebar .top-level > li > a.large,
+#starlight__sidebar ul ul .large {
+  font-size: var(--hp-text-sm);
+  font-weight: var(--hp-weight-medium);
+  color: var(--sl-color-gray-2);
+}
+#starlight__sidebar :is(a, summary) {
+  border-radius: var(--hp-radius-sm);
+}
+#starlight__sidebar :is(a:not([aria-current='page']), summary):hover {
+  background: var(--hp-color-surface-raised);
+}
+#starlight__sidebar :is(a:not([aria-current='page']), summary):hover .large {
+  color: var(--hp-color-fg);
+}
+#starlight__sidebar a[aria-current='page'],
+#starlight__sidebar a[aria-current='page']:hover,
+#starlight__sidebar a[aria-current='page']:focus {
+  background: var(--sl-color-accent-low);
+  color: var(--hp-color-accent);
+  font-weight: var(--hp-weight-semibold);
+}
+#starlight__sidebar a[aria-current='page'] .large {
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* An archived label should recede: outlined, never the current page's fill. */
+.sl-badge.default {
+  background: transparent;
+  border-color: var(--hp-color-border-strong);
+  color: var(--hp-color-fg-muted);
+}
+
+/* Previous and next: hairlines, as everywhere else on the site. */
+.pagination-links a {
+  box-shadow: none;
+}
+.pagination-links a:hover {
+  background: var(--hp-color-surface-raised);
 }
 
 /* Links in prose: the accent ink, underlined, as the design system's
@@ -84,13 +141,119 @@ body {
   color: var(--hp-color-accent);
   text-underline-offset: 0.2em;
 }
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Tables. rehype-tables wraps each in a scroller; the edge shadows appear
+   only while there is more to scroll to. Under 40rem a table of three or more
+   columns stacks, each row a block and each cell naming its column. */
+.table-scroll {
+  overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--hp-color-bg) 40%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--hp-color-bg) 40%, transparent) right / 2rem 100% no-repeat local,
+    linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+}
+.sl-markdown-content .table-scroll > table {
+  display: table;
+  inline-size: 100%;
+  margin: 0;
+  overflow: visible;
+}
+.sl-markdown-content td:first-child code {
+  white-space: nowrap;
+}
+@media (max-width: 39.99rem) {
+  .sl-markdown-content table.stack,
+  .sl-markdown-content table.stack :is(tbody, tr, td) {
+    display: block;
+    inline-size: auto;
+  }
+  .sl-markdown-content table.stack thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sl-markdown-content table.stack tr {
+    padding-block: var(--hp-space-3);
+    border-block-end: 1px solid var(--hp-color-border);
+  }
+  .sl-markdown-content table.stack td {
+    padding: 0;
+    border: 0;
+  }
+  .sl-markdown-content table.stack td + td {
+    margin-block-start: var(--hp-space-2);
+  }
+  .sl-markdown-content table.stack td:empty {
+    display: none;
+  }
+  .sl-markdown-content table.stack td:first-child {
+    font-weight: var(--hp-weight-semibold);
+  }
+  .sl-markdown-content table.stack td + td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-xs);
+    font-weight: var(--hp-weight-medium);
+  }
+  .sl-markdown-content table.stack td code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
 
 /* Code blocks: Expressive Code's frame on the raised surface. */
 .expressive-code {
   --ec-brdRad: var(--hp-radius-md);
 }
 
+/* Diagrams keep their natural size under 50rem and scroll, because scaling
+   one to a phone's width leaves its labels unreadable. --diagram-width is
+   set where the diagram renders. */
 pre.mermaid {
   background: transparent;
   border: 0;
+  overflow-x: auto;
+}
+@media (max-width: 49.99rem) {
+  pre.mermaid svg {
+    min-inline-size: var(--diagram-width, auto);
+  }
+}
+
+/* Phone targets. */
+@media (max-width: 49.99rem) {
+  .sl-menu-button,
+  site-search > button {
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+  .sl-menu-button {
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--hp-color-border);
+    background: var(--hp-color-bg);
+    box-shadow: none;
+    color: var(--hp-color-fg);
+  }
+  #starlight__sidebar :is(a, summary),
+  .sl-link-button,
+  .hp-button-small {
+    min-block-size: 2.75rem;
+    align-items: center;
+  }
+  #starlight__sidebar a {
+    display: flex;
+  }
+  .meta a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+  }
 }

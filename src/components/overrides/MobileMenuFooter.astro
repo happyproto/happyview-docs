@@ -1,0 +1,30 @@
+---
+// Starlight's menu footer, under the site's links: the header hides them on
+// a phone, so the menu has to carry them.
+import Default from '@astrojs/starlight/components/MobileMenuFooter.astro';
+import { nav, repo } from '../../site';
+---
+
+<nav class="mobile-site-nav" aria-label="Site">
+  {nav.map((link) => <a href={link.href}>{link.label}</a>)}
+  <a href={repo.happyview}>GitHub</a>
+</nav>
+<Default />
+
+<style>
+  .mobile-site-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-block: var(--hp-space-2);
+    border-block-start: 1px solid var(--hp-color-border);
+  }
+  .mobile-site-nav a {
+    display: flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+    color: var(--hp-color-fg);
+    font-size: var(--hp-text-sm);
+    font-weight: var(--hp-weight-medium);
+    text-decoration: none;
+  }
+</style>
