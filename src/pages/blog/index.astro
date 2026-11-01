@@ -28,6 +28,7 @@ const posts = (await getCollection('blog')).sort((a, b) => b.data.date.valueOf()
 
 <style>
   .blog {
+    padding-block-start: var(--hp-space-12);
     border-block-start: 0;
   }
   .posts {

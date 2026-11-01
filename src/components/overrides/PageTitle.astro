@@ -175,8 +175,20 @@ const prereqs = await Promise.all(
     search.append(announcer);
     // The status region is inside what's observed, so an unconditional write
     // would trigger this observer forever.
+    // Pagefind matches on fragments as short as a letter, so it answers even
+    // nonsense confidently. Results whose longest highlight is that short
+    // count as none.
+    const none = document.createElement('p');
+    none.className = 'search-none';
+    search.querySelector('.dialog-frame')?.append(none);
     new MutationObserver(() => {
-      const message = search.querySelector('.pagefind-ui__message')?.textContent ?? '';
+      const query = search.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.value.trim() ?? '';
+      const marks = [...search.querySelectorAll('.pagefind-ui__result mark')].map((mark) => mark.textContent?.length ?? 0);
+      const noMatch = marks.length > 0 && Math.max(...marks) < Math.min(3, query.length);
+      const text = `No matches for “${query}”.`;
+      if (noMatch && none.textContent !== text) none.textContent = text;
+      search.toggleAttribute('data-no-match', noMatch);
+      const message = noMatch ? text : (search.querySelector('.pagefind-ui__message')?.textContent ?? '');
       if (announcer.textContent !== message) announcer.textContent = message;
     }).observe(search, { childList: true, subtree: true, characterData: true });
     if (location.pathname.startsWith('/docs/v2/')) {
@@ -207,7 +219,7 @@ const prereqs = await Promise.all(
     const input = search.querySelector<HTMLElement>('.pagefind-ui__search-input');
     const links = [...search.querySelectorAll<HTMLAnchorElement>('.pagefind-ui__result-link')];
     if (key === 'Enter') {
-      if (target === input && links[0]) links[0].click();
+      if (target === input && links[0] && !search.hasAttribute('data-no-match')) links[0].click();
       return;
     }
     event.preventDefault();
@@ -240,7 +252,7 @@ const prereqs = await Promise.all(
       const title = el.getAttribute('aria-label') ?? 'Diagram';
       svg.removeAttribute('aria-labelledby');
       svg.setAttribute('aria-label', title);
-      full.style.setProperty('--diagram-floor', el.style.getPropertyValue('--diagram-floor'));
+      full.style.setProperty('--diagram-width', el.style.getPropertyValue('--diagram-width'));
       full.setAttribute('aria-label', title);
       full.replaceChildren(svg);
       dialog.setAttribute('aria-label', title);
@@ -286,6 +298,7 @@ const prereqs = await Promise.all(
       };
       mermaid.initialize({
         startOnLoad: false,
+        suppressErrorRendering: true,
         theme: 'base',
         flowchart: { nodeSpacing: 30, rankSpacing: 40 },
         sequence: { actorMargin: 20, width: 110 },
@@ -317,7 +330,7 @@ const prereqs = await Promise.all(
         el.removeAttribute('aria-busy');
         const svg = el.querySelector('svg');
         if (!svg) continue;
-        el.style.setProperty('--diagram-floor', `${0.75 * svg.viewBox.baseVal.width}px`);
+        el.style.setProperty('--diagram-width', `${svg.viewBox.baseVal.width}px`);
         el.style.minBlockSize = '';
         el.setAttribute('aria-label', svg.querySelector('title')?.textContent || 'Diagram');
         el.scrollLeft = scrolled.get(el) ?? 0;
@@ -335,7 +348,9 @@ const prereqs = await Promise.all(
       try {
         await render();
       } catch {
-        for (const el of diagrams) {
+        for (const [el, source] of sources) {
+          el.textContent = source;
+          el.removeAttribute('data-processed');
           el.dataset.failed = '';
           el.style.minBlockSize = '';
           el.removeAttribute('aria-busy');
@@ -384,6 +399,7 @@ const prereqs = await Promise.all(
   }
   h1 {
     flex: 1 1 min(20rem, 100%);
+    overflow-wrap: anywhere;
     margin: 0;
     font-size: var(--sl-text-h1);
     line-height: var(--sl-line-height-headings);

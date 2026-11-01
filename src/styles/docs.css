@@ -120,7 +120,11 @@ main .content-panel + .content-panel {
   font-weight: inherit;
 }
 
-/* The version switch stays in reach however far the sidebar scrolls. */
+/* The version switch stays in reach however far the sidebar scrolls, and
+   focus stops short of it. */
+#starlight__sidebar {
+  scroll-padding-block-start: 7rem;
+}
 .starlight-sidebar-topics {
   position: sticky;
   inset-block-start: 0;
@@ -133,6 +137,15 @@ main .content-panel + .content-panel {
   background: transparent;
   border-color: var(--hp-color-border-strong);
   color: var(--hp-color-fg-muted);
+}
+
+/* On a touch screen the copy button is always showing, so it sits on a solid
+   ground rather than over the code. */
+@media (pointer: coarse) {
+  .expressive-code .copy button {
+    background: var(--hp-color-surface-raised);
+    opacity: 1;
+  }
 }
 
 /* Previous and next: hairlines, as everywhere else on the site. */
@@ -159,7 +172,8 @@ main .content-panel + .content-panel {
    stacks, each row a block and each cell naming its column. The width that
    counts is the column's, which a sidebar narrows at any screen size. */
 .table-scroll,
-pre.mermaid {
+pre.mermaid,
+.diagram-full {
   overflow-x: auto;
   background:
     linear-gradient(to right, var(--hp-color-bg) 40%, transparent) left / 2rem 100% no-repeat local,
@@ -234,14 +248,21 @@ pre.mermaid {
   --ec-brdRad: var(--hp-radius-md);
 }
 
-/* A diagram never scales below labels of about 12px; past that it scrolls.
-   --diagram-floor is set where the diagram renders. Until then the source is
+/* A diagram never scales below labels of about 12px, or about 10.5px where
+   the screen is wide enough to open it full size; past that it scrolls.
+   --diagram-width is set where the diagram renders. Until then the source is
    hidden and its room held, unless scripts are off and it's all there is. */
 pre.mermaid {
   border: 0;
+  padding: 0;
 }
 pre.mermaid svg {
-  min-inline-size: var(--diagram-floor, auto);
+  min-inline-size: calc(var(--diagram-width, 0px) * 0.75);
+}
+@media (min-width: 72rem) {
+  pre.mermaid svg {
+    min-inline-size: calc(var(--diagram-width, 0px) * 0.66);
+  }
 }
 pre.mermaid small,
 .diagram-full small {
@@ -260,21 +281,29 @@ pre.mermaid small,
     color: var(--hp-color-fg);
   }
 }
-.diagram-expand {
+.diagram-expand:not([hidden]) {
   display: flex;
   margin-block-end: var(--hp-space-2);
   margin-inline-start: auto;
 }
+/* Only the diagram scrolls, so Close stays in reach. It opens at its natural
+   size or the width of the screen, whichever is larger. */
 .diagram-dialog {
   inline-size: min(100vw - 2rem, 96rem);
+  block-size: calc(100dvh - 2rem);
   margin: auto;
   max-inline-size: none;
-  max-block-size: calc(100dvh - 2rem);
+  max-block-size: none;
   padding: var(--hp-space-4);
+  overflow: hidden;
   border: 1px solid var(--hp-color-border);
   border-radius: var(--hp-radius-md);
   background: var(--hp-color-bg);
   color: var(--hp-color-fg);
+}
+.diagram-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .diagram-dialog::backdrop {
   background: color-mix(in oklab, var(--hp-color-bg) 70%, transparent);
@@ -289,14 +318,16 @@ pre.mermaid small,
 }
 .diagram-full svg {
   display: block;
-  inline-size: 100%;
+  inline-size: max(100%, var(--diagram-width));
   max-inline-size: none !important;
-  max-block-size: calc(100dvh - 7rem);
 }
 @media (max-width: 49.99rem) {
-  .diagram-full svg {
-    min-inline-size: var(--diagram-floor);
-    max-block-size: none;
+  .diagram-dialog {
+    inline-size: 100vw;
+    block-size: 100dvh;
+    padding-inline: var(--hp-space-2);
+    border: 0;
+    border-radius: 0;
   }
 }
 
@@ -308,6 +339,17 @@ pre.mermaid small,
 }
 .pagefind-ui__results > .pagefind-ui__result:first-child > .pagefind-ui__result-inner > .pagefind-ui__result-title {
   background: var(--sl-color-accent-low);
+}
+.search-none {
+  display: none;
+}
+[data-no-match] .search-none {
+  display: block;
+}
+[data-no-match] .pagefind-ui__results,
+[data-no-match] .pagefind-ui__message,
+[data-no-match] .pagefind-ui__button {
+  display: none;
 }
 .search-status {
   position: absolute;
@@ -353,6 +395,15 @@ pre.mermaid small,
     font-size: var(--hp-text-sm);
   }
   .site-title {
+    min-block-size: 2.75rem;
+  }
+  starlight-tabs [role='tablist'] {
+    flex-wrap: wrap;
+  }
+  .crumbs a,
+  .sl-banner a {
+    display: inline-flex;
+    align-items: center;
     min-block-size: 2.75rem;
   }
   .pagefind-ui__button {

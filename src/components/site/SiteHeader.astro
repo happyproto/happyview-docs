@@ -21,7 +21,10 @@ const path = Astro.url.pathname;
         <a class="mk-link" href={link.href} aria-current={path.startsWith(link.href) ? 'page' : undefined}>{link.label}</a>
       ))}
       <a class="mk-link" href={repo.happyview}>GitHub</a>
-      <a class="mk-link header-search" href="/docs/?search">Search</a>
+      <a class="mk-link header-search" href="/docs/?search" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <span>Search</span>
+      </a>
       <label class="theme-picker">
         <span>Theme</span>
         <select data-theme-picker>
@@ -104,15 +107,26 @@ const path = Astro.url.pathname;
   .mk-header-actions {
     gap: var(--hp-space-4);
   }
+  .header-search {
+    gap: var(--hp-space-1);
+  }
   @media (max-width: 40rem) {
-    .header-search {
+    .header-search span {
       display: none;
+    }
+    .mk-header-actions .header-search {
+      min-inline-size: 2.75rem;
+      justify-content: center;
     }
   }
   @media (max-width: 30rem) {
     .mk-header-actions {
       flex-wrap: nowrap;
       gap: var(--hp-space-2);
+    }
+    /* The docs' sidebar carries it. */
+    .mk-header-actions a[href='/docs/changelog/'] {
+      display: none;
     }
     .theme-picker select {
       max-inline-size: 4rem;
