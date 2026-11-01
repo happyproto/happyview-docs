@@ -35,7 +35,7 @@ Makes `did` the only operator with superadmin, creating the operator if needed a
 
 | Field | Type   | Required | Description         |
 | ----- | ------ | -------- | ------------------- |
-| `did` | string | yes      | The new owner's DID |
+| `did` | string | yes      | The DID of the operator to hold superadmin |
 
 ```sh
 curl -X PUT http://127.0.0.1:3000/admin/platform/super-user \

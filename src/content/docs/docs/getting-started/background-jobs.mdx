@@ -190,7 +190,7 @@ To run a job script without queuing anything, fire it from a test file with `job
 
 Open your local dashboard and go to **Data > Jobs**. The table lists every job with its status, and you can filter by status. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines your job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
 
-You can also read jobs with the admin API:
+You can also read jobs with the admin API. Here `$AUTH` holds `Authorization: Bearer <key>`, with an [admin API key](/docs/getting-started/authentication#use-the-admin-api-with-an-api-key):
 
 ```sh
 # List jobs, optionally by status

@@ -1,12 +1,16 @@
 ---
 title: Complex mutations
+description: A procedure script that loads a record, applies several changes and saves it back, in Lua, JavaScript and TypeScript.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Load an existing record, apply multiple transformations, and save it back.
 
-**Lexicon type:** procedure
+**Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local time = require("internal.time")
@@ -28,7 +32,7 @@ function handle(input, ctx)
   r.likeCount = (r.likeCount or 0) + 1
 
   -- Merge tags, deduplicating and capping at 10
-  if input.tags then
+  if input.tags and #input.tags > 0 then
     r.tags = r.tags or {}
     for _, tag in ipairs(input.tags) do
       local found = false
@@ -61,15 +65,102 @@ function handle(input, ctx)
 end
 ```
 
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import time from "internal.time";
+import db from "happyview.db";
+import record from "happyview.record";
+
+export default async function handle(input, ctx) {
+  if (!input.uri) {
+    return { error: "UriRequired", message: "uri is required" };
+  }
+
+  const row = await db.get(input.uri);
+  if (!row) {
+    return { error: "RecordNotFound", message: "no record at that uri" };
+  }
+  const r = row.record;
+
+  // Increment a counter
+  r.likeCount = (r.likeCount ?? 0) + 1;
+
+  // Merge tags, deduplicating and capping at 10
+  if (input.tags) {
+    r.tags = [...new Set([...(r.tags ?? []), ...input.tags])].slice(-10);
+  }
+
+  // Normalize a string field
+  if (input.title) {
+    r.title = input.title.trim();
+  }
+
+  // Set a computed field
+  r.updatedAt = time.to_iso8601(time.now());
+
+  return record.put(input.uri, r);
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import time from "internal.time";
+import db from "happyview.db";
+import record from "happyview.record";
+
+interface Input {
+  uri?: string;
+  tags?: string[];
+  title?: string;
+}
+
+export default async function handle(input: Input) {
+  if (!input.uri) {
+    return { error: "UriRequired", message: "uri is required" };
+  }
+
+  const row = await db.get(input.uri);
+  if (!row) {
+    return { error: "RecordNotFound", message: "no record at that uri" };
+  }
+  const r = row.record;
+
+  // Increment a counter
+  r.likeCount = (r.likeCount ?? 0) + 1;
+
+  // Merge tags, deduplicating and capping at 10
+  if (input.tags) {
+    r.tags = [...new Set([...(r.tags ?? []), ...input.tags])].slice(-10);
+  }
+
+  // Normalize a string field
+  if (input.title) {
+    r.title = input.title.trim();
+  }
+
+  // Set a computed field
+  r.updatedAt = time.to_iso8601(time.now());
+
+  return record.put(input.uri, r);
+}
+```
+
+</TabItem>
+</Tabs>
+
 ## How it works
 
-1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, a plain table you can change in place. A missing `uri` or record returns a structured error. `UriRequired` and `RecordNotFound` must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400; an undeclared one is sent as a 200.
+1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, which you can change in place. A missing `uri` or record returns a structured error. `UriRequired` and `RecordNotFound` must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400; an undeclared one is sent as a 200.
 2. Apply transformations directly on the body's fields:
-   - **Increment a counter**: use `or 0` to handle the field being `nil` on first access.
-   - **Merge tags**: iterate over `input.tags`, skip duplicates already in `r.tags`, append new ones, then trim the list to 10. `r.tags` is created only when the request sends `tags`, because an empty Lua table is written as a JSON object, not an array.
-   - **Normalize a string**: use `string.gsub` to trim whitespace.
+   - **Increment a counter**: use `or 0` (Lua) or `?? 0` (JavaScript and TypeScript) for the first time, when the field is absent.
+   - **Merge tags**: add each of `input.tags` that isn't already in `r.tags`, then trim the list to its last 10. In Lua, `r.tags` is created only when the request sends at least one tag, because an empty Lua table is written as a JSON object, not an array.
+   - **Normalize a string**: trim whitespace with `string.gsub` (Lua) or `trim` (JavaScript and TypeScript).
    - **Set a timestamp**: [`time.to_iso8601(time.now())`](/docs/reference/scripts/built-in-modules#internaltime) for UTC ISO 8601.
-3. Write the body back with `record.put`, which calls `putRecord` to update the record on the user's PDS.
+3. Write the body back with `record.put`, which calls `putRecord` to update the record on the user's PDS. A URI in another account's repo fails with `WRITABLE_REPO`.
 
 ## Usage
 
@@ -173,6 +264,6 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.updatePost \
 
 ## Use case
 
-This pattern is useful when updates involve more than simple field replacement: counters, bounded lists, string normalization, or computed fields. All mutations happen in memory before the single `record.put` call, so there's no partial save: either all changes are written or none are.
+Use this pattern when an update does more than replace fields: counters, bounded lists, string normalization or computed fields. All changes happen in memory before the single `record.put` call, so either all of them are written or none are.
 
-The body is validated against the collection's lexicon before the write; pass `{ validate = false }` as a third argument to skip that check.
+The body is validated against the collection's lexicon before the write; pass `{ validate = false }` (Lua) or `{ validate: false }` (JavaScript and TypeScript) as a third argument to skip that check.

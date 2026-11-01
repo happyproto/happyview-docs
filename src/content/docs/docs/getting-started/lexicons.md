@@ -7,7 +7,7 @@ prerequisites:
 
 This page adds a record lexicon to your project, so your instance starts indexing that collection, and shows the other ways a lexicon can reach an instance.
 
-A lexicon is a schema, and HappyView reads three kinds:
+A lexicon is a schema document, and HappyView reads three kinds:
 
 - A **record lexicon** describes a kind of record. HappyView indexes every record of that collection it sees.
 - A **query lexicon** or **procedure lexicon** describes an endpoint. HappyView serves it at `/xrpc/<NSID>`; [Queries and procedures](/docs/getting-started/queries-and-procedures) covers those.

@@ -63,7 +63,7 @@ A record script runs before the record is indexed, so it can skip the record, re
 
 | `handle` returns | Effect |
 | --- | --- |
-| Nothing (`nil`, `undefined`, `null`) | The record is not indexed. On a delete, the delete is skipped and the record stays |
+| Nothing (`nil`, `undefined`, `null`) | The record is not indexed. On a delete, the delete is skipped and the record stays, unless the [record storage](/docs/guides/record-providers) that holds the collection has already deleted it |
 | An object | That object is stored in place of the record |
 | Anything else, such as `true` | The record is stored as it arrived |
 | (no script) | The record is stored as it arrived |

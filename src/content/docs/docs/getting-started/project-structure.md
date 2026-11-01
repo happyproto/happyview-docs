@@ -27,13 +27,13 @@ my-app/
 
 | Path | What it is | Trigger |
 | --- | --- | --- |
-| `src/lexicons/com/example/hello.json` | A lexicon. Its `id` must equal its path: `com.example.hello` | — |
+| `src/lexicons/com/example/hello.json` | A lexicon. Its `id` must equal its path: `com.example.hello` | none |
 | `src/lexicons/com/example/hello.lua` | The script for a query or procedure lexicon beside it | `xrpc.query:com.example.hello` |
 | `src/lexicons/xyz/statusphere/status.create.lua` | A record script for a record lexicon beside it. `create`, `update`, `delete`, or `index` for all three | `record.create:xyz.statusphere.status` |
 | `src/jobs/export.lua` | A job script | `job.run:export` |
 | `src/labels/<NSID>.lua`, `src/labels/_actor.lua` | A label script, for labels on records of that collection or on accounts | `labeler.apply:<NSID>` |
-| `src/lib/format.lua`, or any other path | A module, which scripts import | — |
-| `anything.test.lua` | A test, wherever it is | — |
+| `src/lib/format.lua`, or any other path | A module, which scripts import | none |
+| `anything.test.lua` | A test, wherever it is | none |
 
 The extension picks the language: `.lua`, `.js` or `.ts`, as long as an interpreter for it is installed. The following pages write each kind of script; [Script types and triggers](/docs/reference/scripts/types-and-triggers#name-a-script-file) has every rule.
 

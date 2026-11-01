@@ -4,7 +4,7 @@ title: OAuth keys
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage the ES256 key HappyView signs OAuth client assertions with. As a confidential OAuth client, HappyView authenticates to PDSes with `private_key_jwt` rather than as a public client — which is what earns its sessions the 2-year lifetime cap instead of 2 weeks. All endpoints require the `settings:manage` permission.
+Manage the ES256 key HappyView signs OAuth client assertions with. As a confidential OAuth client, HappyView authenticates to PDSes with `private_key_jwt` rather than as a public client, which earns its sessions the 2-year lifetime cap instead of 2 weeks. All endpoints require the `settings:manage` permission.
 
 Every session records the `kid` of the key that established it and is refreshed with **that** key, never with whichever key happens to be current later. That is what makes rotation safe: an authorization server treats a mismatched `kid` as grounds to destroy the session, not merely to refuse the request.
 
@@ -13,7 +13,7 @@ Two operations, with very different consequences:
 - **Rotate** mints a new key, which becomes `current` after 75 minutes (or at once with `immediate`) and marks the previous one `retiring`. A retiring key stays published in the JWKS and keeps signing every session established with it, so nothing is logged out. Rotation is safe and cheap.
 - **Revoke** removes a key from the JWKS immediately and permanently breaks every session pinned to it. It is the response to a leaked or compromised key, not routine maintenance.
 
-Because of that difference, **the current key cannot be revoked** — doing so would leave the instance unable to authenticate to any PDS at all. To contain a leaked key, rotate first with `{ "immediate": true }` (which demotes the leaked key to `retiring` and mints a fresh `current`), then revoke the retiring key.
+Because of that difference, **the current key cannot be revoked**: that would leave the instance unable to authenticate to any PDS at all. To contain a leaked key, rotate first with `{ "immediate": true }` (which demotes the leaked key to `retiring` and mints a fresh `current`), then revoke the retiring key.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -156,7 +156,7 @@ curl -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key
 POST /admin/oauth/instance-key/rotate
 ```
 
-Mints a new key. By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating while a key is pending returns that pending key.
+Mints a new key. By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating while a key is pending returns that pending key. An instance with no current key gets its new key as `current` at once.
 
 Nothing is logged out: the retiring key stays in the published JWKS and keeps signing refreshes for every session established with it. New sessions use the new key once it is current.
 
@@ -244,7 +244,7 @@ curl -X POST -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key/rotate
 DELETE /admin/oauth/instance-key/{kid}
 ```
 
-Removes the key from the published JWKS immediately and destroys every session pinned to it — those users must log in again. Use this when a key has leaked, not to tidy up old keys; a retiring key with no remaining sessions is revoked automatically.
+Removes the key from the published JWKS immediately and destroys every session pinned to it, and those users must log in again. Use this when a key has leaked, not to tidy up old keys; a retiring key with no remaining sessions is revoked automatically.
 
 `sessions_destroyed` reports how many sessions the revoke invalidated.
 
@@ -252,7 +252,7 @@ Errors:
 
 | Status | Meaning |
 | ------ | ------- |
-| `400`  | The target is the `current` key. Rotate first, then revoke the retiring key. |
+| `400`  | The target is the `current` key. Rotate with `{ "immediate": true }` first, then revoke the retiring key. |
 | `404`  | No unrevoked key with that `kid` belongs to this instance. |
 
 <Tabs syncKey="lang">
@@ -327,8 +327,8 @@ curl -X DELETE -H "$AUTH" \
 
 ## Responding to a leaked key
 
-1. `POST /admin/oauth/instance-key/rotate` with `{ "immediate": true }` — the leaked key becomes `retiring`, a fresh key becomes `current`, and the instance keeps working throughout.
-2. `GET /admin/oauth/instance-key` — confirm the leaked key is now `retiring` and note its `session_count`, which is how many users step 3 will sign out.
+1. `POST /admin/oauth/instance-key/rotate` with `{ "immediate": true }`. The leaked key becomes `retiring`, a fresh key becomes `current`, and the instance keeps working throughout.
+2. `GET /admin/oauth/instance-key`. Confirm the leaked key is now `retiring` and note its `session_count`, which is how many users step 3 will sign out.
 3. `DELETE /admin/oauth/instance-key/{kid}` on the leaked key.
 
 Doing this in the other order is refused: the current key cannot be revoked, because that would leave the instance with no key to authenticate with.

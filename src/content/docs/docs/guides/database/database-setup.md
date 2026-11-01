@@ -2,10 +2,6 @@
 title: Database setup
 ---
 
-:::caution[Pending HAP-272]
-How to read one collection quickly from raw SQL is changing in HappyView (HAP-272, happyview#239). The [Reading one collection](#reading-one-collection) section describes the new view, which is not in a release yet.
-:::
-
 HappyView supports two database backends: **SQLite** (default) and **PostgreSQL**. The backend is auto-detected from your `DATABASE_URL` scheme, or you can set `DATABASE_BACKEND` explicitly.
 
 ## SQLite (default)
@@ -26,7 +22,7 @@ The `?mode=rwc` parameter tells SQLite to create the file if it does not exist. 
 
 ## PostgreSQL (optional)
 
-For larger deployments or when you need concurrent write scalability, use Postgres.
+For larger deployments or when you need concurrent write scalability, use Postgres. Stacks in the HappyView repository run version 17.
 
 ```sh
 DATABASE_URL=postgres://happyview:happyview@localhost/happyview
@@ -58,9 +54,9 @@ HappyView applies any pending migrations every time it starts, before it serves 
 
 ## The compact record format
 
-This release moves records into a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` become views with the same columns, so `happyview.sql`'s `raw`, scripts and plugin SQL keep reading them, and `record` is still the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
+HappyView v3 stores records in a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` become views with the same columns, so `happyview.sql`'s `raw`, scripts and plugin SQL keep reading them, and `record` is still the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
 
-Measured on 67,437 Bluesky posts and their 105,095 refs:
+Measured on 67,437 Bluesky posts and their 105,095 refs, against the v2 format:
 
 | | Before | After the upgrade | After compression and a vacuum |
 |---|---|---|---|
@@ -70,6 +66,8 @@ Measured on 67,437 Bluesky posts and their 105,095 refs:
 A synthetic set of a million records built from the same posts gave the same proportions: 2,285 MB, 855 MB and 451 MB on SQLite, and 2,047 MB and 1,061 MB for the Postgres record tables. On Postgres the saving comes from storing DIDs, collections, CIDs and timestamps compactly. Postgres's own compression only reaches bodies over about 2 KB, so post-sized records stay about the size they were.
 
 ### Before you upgrade
+
+This section applies to a database coming from v2. A new v3 database starts in the compact format.
 
 **Take a backup before you upgrade. The only way back to the previous release is to restore that backup.** The upgrade drops the old tables once it has checked the copy. See [Backups](/docs/guides/self-hosting/production#backups).
 
@@ -118,7 +116,7 @@ Some rows are copied differently, with a warning in the log:
 
 **Page cursors.** A pagination cursor issued before the upgrade is refused once with `400` and `invalid cursor: request the first page again`. Clients that start again from the first page get cursors in the new form. A plugin that pages records with `host_records_query` gets an `INVALID_SPEC` error for such a cursor and chooses the status it answers with.
 
-**Compression on SQLite.** A collection's bodies are compressed once it holds `ZSTD_DICT_TRAIN_AT` records (5,000 by default). A background task, which runs within 30 seconds of startup and then every `RECORD_COMPRESSION_INTERVAL_SECS` seconds (600 by default), trains a dictionary for the collection from up to 20,000 of its most recently stored records. From then on new records in that collection are compressed as they are written, and the task compresses the existing ones in batches of 1,000. Bodies under 64 bytes or over 16 MiB, and bodies that compression would not make smaller, stay as they are. `RECORD_COMPRESSION=none` turns compression off; bodies already compressed stay readable. [`POST /admin/storage/retrain`](/docs/reference/admin/database#retrain-a-collections-compression-dictionary) trains a new dictionary for one collection, and records keep the dictionary they were compressed with. See [Configuration](/docs/guides/configuration) for the settings.
+**Compression on SQLite.** A collection's bodies are compressed once it holds `ZSTD_DICT_TRAIN_AT` records (5,000 by default). A background task, which runs within 30 seconds of startup and then every `RECORD_COMPRESSION_INTERVAL_SECS` seconds (600 by default), trains a dictionary for the collection from up to 20,000 of its most recently stored records. From then on new records in that collection are compressed as they are written, and the task compresses the existing ones in batches of 1,000. Bodies under 64 bytes or over 16 MiB, and bodies that compression would not make smaller, stay as they are. `RECORD_COMPRESSION=none` turns compression off; bodies already compressed stay readable. [`POST /admin/storage/retrain`](/docs/reference/admin/database#retrain-a-collections-compression-dictionary) trains a new dictionary for one collection, and records keep the dictionary they were compressed with. See [Configuration](/docs/reference/configuration#database) for the settings.
 
 **Reclaiming the compressed space on SQLite.** Compressing the records the upgrade copied leaves their pages partly empty, and SQLite does not shrink the file for that. In the measurement above, the file went from 58 MB to 57 MB when the task finished, and to 31 MB after a `VACUUM`. To get that space back, schedule the one-time vacuum from **System > Database** once the task has caught up. It runs at the next restart, takes the instance offline while it runs, and needs free disk about the size of the database. Records written after the upgrade are compressed as they are written and don't leave this gap.
 
@@ -166,10 +164,6 @@ HappyView's own queries read the tables directly and are not affected.
 
 #### Reading one collection
 
-:::caution[Alpha, pending happyview#239]
-This view and function are in an open pull request (happyview#239, HAP-272) and are not in a release yet.
-:::
-
 `happyview_records_by_collection` is a read-only view with `happyview_records`' columns plus `collection_id`, `created_at_us` and `indexed_at_us` (the timestamps in microseconds) and `id`. Filter it with `hv_collection_id`, which gives a collection's id, and order it by `created_at_us` and `id`, the order of the records table's index:
 
 ```sql
@@ -192,36 +186,9 @@ When an instance keeps some collections in external [record storage](/docs/guide
 - The views on the route show only the storage's records. Records of other collections held in this database can't be read through them.
 - Writes through the views run on this database as before and see only its rows, even a write that reads the views, such as `INSERT … SELECT`. Writes to the storage's collections are refused.
 
-## Rolling back the record tombstones
-
-The release with the Jetstream v2 consumer adds two migrations: `20261010000000_records_rev` (a `rev` column on `happyview_records`) and `20261010000001_record_tombstones` (the `happyview_record_tombstones` and `happyview_did_tombstones` tables). An older release refuses to start on a database with migrations it doesn't know. To roll back, stop HappyView and delete their rows:
-
-```sql
-DELETE FROM _sqlx_migrations WHERE version IN (20261010000000, 20261010000001);
-```
-
-The column and the two tables stay. The older release ignores them, and the next upgrade reuses the tables and what they hold. On Postgres, nothing else is needed to upgrade again. On SQLite, which cannot add a column only when it is missing, drop the `rev` column before upgrading again:
-
-```sql
-ALTER TABLE happyview_records DROP COLUMN rev;
-```
-
-Dropping the column rewrites `happyview_records`, so on a large database it takes a while and needs free disk about the size of the table. It also discards the stored revs: records written before the drop have none until a new commit to them arrives, so until then they behave as records from before the upgrade.
-
-The upgraded release resumes from the time cursor the older one saved, not from its own older seq.
-
-Once a database has the [compact record format](#the-compact-record-format), this rollback no longer applies: `happyview_records` is a view, and the way back is restoring the backup taken before that upgrade.
-
-## Environment variables
-
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | Connection string. `sqlite://...` for SQLite, `postgres://...` for Postgres |
-| `DATABASE_BACKEND` | Optional. Force `sqlite` or `postgres`. Auto-detected from `DATABASE_URL` if not set |
-
 ## Docker Compose
 
-The default `docker-compose.yml` ships with the Postgres service commented out. To use Postgres:
+For production, use `docker-compose.prod.postgres.yml`; [Docker](/docs/guides/self-hosting/docker) covers it. The repository's development `docker-compose.yml` ships with the Postgres service commented out. To use Postgres there:
 
 1. Uncomment the `postgres` service and `pgdata` volume in `docker-compose.yml`
 2. Uncomment the `depends_on: postgres` block in the `happyview` service
@@ -236,17 +203,17 @@ The default `docker-compose.yml` ships with the Postgres service commented out. 
    POSTGRES_DB=happyview
    ```
 
-## Lua scripts
+## Scripts on either backend
 
-Both backends support the same Lua libraries. A `happyview.db` chain is portable: the host generates the SQL for whichever backend is running. `happyview.sql`'s `raw` is not: the statement goes to the backend untranslated, so its placeholders (`?` on SQLite, `$1` on Postgres) and functions must be the running backend's, or for reads of the record views, [the raw read route's](#when-record-storage-offers-a-raw-read-route) when there is one. A script that has to run on both branches on `db.backend()`.
+Both backends support the same libraries. A `happyview.db` chain is portable: the host generates the SQL for whichever backend is running. `happyview.sql`'s `raw` is not: the statement goes to the backend untranslated, so its placeholders (`?` on SQLite, `$1` on Postgres) and functions must be the running backend's, or for reads of the record views, [the raw read route's](#when-record-storage-offers-a-raw-read-route) when there is one. A script that has to run on both branches on `db.backend()`.
 
 `happyview_records` and `happyview_record_refs` are views; see [raw SQL on the record views](#raw-sql-on-the-record-views) for what changes when a `raw` statement writes them or filters them by `uri`.
 
-If you are migrating existing Lua scripts from Postgres SQL syntax to SQLite syntax, see the [Postgres to SQLite migration guide](/docs/guides/database/postgres-to-sqlite-migration).
+If you are moving scripts from Postgres SQL syntax to SQLite syntax, see the [Postgres to SQLite migration guide](/docs/guides/database/postgres-to-sqlite-migration).
 
 ## Next steps
 
-- [SQLite → Postgres migration](/docs/guides/database/sqlite-to-postgres-migration) — switch an existing instance from SQLite to Postgres
-- [Postgres → SQLite migration](/docs/guides/database/postgres-to-sqlite-migration) — switch an existing instance from Postgres to SQLite
-- [Scripts](/docs/getting-started/scripts) — write queries that target either backend
-- [Configuration](/docs/guides/configuration) — `DATABASE_URL` and related variables
+- [SQLite to Postgres migration](/docs/guides/database/sqlite-to-postgres-migration): switch an existing instance from SQLite to Postgres
+- [Postgres to SQLite migration](/docs/guides/database/postgres-to-sqlite-migration): switch an existing instance from Postgres to SQLite
+- [Scripts](/docs/getting-started/scripts): write queries that target either backend
+- [Configuration reference](/docs/reference/configuration): `DATABASE_URL` and related variables

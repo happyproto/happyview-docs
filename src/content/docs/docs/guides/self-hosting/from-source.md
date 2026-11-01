@@ -2,25 +2,26 @@
 title: From source
 ---
 
-This guide runs HappyView directly with `cargo run`. If you'd rather run the whole stack in containers, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md. To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
+This guide runs HappyView directly with `cargo run`, from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md. To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
 
 ## Prerequisites
 
-- Rust (stable)
-- (Optional) PostgreSQL 17+ if you prefer Postgres over the default SQLite
+- [rustup](https://rustup.rs). The repository's `rust-toolchain.toml` pins the Rust version, and rustup installs it on the first build.
+- Node.js and npm, to build the dashboard.
+- (Optional) PostgreSQL if you prefer Postgres over the default SQLite. The repository's Compose files and tests use version 17.
 
 ## 1. Clone and configure
 
 ```sh
-git clone git@github.com:gamesgamesgamesgamesgames/happyview
+git clone --branch alpha https://github.com/gamesgamesgamesgamesgames/happyview
 cd happyview
 cp .env.example .env
 ```
 
-Edit `.env` to point at your running services:
+The default branch holds v2, so name `alpha`. Edit `.env` to point at your running services:
 
 ```sh
-# SQLite (default — no setup needed, file created automatically)
+# SQLite (the default): no setup needed, the file is created automatically
 DATABASE_URL=sqlite://data/happyview.db?mode=rwc
 PUBLIC_URL=http://127.0.0.1:3000
 # Generate with: openssl rand -base64 48
@@ -37,11 +38,11 @@ Or if you prefer Postgres:
 DATABASE_URL=postgres://happyview:happyview@localhost/happyview
 ```
 
-See [Configuration](/docs/guides/configuration) for all available variables and the [database setup guide](/docs/guides/database/database-setup) for details on both backends.
+See [Configuring an instance](/docs/guides/configuration) for what to set first, the [Configuration reference](/docs/reference/configuration) for every variable, and the [database setup guide](/docs/guides/database/database-setup) for details on both backends.
 
 ## 2. Create the database (Postgres only)
 
-If using SQLite, skip this step — HappyView creates the database file automatically.
+If using SQLite, skip this step: HappyView creates the database file automatically.
 
 If using Postgres:
 
@@ -57,13 +58,26 @@ psql -c "CREATE DATABASE happyview;" -U postgres
 
 HappyView runs migrations automatically on startup, so no manual migration step is needed.
 
-## 3. Start HappyView
+## 3. Build the dashboard
+
+A plain `cargo run` carries no dashboard of its own and serves `./web/out`, so export it once:
+
+```sh
+cd web
+npm ci
+npm run build
+cd ..
+```
+
+Skip this if you need only the API. Run it again after pulling changes to `web/`.
+
+## 4. Start HappyView
 
 ```sh
 cargo run
 ```
 
-HappyView starts on port 3000 (configurable via the `PORT` environment variable).
+HappyView starts on port 3000 (configurable via the `PORT` environment variable). `curl http://127.0.0.1:3000/health` answers `ok` once it's listening.
 
 ## Next steps
 

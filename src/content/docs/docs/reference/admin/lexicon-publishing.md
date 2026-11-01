@@ -2,7 +2,7 @@
 title: Lexicon publishing
 ---
 
-Admin API endpoints for publishing lexicons as `com.atproto.lexicon.schema` records and managing the rules that decide where they go. For the concepts, DNS requirements and dashboard, see [Publishing Lexicons](/docs/guides/publishing-lexicons).
+Admin API endpoints for publishing lexicons as `com.atproto.lexicon.schema` records and managing the rules that decide where they go. For the concepts, DNS requirements and dashboard, see [Publishing lexicons](/docs/guides/publishing-lexicons).
 
 All endpoints are under `/admin/lexicon-publishing`. Reads need `lexicons:read` and writes need `lexicons:publish`. Choosing a linked repo as a rule's target also needs `linked-repos:read`; for a caller without it, every linked-repo target in a response keeps `kind`, `available` and `can_unpublish` and has `linked_repo_id`, `did`, `handle` and `unavailable_reason` set to `null`, as does a linked-repo rule's own `linked_repo_id`. Errors use the usual body, `{"error": "<message>"}`.
 
@@ -38,7 +38,7 @@ A **rule**:
 | `target_kind`    | string      | `instance` or `linked_repo`                                                 |
 | `linked_repo_id` | string/null | The linked repo; `null` for the instance, or after its linked repo is removed |
 | `auto_publish`   | boolean     | Publish matching lexicons without a click                                   |
-| `created_by`     | string      | DID of the admin who created it                                             |
+| `created_by`     | string      | DID of the operator who created it                                          |
 | `created_at`     | string      | RFC 3339                                                                    |
 | `updated_at`     | string      | RFC 3339                                                                    |
 

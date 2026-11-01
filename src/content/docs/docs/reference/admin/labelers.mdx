@@ -123,7 +123,7 @@ curl -X POST http://127.0.0.1:3000/admin/labelers \
 | ----- | ------ | -------- | ----------------------------- |
 | `did` | string | yes      | The labeler's atproto DID |
 
-**Response**: `201 Created` (empty body)
+**Response**: `201 Created` (empty body). Adding a labeler that's already listed sets it back to `active`.
 
 ## List labelers
 
@@ -199,6 +199,7 @@ curl http://127.0.0.1:3000/admin/labelers -H "$AUTH"
 [
   {
     "did": "did:plc:ar7c4by46qjdydhdevvrndac",
+    "declared": false,
     "status": "active",
     "cursor": 1234,
     "created_at": "2026-03-15T00:00:00Z",
@@ -210,6 +211,7 @@ curl http://127.0.0.1:3000/admin/labelers -H "$AUTH"
 | Field        | Type         | Description                                        |
 | ------------ | ------------ | -------------------------------------------------- |
 | `did`        | string       | The labeler's DID                                  |
+| `declared`   | boolean      | Whether the project's `happyview.toml` subscribes to it under `[labels] subscribe` |
 | `status`     | string       | `active` or `paused`                               |
 | `cursor`     | number\|null | Last processed event cursor (null if never synced) |
 | `created_at` | string       | ISO 8601 creation timestamp                        |
@@ -297,7 +299,7 @@ curl -X PATCH http://127.0.0.1:3000/admin/labelers/did:plc:ar7c4by46qjdydhdevvrn
 | -------- | ------ | -------- | -------------------------------- |
 | `status` | string | yes      | New status: `active` or `paused` |
 
-**Response**: `204 No Content`
+**Response**: `204 No Content`. Returns `404 Not Found` for an unknown labeler.
 
 ## Delete a labeler
 
@@ -307,7 +309,7 @@ DELETE /admin/labelers/{did}
 
 Requires `labelers:delete` permission. Removes the subscription and all labels emitted by this labeler.
 
-`declared` is `true` for a labeler the project's `happyview.toml` subscribes to under `[labels] subscribe`. Deleting one returns `409 Conflict`; remove it from the file instead.
+Deleting a labeler with `declared: true` returns `409 Conflict`; remove it from the file instead. An unknown labeler returns `404 Not Found`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

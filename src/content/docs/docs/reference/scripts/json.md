@@ -2,7 +2,7 @@
 title: "JSON"
 ---
 
-`require("internal.json")` serialises Lua values to JSON and back. It is a [built-in module](/docs/reference/scripts/built-in-modules#internaljson), available in every script kind.
+`require("internal.json")` serialises Lua values to JSON and back. It is a [built-in module](/docs/reference/scripts/built-in-modules#internaljson), available in every script type. In JavaScript and TypeScript the module has `encode` and `decode`, and no `to_array`.
 
 ```lua
 local json = require("internal.json")

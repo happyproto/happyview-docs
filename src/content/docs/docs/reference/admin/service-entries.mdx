@@ -216,7 +216,7 @@ curl -X POST http://127.0.0.1:3000/admin/service-entries \
 | `fragment_id`  | string | yes      | DID document fragment (e.g. `#feed`, `#happyview`). Must be unique |
 | `service_type` | string | yes      | atproto service type (e.g. `BskyFeedGenerator`)         |
 
-The entry is created with `access_mode` set to `all`. The endpoint URL is derived from `PUBLIC_URL`. A duplicate `fragment_id` currently fails with `500 Internal Server Error`.
+The entry is created with `access_mode` set to `all`. The endpoint URL is derived from `PUBLIC_URL`. A duplicate `fragment_id` returns `409 Conflict`.
 
 **Response**: `201 Created`, with the created entry
 
@@ -669,7 +669,7 @@ curl http://127.0.0.1:3000/admin/lexicons/app.bsky.feed.getFeedSkeleton/services
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — returns an array of `ServiceEntry` objects.
+**Response**: `200 OK` with an array of `ServiceEntry` objects.
 
 ## Sync to PLC directory
 
@@ -684,6 +684,47 @@ POST /admin/service-entries/sync-plc
 Signs and submits a PLC update operation using the stored rotation key. Only available when the identity mode is `did_plc`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc", {
+  method: "POST",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc", {
+  method: "POST",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/service-entries/sync-plc")
+    .bearer_auth(token)
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/sync-plc", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -706,6 +747,47 @@ POST /admin/service-entries/sync-plc/request
 Requests a PLC operation signature token via the attached account's PDS. This sends an email confirmation code to the account holder. Only available when the identity mode is `attach_account`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc/request", {
+  method: "POST",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc/request", {
+  method: "POST",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/service-entries/sync-plc/request")
+    .bearer_auth(token)
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/sync-plc/request", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -728,6 +810,66 @@ POST /admin/service-entries/sync-plc/submit
 Submits the email confirmation token to sign and publish the PLC operation via the attached account's PDS.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc/submit", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    token: "123456"
+  }),
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/service-entries/sync-plc/submit", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    token: "123456"
+  }),
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/service-entries/sync-plc/submit")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+        "token": "123456"
+    }))
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "token": "123456"
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/service-entries/sync-plc/submit", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh

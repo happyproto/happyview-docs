@@ -11,6 +11,9 @@ description: "How HappyView treats each kind of lexicon, where lexicons come fro
 | `query`       | Registers a `GET /xrpc/{nsid}` endpoint that queries indexed records                                                                     |
 | `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint that proxies writes to the user's PDS                                                           |
 | `definitions` | Stored but does not generate routes or subscriptions                                                                                     |
+| `space`       | Defines a permissioned space type. Generates no routes                                                                                   |
+| `permission-set` | Generates no routes. HappyView reads it to expand `include:` OAuth scopes                                                             |
+| `subscription` | Accepted and stored, with a warning. HappyView doesn't serve it                                                                         |
 
 A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint.
 
@@ -32,7 +35,7 @@ A project lexicon backfills only when `backfill = true` is set under its `[lexic
 
 When an uploaded record lexicon is added for the first time, HappyView automatically creates a [backfill job](/docs/guides/backfill) to discover existing records. The job appears on the Backfill page like any other, with the same progress, pause, cancel, and retry controls, and the upload response returns its id as `backfill_job_id`.
 
-Only the *first* upload starts one. Editing a lexicon afterwards re-saves it without re-crawling the network — if you want to backfill again, start one from the Backfill page. If you only want to index new records going forward, set `backfill` to `false`.
+Only the *first* upload starts one. Editing a lexicon afterwards re-saves it without re-crawling the network. To backfill again, start one from the Backfill page. If you only want to index new records going forward, set `backfill` to `false`.
 
 ## Jetstream collection filters
 
@@ -72,8 +75,8 @@ The `value` field of the response is the raw lexicon JSON.
 
 HappyView's Jetstream subscription always includes the `com.atproto.lexicon.schema` collection, so it receives real-time events whenever a lexicon schema record is created, updated, or deleted on the network. When an event arrives, HappyView checks whether the record's DID and rkey (the NSID) match any tracked network lexicon:
 
-- **create/update**: The new schema is parsed and upserted into the `happyview_lexicons` table and the in-memory registry. If it's a record-type lexicon, Jetstream collection filters are updated to include the new collection.
-- **delete**: The lexicon is removed from the `happyview_lexicons` table and registry, and collection filters are updated accordingly.
+- **create/update**: The new schema is parsed and stored. If it's a record-type lexicon, Jetstream collection filters are updated to include the new collection.
+- **delete**: The lexicon is removed, and collection filters are updated accordingly.
 
 ### Startup re-fetch
 
@@ -94,11 +97,9 @@ With `authority` routing, HappyView finds the method's **home authority** using 
 4. Resolve that DID to a PDS endpoint via the PLC directory.
 5. Proxy the request to `{pds_endpoint}/xrpc/{method}`.
 
-A few things to note:
-
-- HappyView does **not** proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record — the actual XRPC request goes to whatever PDS endpoint the authority DID resolves to.
+- HappyView does **not** proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record. The XRPC request goes to whatever PDS endpoint the authority DID resolves to.
 - `authority` routing forwards the request anonymously, with no credentials of the caller's, for queries and procedures alike. To act as the caller, for example to call `com.atproto.repo.createRecord` on their PDS, switch routing to `serviceproxy`.
-- If authority resolution fails — no TXT record, unresolvable DID, or the target PDS doesn't support the method — the client gets an error back. HappyView does not fall back to the other routing.
+- If authority resolution fails because there is no TXT record, the DID doesn't resolve or the target PDS doesn't support the method, the client gets an error back. HappyView does not fall back to the other routing.
 - A query or procedure lexicon you track as a network lexicon is served locally, like one you uploaded.
 
 In short: to serve an XRPC method on your instance, it needs a lexicon there. Otherwise the proxy settings decide what happens to the request.

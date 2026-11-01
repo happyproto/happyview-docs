@@ -6,9 +6,7 @@ This guide covers migrating an existing HappyView deployment from SQLite to Post
 
 ## Overview
 
-HappyView writes all internal SQL in SQLite syntax and translates to Postgres automatically at runtime. This means your **Lua scripts do not need any changes** when switching from SQLite to Postgres — they continue to work as-is.
-
-The main steps are: set up the Postgres database, update your environment variables, and re-index your data.
+The new database starts empty: records come back through backfill, and everything else is re-created by hand. HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw SQLite SQL to `happyview.sql`'s `raw` does; see [Scripts](#scripts).
 
 ## Step 1: Set up Postgres
 
@@ -18,14 +16,14 @@ Create a Postgres database for HappyView:
 createdb happyview
 ```
 
-If you are using Docker Compose, uncomment the `postgres` service and `pgdata` volume in your `docker-compose.yml`. See the [database setup guide](/docs/guides/database/database-setup#docker-compose) for details.
+If you are using Docker Compose, switch to `docker-compose.prod.postgres.yml`. See [Docker](/docs/guides/self-hosting/docker#1-choose-a-database).
 
 ## Step 2: Back up your SQLite database
 
-Copy your SQLite database file before making any changes:
+Take a consistent copy of your SQLite database before making any changes, which works while HappyView is running:
 
 ```sh
-cp data/happyview.db data/happyview.db.backup
+sqlite3 data/happyview.db ".backup 'data/happyview.db.backup'"
 ```
 
 ## Step 3: Update environment variables
@@ -54,10 +52,10 @@ Start HappyView with the new `DATABASE_URL`. It will connect to Postgres and run
 
 Since HappyView indexes records from the atproto network, the simplest way to populate your new Postgres database is to re-run the backfill:
 
-1. Upload your lexicons via the dashboard or admin API (or they will already be there if you exported and re-imported them)
+1. Install your interpreters and libraries, then redeploy your project, or upload your lexicons via the dashboard or admin API
 2. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
 
-Backfill fetches all records fresh from the network, so no data transfer between databases is needed.
+Backfill fetches records fresh from the network, so no data transfer between databases is needed. Records that exist only on this instance don't come back.
 
 :::tip
 If you have many lexicons, you can export them from the old instance before switching. Use `GET /admin/lexicons` to list them and `POST /admin/lexicons` to re-upload after switching to Postgres.
@@ -65,9 +63,9 @@ If you have many lexicons, you can export them from the old instance before swit
 
 ## Step 6: Re-create admin settings
 
-Instance settings (app name, logo, TOS/privacy URIs), API keys, users, and labeler subscriptions are stored in the database and are not carried over automatically. Re-create these via the dashboard or admin API after switching.
+Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
 
-## Lua scripts
+## Scripts
 
 `happyview.db` chains need no changes; the host generates Postgres SQL for them. Statements passed to `happyview.sql`'s `raw` do, because raw SQL reaches the backend untranslated:
 
@@ -80,11 +78,11 @@ Rewrite them before switching, or branch on `db.backend()` in a script that has 
 
 ## Rollback
 
-To switch back to SQLite, revert your `DATABASE_URL` to the SQLite connection string. Your SQLite database file remains unchanged — HappyView does not modify it during the migration to Postgres.
+To switch back to SQLite, revert your `DATABASE_URL` to the SQLite connection string, and revert any script you converted. HappyView does not modify your SQLite file during the migration to Postgres, so it stays as it was when you switched.
 
 ## Next steps
 
-- [Postgres → SQLite migration](/docs/guides/database/postgres-to-sqlite-migration) — migrate in the opposite direction
-- [Database setup](/docs/guides/database/database-setup) — choose between SQLite and Postgres for new instances
-- [Backfill](/docs/guides/backfill) — re-index records from the network after switching backends
-- [Scripts](/docs/getting-started/scripts) — write SQL that works against either backend
+- [Postgres to SQLite migration](/docs/guides/database/postgres-to-sqlite-migration): migrate in the opposite direction
+- [Database setup](/docs/guides/database/database-setup): choose between SQLite and Postgres for new instances
+- [Backfill](/docs/guides/backfill): re-index records from the network after switching backends
+- [Scripts](/docs/getting-started/scripts): write SQL that works against either backend

@@ -1,23 +1,23 @@
 ---
-title: "API Clients"
+title: "API clients"
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-API clients identify your application to a HappyView instance. Every XRPC request — even unauthenticated queries — must include a client key. This guide walks through creating a client, choosing between public and confidential types, and authenticating users.
+An API client identifies your app to a HappyView instance. Authenticated XRPC requests must include its client key, and public queries should, so that they're rate limited as your app. This guide covers creating a client, choosing between public and confidential types, and authenticating users.
 
 For the admin CRUD endpoints, see the [API reference](/docs/reference/admin/api-clients). For the JavaScript SDK, see the [SDK docs](/docs/reference/sdk).
 
 ## Concepts
 
-An API client represents **your application**, not individual users. Create one client for your app and use the same client key everywhere. Users authenticate separately via OAuth — the client key identifies _who built the app_, not _who is using it_.
+An API client represents **your application**, not individual users. Create one client for your app and use the same client key everywhere. Users authenticate separately via OAuth: the client key identifies _which app is calling_, not _who is using it_.
 
 Each client has:
 
-- An `hvc_`-prefixed **client key** — included in every request to identify your app
-- An `hvs_`-prefixed **client secret** — used by server-side apps to prove ownership (confidential clients only)
-- **Rate limits** — a token bucket that controls how many requests your app can make
-- **Scopes** — which lexicons your app is allowed to access
+- An `hvc_`-prefixed **client key**, included in requests to identify your app
+- An `hvs_`-prefixed **client secret**, used by server-side apps to prove ownership (confidential clients only). A client can hold several at once, so you can rotate one without downtime; see [Client secrets](/docs/reference/admin/api-clients#client-secrets)
+- **Rate limits**, a token bucket that controls how many requests your app can make
+- **Scopes**, which lexicons your app is allowed to access
 
 ## Public vs. confidential clients
 
@@ -28,7 +28,7 @@ Choose based on where your code runs:
 | **Use when**           | Server-side apps, CLI tools, bots          | Browser apps, mobile apps                   |
 | **Authentication**     | `X-Client-Key` + `X-Client-Secret` headers | `X-Client-Key` + `Origin` header + PKCE     |
 | **Can keep a secret?** | Yes                                        | No                                          |
-| **Origin validation**  | No                                         | Yes — `Origin` must match `allowed_origins` |
+| **Origin validation**  | No                                         | Yes, `Origin` must match `allowed_origins` |
 | **PKCE required?**     | No                                         | Yes (S256)                                  |
 
 :::tip
@@ -39,15 +39,15 @@ If your app has a backend that can securely store the client secret, use a confi
 
 ### From the dashboard
 
-Go to **Access > API Clients > New client** and fill in:
+Go to **Access > API Clients**, click **Create API Client** and fill in:
 
-- **Client type** — `confidential` (default) or `public`
-- **Name** — a human-readable label (e.g. "My atproto Client")
-- **Client ID URL** — URL to your published [OAuth client metadata](https://drafts.aaronpk.com/draft-parecki-oauth-client-id-metadata-document/draft-parecki-oauth-client-id-metadata-document.html) document
-- **Client URI** — your app's root domain (e.g. https://example.com)
-- **Redirect URIs** — where the PDS should redirect after authorization
-- **Allowed origins** — (public clients only) which `Origin` headers to accept
-- **Scopes** — `atproto` is always included; add custom scopes if your instance uses them
+- **Client Type:** Confidential (default) or Public
+- **Name:** a human-readable label (e.g. "My atproto Client")
+- **Client ID URL:** URL to your published [OAuth client metadata](https://drafts.aaronpk.com/draft-parecki-oauth-client-id-metadata-document/draft-parecki-oauth-client-id-metadata-document.html) document
+- **Client URI:** your app's root domain (e.g. https://example.com)
+- **Redirect URIs:** where the PDS should redirect after authorization
+- **Allowed Origins:** (public clients only) which `Origin` headers to accept
+- **Scopes:** `atproto` is always included; add custom scopes if your instance uses them
 
 **Save the client secret immediately.** It is only shown once and is hashed before storage.
 
@@ -185,10 +185,12 @@ See the [API reference](/docs/reference/admin/api-clients#create-an-api-client) 
 
 ## Using your client key
 
-Every XRPC request must include the client key. HappyView looks for it in this order:
+HappyView looks for the client key in this order:
 
 1. `X-Client-Key` request header (preferred)
 2. `client_key` query parameter
+
+An authenticated request without a key is refused. A public query without one still runs, under the rate limit shared by every caller that names no client.
 
 ### Unauthenticated queries
 
@@ -334,7 +336,7 @@ curl 'https://happyview.example.com/xrpc/com.example.feed.getHot' \
 
 ### Authenticated requests (user identity)
 
-Procedures — and queries whose scripts need to know who the caller is — require a user's OAuth session. This uses [DPoP authentication](/docs/reference/authentication#dpop-key-provisioning-for-third-party-apps), where each request includes a cryptographic proof that the caller holds the right key.
+Procedures, and queries whose scripts need to know who the caller is, require a user's OAuth session. This uses [DPoP authentication](/docs/reference/authentication#dpop-key-provisioning-for-third-party-apps), where each request includes a cryptographic proof that the caller holds the right key.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -515,7 +517,7 @@ Content-Type: application/json
 }
 ```
 
-The `dpop_key` is the full private JWK. Store it securely — you'll use it to sign DPoP proofs.
+The `dpop_key` is the full private JWK. Store it securely, because you'll use it to sign DPoP proofs.
 
 #### Phase 2: OAuth with the user's PDS
 
@@ -527,14 +529,14 @@ Run a standard atproto OAuth flow with the user's PDS authorization server, usin
 4. Redirect the user to the PDS authorization endpoint
 5. Exchange the authorization code for tokens (using DPoP proofs signed with the provisioned key)
 
-HappyView is not involved in any of this — unless your `client_id_url` document declares `private_key_jwt`, in which case it holds your app's signing key and needs to be asked for a signed assertion at two separate points below.
+HappyView isn't involved in any of this, unless your `client_id_url` document declares `private_key_jwt`. In that case it holds your app's signing key, and you ask it for a signed assertion at two points below.
 
 ##### Confidential clients: attaching the client assertion
 
-Publishing `token_endpoint_auth_method: "private_key_jwt"` (and a `jwks_uri` pointing back at HappyView) on your `client_id_url` document makes your app a confidential atproto OAuth client, which the PDS trusts with much longer-lived sessions than a public client gets. HappyView can hold the signing key for you — generate one from **Access > API Clients > (your client) > AT Protocol Client Auth** in the dashboard, or via `POST /admin/api-clients/{id}/auth-key` — and use `POST /oauth/client-assertion` to sign on your behalf.
+Publishing `token_endpoint_auth_method: "private_key_jwt"` (and a `jwks_uri` pointing back at HappyView) on your `client_id_url` document makes your app a confidential atproto OAuth client, which the PDS trusts with much longer-lived sessions than a public client gets. HappyView can hold the signing key for you. Generate one from **Access > API Clients > (your client) > AT Protocol Client Auth** in the dashboard, or via `POST /admin/api-clients/{id}/auth-key`, and call `POST /oauth/client-assertion` to sign on your behalf.
 
 :::caution
-The assertion is required **at both the pushed authorization request (PAR) and the token exchange** — these are two separate requests to the PDS's authorization server, each needing its own freshly signed assertion (they expire after 60 seconds). Signing once and reusing it for both calls will be rejected by the PDS.
+The assertion is required **at both the pushed authorization request (PAR) and the token exchange**. These are two separate requests to the PDS's authorization server, and each needs its own freshly signed assertion (they expire after 60 seconds). Signing once and reusing it for both calls will be rejected by the PDS.
 :::
 
 ```http
@@ -556,11 +558,11 @@ Content-Type: application/json
 }
 ```
 
-`issuer` is the `issuer` field from the PDS authorization server's metadata (step 3 above). Call this endpoint once before submitting the PAR request, attaching `client_assertion` and `client_assertion_type` as form parameters alongside your other PAR fields, and again before the token exchange request, attaching them there too. Public clients skip this entirely — PKCE is their proof of possession.
+`issuer` is the `issuer` field from the PDS authorization server's metadata (step 3 above). Call this endpoint once before submitting the PAR request, attaching `client_assertion` and `client_assertion_type` as form parameters alongside your other PAR fields, and again before the token exchange request, attaching them there too. Public clients skip this, because PKCE is their proof of possession.
 
-Using the [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) SDK? `client.getClientAssertion(issuer)` wraps this exact endpoint — see [OAuth Client — Client assertions](/docs/reference/sdk/oauth-client#client-assertions).
+In the [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) SDK, `client.getClientAssertion(issuer)` wraps this endpoint. See [Client assertions](/docs/reference/sdk/oauth-client#client-assertions).
 
-There is no flag anywhere marking your client confidential — the PDS decides by reading your `client_id_url` document, and `/oauth/client-assertion` will sign for you regardless of whether that document is actually correct yet. If it isn't, the PDS ends up treating your app as public even though you're sending an assertion, which is confusing to debug from the outside. Check the "AT Protocol Client Auth" card in the dashboard (or `POST /admin/api-clients/{id}/auth-key/recheck`) — it reads the same document and reports in plain language exactly what's wrong with it.
+The PDS decides whether your client is confidential by reading your `client_id_url` document, and `/oauth/client-assertion` signs for you whether or not that document is correct yet. If it isn't, the PDS treats your app as public even though you're sending an assertion. **AT Protocol Client Auth** in the dashboard (or `POST /admin/api-clients/{id}/auth-key/recheck`) reads the same document and reports what's wrong with it.
 
 #### Phase 3: Register the session
 
@@ -586,7 +588,7 @@ Content-Type: application/json
 }
 ```
 
-**Public client** — omit the secret, include the PKCE verifier:
+**Public client:** omit the secret, include the PKCE verifier:
 
 ```http
 POST /oauth/sessions
@@ -713,7 +715,7 @@ HappyView validates the proof, looks up the stored session, and proxies writes t
 
 #### Logout
 
-**Confidential:**
+**With the client secret** (confidential clients; ends every session this user has on this client):
 
 ```http
 DELETE /oauth/sessions/did:plc:user123
@@ -721,7 +723,7 @@ X-Client-Key: hvc_...
 X-Client-Secret: hvs_...
 ```
 
-**With a DPoP proof** (any client type — proves key possession, revokes just that device's session):
+**With a DPoP proof** (any client type; proves key possession and ends just that device's session):
 
 ```http
 DELETE /oauth/sessions/did:plc:user123
@@ -730,7 +732,7 @@ Authorization: DPoP <access_token>
 DPoP: <proof_jwt>
 ```
 
-The proof's `htu` must equal the URL as sent, including any percent-encoding in the DID.
+The proof's `htu` must equal the URL as sent, including any percent-encoding in the DID. Either way, HappyView asks the authorization server to revoke the grant before it deletes the session.
 
 ### DPoP proof format
 
@@ -767,7 +769,7 @@ Validation rules:
 
 - `htm` must match the HTTP method (case-insensitive)
 - `htu` must match the request URL (scheme + host + path, no query string)
-- `iat` must be within 5 minutes of the server's clock
+- `iat` must be within 5 minutes of the instance's clock
 - `ath` must be the base64url-encoded SHA-256 hash of the access token
 - The JWK thumbprint (RFC 7638, SHA-256) must match the key used during provisioning
 - The signature must verify against the embedded public JWK
@@ -790,8 +792,8 @@ This expands to include all RPC methods and repository actions defined in that p
 
 Each API client has its own token bucket for rate limiting:
 
-- **Capacity** — maximum tokens in the bucket
-- **Refill rate** — tokens added per second
+- **Capacity:** maximum tokens in the bucket (**Bucket Size** in the dashboard)
+- **Refill rate:** tokens added per second
 
 If not set on the client, the instance defaults apply (`DEFAULT_RATE_LIMIT_CAPACITY` and `DEFAULT_RATE_LIMIT_REFILL_RATE`).
 
@@ -808,14 +810,14 @@ Adjust per-client rate limits via the dashboard or the [admin API](/docs/referen
 
 ## Security notes
 
-- Client secrets are SHA-256 hashed before storage — HappyView never stores the plaintext.
+- Client secrets are SHA-256 hashed before storage, so HappyView never stores the plaintext.
 - DPoP private keys and OAuth tokens are encrypted at rest with AES-256-GCM using the `TOKEN_ENCRYPTION_KEY` environment variable.
-- Re-authenticating the same user with the same client upserts the session. The old DPoP key is cleaned up automatically.
-- Multiple clients can have active sessions for the same user — sessions are isolated per client.
+- Sessions are per device: a sign-in with a new DPoP key adds a session rather than replacing one. Log out the old session first when a sign-in replaces it. The JavaScript SDK does this itself.
+- Multiple clients can have active sessions for the same user, and sessions are isolated per client.
 
 ## Next steps
 
-- [Authentication](/docs/getting-started/authentication) — full protocol details and security model
-- [JavaScript SDK](/docs/reference/sdk) — get started with the SDK
-- [Admin API — API Clients](/docs/reference/admin/api-clients) — CRUD endpoints
-- [Permissions](/docs/guides/permissions) — control who can manage API clients
+- [Authentication](/docs/getting-started/authentication): full protocol details and security model
+- [JavaScript SDK](/docs/reference/sdk): get started with the SDK
+- [Admin API: API Clients](/docs/reference/admin/api-clients): CRUD endpoints
+- [Permissions](/docs/guides/permissions): control who can manage API clients

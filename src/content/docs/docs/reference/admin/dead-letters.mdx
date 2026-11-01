@@ -6,11 +6,41 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: the legacy record-index path (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). Both tables are surfaced through a single unified API.
 
-Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/guides/configuration)). Unresolved ones are kept until someone deals with them.
+Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/reference/configuration)). Unresolved ones are kept until someone deals with them.
 
 Read endpoints require `dead-letters:read`. Action endpoints (dismiss, retry, reindex) require `dead-letters:manage`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -37,6 +67,48 @@ Paginated list of dead letters from both tables, merged and sorted by `created_a
 | `limit`      | number | no       | Max results per page, 1 to 100 (default 50)           |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters?limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters?limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/dead-letters?limit=10")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters?limit=10", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -86,6 +158,48 @@ Returns the total count of dead letters across both tables.
 | `resolved`   | string | no       | `"false"` (default, unresolved only), `"true"` (resolved only), or any other value such as `"all"` for both |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/count", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/count", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/dead-letters/count")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters/count", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -112,6 +226,48 @@ GET /admin/dead-letters/{id}
 Returns the full dead letter including the record body.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/dead-letters/42")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/dead-letters/42", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -134,6 +290,50 @@ POST /admin/dead-letters/{id}/dismiss
 Marks a dead letter as resolved without retrying it.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/dismiss", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/dismiss", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/42/dismiss")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/dismiss", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -143,7 +343,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/42/dismiss" -H "$AUTH"
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK` with `{"ok": true}`
 
 Returns `404` if the dead letter is not found.
 
@@ -155,9 +355,53 @@ POST /admin/dead-letters/{id}/retry
 
 Re-runs the dead letter's script with the original event payload. On success the dead letter is marked resolved. On failure the error and attempt count are updated, and the request returns `500 Internal Server Error`. A dead letter with an unknown `action` returns `400 Bad Request`.
 
-Label-arrival dead letters cannot be retried — the upstream label event is gone. These return `400 Bad Request`.
+Label-arrival dead letters can't be retried, because the upstream label event is gone. These return `400 Bad Request`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/retry", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/retry", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/42/retry")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/retry", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -167,7 +411,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/42/retry" -H "$AUTH"
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK` with `{"ok": true}`
 
 Returns `404` if no matching script binding is found, or if the dead letter is not found or already resolved.
 
@@ -180,6 +424,50 @@ POST /admin/dead-letters/{id}/reindex
 Fetches the record fresh from the author's PDS and re-runs the full record indexing pipeline. On success the dead letter is marked resolved. Label-arrival dead letters cannot be reindexed and return `400 Bad Request`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/reindex", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/42/reindex", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/42/reindex")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/42/reindex", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -189,7 +477,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/42/reindex" -H "$AUTH"
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK` with `{"ok": true}`
 
 ## Bulk dismiss
 
@@ -208,6 +496,85 @@ Dismiss multiple dead letters at once.
 One of `ids` or `all: true` is required.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    ids: [
+      "42",
+      "43",
+      "44"
+    ]
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    ids: [
+      "42",
+      "43",
+      "44"
+    ]
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+        "ids": [
+            "42",
+            "43",
+            "44"
+        ]
+    }))
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "ids": [
+    "42",
+    "43",
+    "44"
+  ]
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -220,7 +587,7 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss" \
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK` with `{"ok": true}`
 
 ## Bulk retry
 
@@ -228,9 +595,76 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/dismiss" \
 POST /admin/dead-letters/bulk/retry
 ```
 
-Retry multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss). Stops at the first failure and returns it; dead letters handled before it stay resolved.
+Retry multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss).
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/retry", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    all: true,
+    collection: "xyz.statusphere.status"
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/retry", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    all: true,
+    collection: "xyz.statusphere.status"
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/bulk/retry")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+        "all": true,
+        "collection": "xyz.statusphere.status"
+    }))
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "all": true,
+  "collection": "xyz.statusphere.status"
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk/retry", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -243,7 +677,20 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/retry" \
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK`, with one entry per dead letter in the order they were tried. A dead letter that fails doesn't stop the rest. Its entry carries the error, and the top-level `ok` is `false` unless every one succeeded:
+
+```json
+{
+  "ok": false,
+  "succeeded": 2,
+  "failed": 1,
+  "results": [
+    { "id": "42", "ok": true },
+    { "id": "43", "ok": false, "error": "not found: dead letter 43 not found or already resolved" },
+    { "id": "44", "ok": true }
+  ]
+}
+```
 
 ## Bulk reindex
 
@@ -251,9 +698,72 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/retry" \
 POST /admin/dead-letters/bulk/reindex
 ```
 
-Reindex multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss). Stops at the first failure and returns it; dead letters handled before it stay resolved.
+Reindex multiple dead letters. Accepts the same input as [bulk dismiss](#bulk-dismiss).
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/reindex", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    all: true
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/dead-letters/bulk/reindex", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    all: true
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/dead-letters/bulk/reindex")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+        "all": true
+    }))
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "all": true
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/dead-letters/bulk/reindex", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -266,4 +776,4 @@ curl -X POST "http://127.0.0.1:3000/admin/dead-letters/bulk/reindex" \
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` — `{"ok": true}`
+**Response**: `200 OK`, in the same shape as [bulk retry](#bulk-retry): one entry per dead letter, and a failure doesn't stop the rest.

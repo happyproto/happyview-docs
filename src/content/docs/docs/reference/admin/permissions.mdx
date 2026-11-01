@@ -4,6 +4,8 @@ title: "Permissions"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
+List the permissions and templates an operator can be given. Requires `users:read`.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -139,7 +141,7 @@ curl http://127.0.0.1:3000/admin/permissions -H "$AUTH"
     {
       "key": "viewer",
       "label": "Viewer",
-      "permissions": ["lexicons:read", "records:read", "stats:read", "events:read"]
+      "permissions": ["lexicons:read", "records:read", "stats:read", "events:read", "metrics:read"]
     }
   ]
 }

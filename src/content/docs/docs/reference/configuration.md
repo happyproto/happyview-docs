@@ -54,7 +54,6 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `TOKEN_ENCRYPTION_KEY` | none | Base64 of exactly 32 bytes (`openssl rand -base64 32`). Encrypts stored OAuth tokens and keys. Without a valid one, app sign-in, spaces and service identity don't work; an invalid value is logged and ignored. |
 | `SUPERADMIN_DID` | none | A DID given the superadmin privilege at every boot. A value that isn't a DID stops boot; empty means unset. Once set, the first person to sign in is no longer given superadmin. `happyview.toml`: `[instance] superadmin`. |
 | `PLATFORM_API_KEY_HASH` | none | The SHA-256, as 64 hex characters, of the key a hosting platform uses for `/admin/platform`. See [Platform](/docs/reference/admin/platform). |
-| `COOKIE_INTEGRATION_ORIGINS` | none | Other origins allowed to use the dashboard's session cookie, separated by commas or spaces. Instance setting `cookie_integration_origins`, which is checked when saved. |
 | `DEFAULT_RATE_LIMIT_CAPACITY` | `100` | Request budget for a new API client. |
 | `DEFAULT_RATE_LIMIT_REFILL_RATE` | `2.0` | Requests per second a new API client's budget refills by. |
 | `ATTESTATION_PRIVATE_KEY` | stored, else generated | A hex secp256k1 key for [attestation signing](/docs/guides/attestation-signing). |
@@ -80,11 +79,12 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | Accounts fetched at once from one PDS. Instance setting `backfill_concurrent_dids_per_pds`. |
 | `BACKFILL_CONCURRENT_RESOLUTION` | `100` | DIDs resolved at once. Instance setting `backfill_concurrent_resolution`. |
 | `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. |
-| `BACKFILL_DISCOVERY_WINDOW` | `50000` | Accounts discovered ahead of fetching. |
-| `BACKFILL_SOURCE` | `crawl` | `crawl` fetches from each PDS; `replay` reads a Jetstream archive; `auto` picks. |
+| `BACKFILL_DISCOVERY_WINDOW` | `50000` | Units of work discovered ahead of fetching. A unit is one account under one collection. |
+| `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it. |
+| `BACKFILL_SOURCE` | `crawl` | `crawl` fetches from each PDS, `replay` reads a Jetstream archive, and `auto` replays when the Jetstream has an archive and otherwise crawls. |
 | `BACKFILL_REPLAY_CONCURRENCY` | `8` | Archive segments read at once, `1` to `64`. |
 | `BACKFILL_REPLAY_DIR` | `<temp>/happyview-replay` | Where archive segments are kept while replaying. |
-| `BACKFILL_REPLAY_MARKER_TAIL_HOURS` | `12` | Hours of archive replayed before the live feed takes over. `0` replays the whole range. |
+| `BACKFILL_REPLAY_MARKER_TAIL_HOURS` | `12` | How far back from the archive's newest data a network replay reads account and sync markers. `0` reads the job's whole range. |
 | `JETSTREAM_API_KEY` | none | Key for the Jetstream archive replay reads. |
 
 The three concurrency settings take effect on the next backfill; the backfill connection pool is sized from the environment at boot.
@@ -98,16 +98,19 @@ The three concurrency settings take effect on the next backfill; the backfill co
 | `PLUGIN_REGISTRY_URL` | `https://api.happyproto.at` | The plugin registry. Empty or `off` stops HappyView reading a registry. |
 | `HAPPYVIEW_DEFAULT_PLUGINS` | none | Plugins to install on the first boot whose value lists them, separated by commas. |
 | `PLUGIN_URLS` | none | Plugins to load from URLs at boot, as `id\|url\|sha256:<hash>`, separated by commas. |
+| `PLUGIN_<ID>_<NAME>` | none | A plugin's secret, used when the instance holds none for that plugin. `<ID>` is the plugin's id upper-cased, with every other character as `_`. |
 
 ## Scripts and jobs
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `SCRIPT_INSTRUCTION_LIMIT` | `1000000` | Instructions a query, procedure, record or label script may run, from `1000` to `1000000000`. Instance setting `script_instruction_limit`. |
-| `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Seconds a query or procedure script may take, from `1` to `300`. Instance setting `script_wall_clock_seconds`. |
+| `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Seconds a query, procedure, record or label script may run, from `1` to `300`. Instance setting `script_wall_clock_seconds`. |
 | `HAPPYVIEW_SCRIPT_ENV_FILE` | none | A `.env`-style file whose values are added to scripts' `ctx.env`, re-read on every run. `dev` sets it to `<project>/.env`, `test` to `<project>/.env.test`. |
 | `JOB_WORKER_CONCURRENCY` | `1` | Background jobs run at once, up to `32`. |
 | `HOSTNAME` | `happyview` | Names this instance's job worker in each job's `claimed_by`. |
+| `HAPPYVIEW_INSTANCE_ID` | `HOSTNAME`, then the system's hostname, then a random id | Names this process in stored script metrics, trimmed and cut to 128 characters. Give each instance sharing a database its own. |
+| `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
 | `FEATURE_SPACES_ENABLED` | `false` | `true` turns on [spaces](/docs/guides/spaces). Instance setting `feature.spaces_enabled`. |
 
 An out-of-range script limit in the environment is logged and the default is used; one saved as an instance setting is refused when saved. See [Limits](/docs/reference/scripts/limits).
@@ -116,8 +119,8 @@ An out-of-range script limit in the environment is logged and the default is use
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries are kept. `0` keeps them. Instance setting `event_log_retention_days`. |
-| `DEAD_LETTER_RETENTION_DAYS` | `30` | Days dead letters are kept. `0` keeps them. |
+| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries, job logs and stored script metrics are kept. `0` keeps them. Instance setting `event_log_retention_days`. |
+| `DEAD_LETTER_RETENTION_DAYS` | `30` | Days a resolved dead letter is kept. `0` keeps them. An unresolved one is never removed. |
 | `RECORD_TOMBSTONE_RETENTION_HOURS` | `72` | Hours a deleted record's tombstone is kept. `0` keeps them. |
 | `VERBOSE_EVENT_LOGGING` | `false` | `true` logs every record script run and skip. It writes a lot. Instance setting `verbose_event_logging`. |
 | `TELEMETRY_COLLECTOR_URL` | `https://telemetry.happyview.dev/v1/snapshot` | Where [telemetry](/docs/guides/telemetry) reports go, when it's turned on. |
@@ -129,6 +132,7 @@ An out-of-range script limit in the environment is logged and the default is use
 | --- | --- | --- |
 | `HAPPYVIEW_DEV_BACKFILL` | `false` | Whether `dev` backfills. Exactly `true` or `false`. `happyview.toml`: `[dev] backfill`. |
 | `HAPPYVIEW_WATCH_POLL_MS` | file events | Poll for changes every this many milliseconds, `50` to `60000`, instead of using file events. For `dev` and `test --watch`. |
+| `HAPPYVIEW_NETWORK` | none | Which network `dev` is on. `hpy happyview dev --network local` sets it to `local`; any other value prints a warning that writes reach your real PDS. |
 
 [happyview dev](/docs/reference/cli#happyview-dev) lists the defaults `dev` fills in.
 
@@ -144,8 +148,8 @@ These keys can be saved as instance settings, and then win over the environment.
 | `backfill_retention_days` | `BACKFILL_RETENTION_DAYS` |
 | `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` |
 | `script_instruction_limit`, `script_wall_clock_seconds` | `SCRIPT_INSTRUCTION_LIMIT`, `SCRIPT_WALL_CLOCK_SECONDS` |
+| `script_metrics_enabled` | `SCRIPT_METRICS_ENABLED` |
 | `verbose_event_logging` | `VERBOSE_EVENT_LOGGING` |
-| `cookie_integration_origins` | `COOKIE_INTEGRATION_ORIGINS` |
 | `feature.spaces_enabled` | `FEATURE_SPACES_ENABLED` |
 
 `GET /admin/settings` lists every setting with where its value came from: `database`, `env` or `project`. The logo, the XRPC proxy, rate-limit costs and telemetry are also stored as settings, through their own endpoints and dashboard pages.
@@ -154,26 +158,28 @@ These keys can be saved as instance settings, and then win over the environment.
 
 A project's `happyview.toml`. Every table is optional, and an unknown key anywhere is an error reported with its line. [Project structure](/docs/getting-started/project-structure) explains how they're used.
 
-| Key | Type | What it does |
-| --- | --- | --- |
-| `[happyview] version` | string | The HappyView version `hpy` runs. A different running version only warns. |
-| `[instance] app_name` | string | Supplies `APP_NAME`. |
-| `[instance] superadmin` | DID | Supplies `SUPERADMIN_DID`. |
-| `[interpreters]."<language>"` | `{ did, name, channel \| version }` | An interpreter, by language id. `channel` is `latest`, `beta` or `alpha`; `version` pins an exact one. Exactly one of them. |
-| `[libraries]."<namespace>"` | `{ did, name, channel \| version }` | A library, by namespace, as for interpreters. |
-| `[dev] port` | integer, 1–65535 | Supplies `PORT` under `dev`. |
-| `[dev] backfill` | boolean, default `false` | Supplies `HAPPYVIEW_DEV_BACKFILL` under `dev`. |
-| `[network_lexicons] include` | list of NSIDs | Network lexicons to track. |
-| `[labels] subscribe` | list of DIDs | Labelers to subscribe to. |
-| `[jetstream] protocol` | `auto`, `v2` or `v1` | Supplies `JETSTREAM_PROTOCOL`. |
-| `[jetstream] compression` | boolean | Supplies `JETSTREAM_COMPRESSION`. |
-| `[lexicons."<NSID>"] backfill` | boolean, default `false` | Backfill this record lexicon's collection once. |
-| `[lexicons."<NSID>"] target_collection` | NSID | The collection a query or procedure works on. |
-| `[lexicons."<NSID>"] action` | `create`, `update`, `delete` or `upsert` (default) | What a procedure without a script does. |
-| `[lexicons."<NSID>"] indexed` | boolean, default `true` | `false` stops indexing the collection, keeping what's indexed. |
-| `[lexicons."<NSID>"] token_cost` | integer | How much of an API client's rate-limit budget one call to this endpoint uses. |
-| `[scripts."<trigger>"] description` | string | Shown with the script in the dashboard. |
-| `[scripts."<trigger>"] outbound_xrpcs` | list of strings | The XRPC methods the script calls, recorded with it and listed by the admin API. HappyView doesn't enforce it. |
-| `[modules."<name>"]` | `{ language, path, capabilities }` | A compiled script module: `language` is `rust`, `path` its crate inside the project, `capabilities` what it's granted. |
+| Key | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `[happyview] version` | string | none | The HappyView version `hpy` runs. A different running version only warns. |
+| `[instance] app_name` | string | none | Supplies `APP_NAME`. |
+| `[instance] superadmin` | DID | none | Supplies `SUPERADMIN_DID`. |
+| `[interpreters]."<language>"` | `{ did, name, channel \| version }` | none | An interpreter, by language id. `channel` is `latest`, `beta` or `alpha`; `version` pins an exact one. Exactly one of them. |
+| `[libraries]."<namespace>"` | `{ did, name, channel \| version }` | none | A library, by namespace, as for interpreters. |
+| `[dev] port` | integer, 1 to 65535 | none | Supplies `PORT` under `dev`. |
+| `[dev] backfill` | boolean | `false` | Supplies `HAPPYVIEW_DEV_BACKFILL` under `dev`. |
+| `[network_lexicons] include` | list of NSIDs | empty | Network lexicons to track. |
+| `[labels] subscribe` | list of DIDs | empty | Labelers to subscribe to. |
+| `[jetstream] protocol` | `auto`, `v2` or `v1` | none | Supplies `JETSTREAM_PROTOCOL`. |
+| `[jetstream] compression` | boolean | none | Supplies `JETSTREAM_COMPRESSION`. |
+| `[lexicons."<NSID>"] backfill` | boolean | `false` | Backfill this record lexicon's collection once. |
+| `[lexicons."<NSID>"] target_collection` | NSID | none | The collection a query or procedure works on. |
+| `[lexicons."<NSID>"] action` | `create`, `update`, `delete` or `upsert` | `upsert` | What a procedure without a script does. |
+| `[lexicons."<NSID>"] indexed` | boolean | `true` | `false` stops indexing the collection, keeping what's indexed. |
+| `[lexicons."<NSID>"] token_cost` | integer | the cost set for the lexicon's type | How much of an API client's rate-limit budget one call to this endpoint uses. |
+| `[scripts."<trigger>"] description` | string | none | Shown with the script in the dashboard. |
+| `[scripts."<trigger>"] outbound_xrpcs` | list of strings | empty | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
+| `[modules."<name>"] language` | string | required | `rust`. |
+| `[modules."<name>"] path` | path | required | The module's crate, relative to the project and inside it. |
+| `[modules."<name>"] capabilities` | list of capabilities | empty | What the module is granted. |
 
 A deploy ignores `[happyview]`, `[instance]`, `[interpreters]`, `[libraries]`, `[dev]` and `[jetstream]`; see [Deploying](/docs/getting-started/deploying).

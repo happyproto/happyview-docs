@@ -17,7 +17,7 @@ HappyView is an AppView: it reads records from the atproto network, keeps the on
 - **XRPC**: atproto's HTTP API style. An endpoint is called at `/xrpc/<NSID>`: a **query** with `GET`, a **procedure**, which changes something, with `POST`.
 - **Jetstream**: A live feed of record changes across the network, filtered by collection. HappyView listens to it for the collections it indexes.
 - **AppView**: A service that indexes records from many repositories and answers queries about them. A HappyView instance is one.
-- **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app's users sign in to HappyView with it.
+- **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app uses it to call your instance as a signed-in user.
 
 ## How a record reaches your app
 
@@ -43,4 +43,4 @@ Your project decides each step: which collections are indexed, what each query r
 ## Next steps
 
 - [Installation](/docs/getting-started/installation): install `hpy` and create a project.
-- [Glossary](/docs/architecture/glossary): every term HappyView uses.
+- [Glossary](/docs/architecture/glossary): the words HappyView v3 uses.

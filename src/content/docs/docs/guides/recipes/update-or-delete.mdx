@@ -1,12 +1,16 @@
 ---
 title: Update or delete
+description: A procedure script that creates, updates or deletes a record depending on its input, in Lua, JavaScript and TypeScript.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 A single endpoint that handles create, update, and delete based on the input fields.
 
-**Lexicon type:** procedure
+**Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local db = require("happyview.db")
@@ -38,9 +42,82 @@ function handle(input, ctx)
 end
 ```
 
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import db from "happyview.db";
+import record from "happyview.record";
+
+export default async function handle(input, ctx) {
+  if (input.delete && input.uri) {
+    await record.delete(input.uri);
+    return { success: true };
+  }
+
+  if (input.uri) {
+    // Update existing
+    const existing = await db.get(input.uri);
+    if (!existing) {
+      return { error: "RecordNotFound", message: "no record at that uri" };
+    }
+    const body = { ...existing.record, status: input.status };
+    return record.put(input.uri, body);
+  }
+
+  if (input.delete) {
+    return { error: "UriRequired", message: "a delete needs the uri of the record" };
+  }
+
+  // Create new
+  return record.create(ctx.collection, input);
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import db from "happyview.db";
+import record from "happyview.record";
+
+interface Input {
+  uri?: string;
+  status?: string;
+  delete?: boolean;
+}
+
+export default async function handle(input: Input, ctx: { collection: string }) {
+  if (input.delete && input.uri) {
+    await record.delete(input.uri);
+    return { success: true };
+  }
+
+  if (input.uri) {
+    // Update existing
+    const existing = await db.get(input.uri);
+    if (!existing) {
+      return { error: "RecordNotFound", message: "no record at that uri" };
+    }
+    const body = { ...existing.record, status: input.status };
+    return record.put(input.uri, body);
+  }
+
+  if (input.delete) {
+    return { error: "UriRequired", message: "a delete needs the uri of the record" };
+  }
+
+  // Create new
+  return record.create(ctx.collection, input);
+}
+```
+
+</TabItem>
+</Tabs>
+
 ## How it works
 
-1. If `input.delete` is truthy and `input.uri` is provided, delete the record with `record.delete`, which removes it from the caller's PDS and the local index.
+1. If `input.delete` is truthy and `input.uri` is provided, delete the record with `record.delete`, which removes it from the caller's PDS and the index.
 2. If only `input.uri` is provided, load the stored body with `db.get`, change its fields, and write it back with `record.put`, which calls `putRecord`. If no record exists at that URI, return a `RecordNotFound` error.
 3. If `input.delete` is set without a `uri`, return a `UriRequired` error rather than creating a record.
 4. Otherwise, create a new record from the input with `record.create`.
@@ -305,4 +382,4 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord \
 
 ## Use case
 
-This pattern reduces the number of endpoints your app needs by multiplexing create, update, and delete through a single procedure. The presence of `uri` and `delete` fields in the input determines the action.
+This pattern puts create, update and delete behind one procedure, so your app needs fewer endpoints. The `uri` and `delete` fields in the input pick the action.

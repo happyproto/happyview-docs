@@ -2,7 +2,7 @@
 title: "Record providers"
 ---
 
-HappyView gets its records from a record source and, optionally, keeps some of them in an external record storage. Both are traits in an open crate, so you can build your own and run HappyView with them. The built-in setup is the Jetstream source with no external storage, which is what `happyview` runs unless you change it. Everything in [Backfill](/docs/guides/backfill) and the Jetstream settings in [Configuration](/docs/guides/configuration) (`JETSTREAM_URL` and the rest) describe that built-in source.
+HappyView gets its records from a record source and, optionally, keeps some of them in an external record storage. Both are traits in an open crate, so you can build your own and run HappyView with them. The built-in setup is the Jetstream source with no external storage, which is what `happyview` runs unless you change it. Everything in [Backfill](/docs/guides/backfill) and the Jetstream settings in the [configuration reference](/docs/reference/configuration) (`JETSTREAM_URL` and the rest) describe that built-in source.
 
 You only need this page if you are writing a provider. If you run HappyView as it ships, nothing here changes anything for you.
 
@@ -20,8 +20,8 @@ The crates:
 | Crate | Licence | What it is |
 |---|---|---|
 | `happyview-provider` | MIT OR Apache-2.0 | The contract: the three traits, the values that cross the boundary, and the database helpers a provider needs on both SQLite and Postgres. It has a `testkit` feature with a scripted source for tests. |
-| `happyview-source-jetstream` | follows the repository | The Jetstream source, plus a builder to compose it into another provider. |
-| `happyview` | follows the repository | The server. `happyview::run` takes your providers. |
+| `happyview-source-jetstream` | MIT | The Jetstream source, plus a builder to compose it into another provider. |
+| `happyview` | MIT | The server. `happyview::run` takes your providers. |
 
 Only what the crates re-export at their root is the stable API. Modules marked `#[doc(hidden)]` are public so HappyView's own tests can reach them. They are not part of the API and can change in any release.
 
@@ -45,6 +45,8 @@ This is what HappyView gives a provider.
 | `instance() -> InstanceInfo` | The PLC, relay and public URLs, and the `User-Agent` HappyView sends. |
 | `resolve_pds(did)`, `resolve_handle(handle)` | One attempt at a lookup, with no cache in front of it. `resolve_pds` fetches the DID document from the PLC directory (or the `did:web` host) and reads its PDS endpoint. `resolve_handle` resolves a handle to its DID, and returns a DID it is given after checking it. The `ResolveError` says whether a retry could help and after how long. |
 | `counters() -> Arc<IngestCounters>` | The `received`, `matched` and `skipped` counters telemetry reports. A source increments them. `ingest` does not. |
+| `observe_job_stage`, `note_job_progress` | Add a stage's time to a backfill job's stats, and report its progress for the ETA. The default ignores both. |
+| `job_hook_stats_due`, `job_hook_stats`, `finish_job_hook_stats` | A backfill job's record script stats, for a source to publish on its event stream. The default answers `None`. |
 
 ## The `RecordSource` trait
 
@@ -84,7 +86,8 @@ HappyView keeps its own record tables for every collection a storage does not cl
 | `is_live(uri) -> bool` | Whether a record exists, for label cleanup. |
 | `holds_account(did, collections) -> bool` | Whether the account holds records in these claimed collections (all of them when `None`). HappyView asks on account deletions and on live inactive statuses (deactivated, desynchronized, throttled), for every such DID with no local records: most accounts on the network, so answer it cheaply. A yes makes a deletion ask the account's PDS whether it is still active before anything is purged, as it does for an account held locally, and has an inactive status logged. An error counts as yes. The default, `false`, skips both for accounts held only by the storage. |
 | `count(collection) -> Option<i64>` | How many records of the collection this instance's view holds. HappyView calls it for every claimed collection on each stats request, and for the delete-collection job's total, so answer it cheaply. `None`, the default, has HappyView run `COUNT(*)` on the read route. |
-| `raw_route() -> Option<ReadRoute>` | Optional. A pool where the compat views `happyview_records` and `happyview_record_refs` show claimed records; raw read-only SQL over those views runs there. `None`, the default, keeps every raw query local. |
+| `max_concurrent_deltas() -> Option<usize>` | How many deltas the storage can apply at once. HappyView runs no more of a backfill's record scripts concurrently than this. `None`, the default, sets no limit. |
+| `raw_route() -> Option<ReadRoute>` | Optional. A pool where the compat views `happyview_records` and `happyview_record_refs` show claimed records; raw read-only SQL over those views runs there. Connect it as a role that cannot write. `None`, the default, keeps every raw query local. |
 | `unavailable(&sqlx::Error) -> bool` | Whether the error means the storage is down. The default uses the same test as the instance database. |
 
 ## Claimed collections
@@ -198,8 +201,8 @@ TEST_DATABASE_URL=postgres://... HAPPYVIEW_LUA_PLUGIN=/path/to/lua-plugin \
 - `HAPPYVIEW_LUA_PLUGIN` is required because the record scripts are real Lua. Point it at the Lua interpreter plugin. CI fetches it with `scripts/fetch-lua-plugin.sh`.
 - `TEST_DATABASE_URL` is a Postgres URL or a file SQLite URL such as `sqlite:///path/t.db?mode=rwc`. The conformance run panics if either variable is unset. It does not skip.
 
-## Upgrading
-
-Two telemetry log lines moved with the code into the contract crate. They now log under the target `happyview_provider::telemetry` (they were under the `happyview::telemetry::collect` modules). If you filter logs by target, for example with `RUST_LOG`, update the filter. Nothing else about log output, tables, endpoints, settings or JSON shapes changed.
+## Contract version
 
 The contract carries a version, `CONTRACT_VERSION` in `happyview-provider`. A change that breaks providers bumps it. At boot HappyView checks the record source's `contract_version()` and refuses a source built for another version. The check covers the record source only. `RecordStorage` carries no version, so a storage is not checked.
+
+The contract crate's telemetry logs under the target `happyview_provider::telemetry`, so a `RUST_LOG` filter has to name that target to include it.

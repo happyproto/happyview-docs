@@ -22,6 +22,12 @@ _Avoid_: client (for the product), AppView (for the product)
 **AppView**:
 The atproto role an instance plays: a service that indexes records from the network and answers queries about them. Used only for the atproto concept.
 
+**Service entry**:
+A service an instance publishes in its DID document, and the id other services use to address it.
+
+**Third-party API client**:
+A child API client an app creates through `dev.happyview.createApiClient`.
+
 ## People and privileges
 
 **Operator**:
@@ -87,7 +93,7 @@ _Avoid_: rewind
 
 **Network store**:
 The shared copy of public atproto records every HappyProto instance reads from.
-_Avoid_: shared store, record store
+_Avoid_: shared store, record store (for the network store; HappyView's own storage layer is the record store)
 
 ## Scripts
 
@@ -98,6 +104,12 @@ _Avoid_: hook, handler (for the script), function
 **Query script**, **procedure script**, **record script**, **label script**, **job script**:
 A script named by what triggers it: an XRPC query, an XRPC procedure, a record created, updated or deleted, a label applied, or a background job picked up.
 _Avoid_: record hook, event handler, create hook
+
+**Script variable**:
+A named value a script reads from `ctx.env`, managed on the dashboard's **ENV Variables** page. It isn't an environment variable, which configures the instance.
+
+**Script stats**:
+What a backfill's records cost in record scripts. The API's field names, `hooks` and `hook_stats`, are older than this term.
 
 **Trigger**:
 What makes a script run, written as an id such as `record.create:xyz.statusphere.status`.
@@ -120,7 +132,7 @@ A plugin a script loads with `require("happyview.*")`.
 _Avoid_: module (for a library), package
 
 **Auth plugin**:
-A plugin that lets operators sign in through another identity provider.
+A plugin that lets a user link an account on another platform, such as Steam or itch.
 
 **Capability**:
 One thing a plugin declares it needs to do, shown to the operator before installing it.

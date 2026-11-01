@@ -1,42 +1,47 @@
 ---
 title: "Architecture"
+description: "How HappyView handles requests, ingest and backfill, and what its database holds, for contributors."
 ---
 
-Guide for contributors working on HappyView itself. For a user-facing overview, see the [Introduction](/docs).
+Guide for contributors working on HappyView itself. For an overview of the product, see the [Introduction](/docs).
 
 ## System overview
 
 ```mermaid
 graph LR
   accTitle: System overview
-  Application
+  App
 
-  Application -->|"GET /xrpc/{method}"| Query
-  Application -->|"POST /xrpc/{method}"| Procedure
+  App -->|"GET /xrpc/{method}"| Query
+  App -->|"POST /xrpc/{method}"| Procedure
 
   subgraph HappyView
-    Query["Query Handler<br/><small>Lua Script (Optional)</small>"]
-    Procedure["Procedure Handler<br/><small>Lua Script (Optional)</small>"]
-    Spaces["Spaces<br/><small>Permissioned Data</small>"]
+    Query["Query handler<br/><small>Script (optional)</small>"]
+    Procedure["Procedure handler<br/><small>Script (optional)</small>"]
+    Ingest["Ingest pipeline<br/><small>Record scripts</small>"]
+    Backfill["Backfill worker"]
+    Spaces["Spaces<br/><small>Permissioned data</small>"]
   end
 
   Procedure --> DB
   Query --> DB
   Spaces --> DB
+  Ingest --> DB
 
   Procedure -->|proxy write| PDS["User PDS"]
 
   DB[("SQLite / PostgreSQL<br/><small>records · lexicons · spaces</small>")]
 
-  Jetstream["Jetstream<br/><small>WebSocket</small>"] -->|record events| DB
-  Relay["Relay<br/><small>listReposByCollection</small>"] -->|repo discovery| Backfill
-  Backfill["Backfill Worker"] -->|listRecords| PDS
-  Backfill --> DB
+  Jetstream["Jetstream<br/><small>WebSocket</small>"] -->|record events| Ingest
+  Jetstream -->|archive replay| Backfill
+  Relay["Relay<br/><small>listReposByCollection</small>"] -->|account discovery| Backfill
+  Backfill -->|listRecords| PDS
+  Backfill --> Ingest
 
   Labeler["Labeler<br/><small>WebSocket (out-of-band)</small>"] -->|label events| DB
 ```
 
-Queries go through the query handler to the database (SQLite by default, or Postgres). Writes go through the procedure handler to the user's PDS, then HappyView indexes the record locally. Real-time record events stream in via [Jetstream](https://github.com/bluesky-social/jetstream) (its v2 `subscribeEvents` stream when the host offers it, otherwise v1), applied in order for each repo, with the stream position saved only once every earlier event has been applied; historical records are backfilled in-process, either by replaying the Jetstream archive or by discovering repos via the relay's `listReposByCollection` and fetching records directly from each PDS. [Labelers](/docs/guides/labelers) are external services that emit content labels over a direct WebSocket connection — they operate out-of-band, outside the relay/repo system. [Spaces](/docs/guides/spaces) provide permissioned data containers with membership-gated access, per-user repo state tracking (LtHash + signed commits), and cross-service credential-based authentication.
+Queries go through the query handler to the database (SQLite by default, or Postgres). Writes go through the procedure handler to the user's PDS, then HappyView indexes the record locally. Real-time record events stream in via [Jetstream](https://github.com/bluesky-social/jetstream) (its v2 `subscribeEvents` stream when the host offers it, otherwise v1), applied in order for each repo, with the stream position saved only once every earlier event has been applied; historical records are backfilled in-process, either by replaying the Jetstream archive or by listing accounts through the relay's `listReposByCollection` and fetching records directly from each PDS. Every source hands its events to one ingest pipeline (`src/ingest.rs`), which runs the record script and writes the record. [Labelers](/docs/guides/labelers) are external services that emit content labels over a direct WebSocket connection, outside the relay and repository system. [Spaces](/docs/guides/spaces) provide permissioned data containers with membership-gated access, per-user repo state tracking (LtHash + signed commits), and cross-service credential-based authentication.
 
 ## Request flow
 
@@ -45,21 +50,23 @@ Queries go through the query handler to the database (SQLite by default, or Post
 ```mermaid
 sequenceDiagram
     accTitle: Reads (queries)
-    participant C as Client
+    participant C as App
     participant X as xrpc_get()
-    participant R as LexiconRegistry
-    participant L as Lua Script
+    participant R as LexiconCatalog
+    participant L as Script
     participant D as Database
 
     C->>X: GET /xrpc/{method}?params
-    X->>R: Lookup (must be Query type)
-    alt Lua script attached
-        R->>L: Execute script
+    X->>R: Look up<br/>(must be a query)
+    R-->>X: Lexicon
+    X->>X: Rate limit, validate parameters
+    alt Script bound to the query
+        X->>L: Run in its interpreter
         L->>D: happyview.db / happyview.sql
         D-->>L: Results
-        L-->>X: Response table
+        L-->>X: Response
     else No script
-        R->>D: Default SQL query (collection from target_collection)
+        X->>D: List target_collection,<br/>or get by uri
         D-->>X: Results
     end
     X-->>C: JSON response
@@ -67,49 +74,67 @@ sequenceDiagram
 
 ### Writes (procedures)
 
+A procedure is authenticated, routed and validated first, and only then reaches the code that writes.
+
 ```mermaid
 sequenceDiagram
-    accTitle: Writes (procedures)
-    participant C as Client
-    participant A as Claims Extractor
+    accTitle: Writes, from the request to the procedure handler
+    participant C as App
+    participant A as XrpcClaims
     participant X as xrpc_post()
-    participant R as LexiconRegistry
-    participant L as Lua Script
-    participant S as OAuth Session
-    participant P as User PDS
-    participant D as Database
+    participant R as LexiconCatalog
+    participant H as handle_procedure()
 
-    C->>A: POST /xrpc/{method} + DPoP auth + X-Client-Key
+    C->>A: POST /xrpc/{method}<br/>DPoP auth, X-Client-Key
     A->>X: Validated claims
-    X->>R: Lookup (must be Procedure type)
-    alt Lua script attached
-        R->>L: Execute script
-        L->>S: happyview.record create/put
-    else No script
-        R->>S: Default create/update (auto-detect from uri field)
-    end
-    S->>P: Proxy write (createRecord or putRecord)
-    P-->>S: PDS response
-    S->>D: Upsert record locally
-    S-->>C: Forward PDS response
+    X->>X: 401 if there are none
+    X->>R: Look up<br/>(must be a procedure)
+    R-->>X: Lexicon
+    X->>X: Rate limit, validate<br/>parameters and input
+    X->>H: Claims, input, lexicon
+    H->>H: Resolve the<br/>script, if any
 ```
+
+A write then goes to the caller's PDS the same way with a script or without one, and `handle_procedure()` answers the app with the script's return value or the PDS's response.
+
+```mermaid
+sequenceDiagram
+    accTitle: Writes, from the procedure handler to the PDS
+    participant H as handle_procedure()
+    participant L as Script
+    participant S as PDS session
+    participant P as User PDS
+    participant D as Record store
+
+    alt Script bound to the procedure
+        H->>L: Run in its interpreter
+        L->>S: happyview.record<br/>create, put or delete
+    else No script
+        H->>S: The lexicon's action
+    end
+    S->>P: createRecord, putRecord<br/>or deleteRecord
+    P-->>S: PDS response
+    S->>D: Write or delete<br/>the local copy
+```
+
+Without a script, the lexicon's `action` picks the write. The default, `upsert`, puts when the input has a `uri` field and creates otherwise. The PDS session is DPoP for an app's user and OAuth for the dashboard.
 
 ### Admin endpoints
 
 ```mermaid
 sequenceDiagram
     accTitle: Admin endpoints
-    participant C as Client
-    participant A as AdminAuth Extractor
-    participant U as Users Table
-    participant H as Admin Handler
+    participant C as Caller
+    participant A as UserAuth
+    participant U as Users table
+    participant H as Admin handler
     participant D as Database
 
-    C->>A: Request + Bearer token
-    A->>A: Validate claims (API key or service auth JWT)
+    C->>A: Request with a cookie,<br/>API key or DPoP session
+    A->>A: Validate the credential
     A->>U: DID lookup
-    alt Users table empty
-        U-->>A: Auto-bootstrap as super user
+    alt Users table empty, no SUPERADMIN_DID
+        U-->>A: Auto-bootstrap with superadmin
     else User found
         U-->>A: Load permissions
     end
@@ -119,6 +144,8 @@ sequenceDiagram
     D-->>H: Result
     H-->>C: JSON response
 ```
+
+A DPoP session also needs the [`dev.happyview.adminFull` grant](/docs/getting-started/authentication#let-an-app-manage-your-instance), and an API key skips the bootstrap. A service-auth JWT is refused with `403`.
 
 ## Data flow
 
@@ -130,11 +157,12 @@ sequenceDiagram
     participant J as Jetstream WebSocket
     participant H as HappyView
     participant D as Database
-    participant R as LexiconRegistry
+    participant R as LexiconCatalog
 
     H->>J: Connect (collection filters from indexed lexicons)
     loop Stream events
         J->>H: Record commit event
+        H->>H: Run the record script, if any
         alt create / update
             H->>D: UPSERT into records table
         else delete
@@ -143,7 +171,7 @@ sequenceDiagram
     end
     J->>H: Lexicon schema event (com.atproto.lexicon.schema)
     H->>D: Update tracked network lexicons
-    H->>R: Update in-memory registry
+    H->>R: Update the in-memory catalog
     Note over H,D: Applied watermark persisted to instance_settings for resume on reconnect
     Note over H,J: Reconnects on collection filter changes (lexicon add/remove)
 ```
@@ -172,21 +200,21 @@ sequenceDiagram
 
 **Edge cases of revs and tombstones.**
 
-- The Lua [record script](/docs/getting-started/reacting-to-records) can run for a write that a tombstone then refuses.
+- A [record script](/docs/getting-started/reacting-to-records) can run for a write that a tombstone then refuses.
 - An account tombstone's `rev` is a TID of the time Jetstream witnessed the event. A PDS whose clock differs from Jetstream's can therefore let an older replay through, or block a newer write until the tombstone is swept (`RECORD_TOMBSTONE_RETENTION_HOURS`, 72 by default).
 - A stale record tombstone left after a newer recreate blocks writes without a rev (crawl writes) to that record until the sweep.
 - A crawl row fetched before a live update but written after it can overwrite the newer body while keeping the stored `rev`. A later replay at that `rev` heals it.
 - A delete with a `rev` removes a crawled row that has none.
 - A delete for a record HappyView does not hold leaves a tombstone only when the account holds records in that collection, or a running or pausing backfill covers it. Those are the cases where a create could still arrive. The network sends many deletes for records an instance never held, and tombstoning each would fill the table.
 
-Admins can watch the consumer with `GET /admin/jetstream/status` and the About page's Jetstream card. See [Jetstream status](/docs/reference/admin/stats#jetstream-status).
+Operators can watch the consumer with `GET /admin/jetstream/status` and the About page's Jetstream card. See [Jetstream status](/docs/reference/admin/stats#jetstream-status).
 
 ### Backfill
 
 ```mermaid
 sequenceDiagram
     accTitle: Backfill
-    participant A as Admin
+    participant A as Operator
     participant H as HappyView
     participant D as Database
     participant Relay as Relay
@@ -224,22 +252,28 @@ sequenceDiagram
     H->>D: Mark job completed (or failed)
 ```
 
-**Two sources.** A backfill job reads its records from one of two places, chosen by `BACKFILL_SOURCE` (default `crawl`) or the job's `source`. A crawl runs the pipeline above, and every account backfill crawls. A replay asks the Jetstream archive for a plan (`planSnapshot`), downloads the segments and blocks that hold the job's collections, and writes the records through the same path as live events. A second sweep then applies the account and sync events for the accounts that hold records. Markers are applied as of their own time, so the two sweeps give the same result in either order and never remove records written after them. `auto` replays when the Jetstream has an archive and crawls when it doesn't. A replay returns only what the archive holds; some repos' history in Bluesky's archive starts after their first record, which a crawl would find.
+**Two sources.** A backfill job reads its records from one of two places, chosen by `BACKFILL_SOURCE` (default `crawl`) or the job's `source`. A crawl runs the pipeline above, and every account backfill crawls. A replay asks the Jetstream archive for a plan (`planSnapshot`), downloads the segments and blocks that hold the job's collections, and writes the records through the same path as live events. A second sweep then applies the account and sync events for the accounts that hold records. Markers are applied as of their own time, so the two sweeps give the same result in either order and never remove records written after them. `auto` replays when the Jetstream has an archive and crawls when it doesn't. A replay returns only what the archive holds; some accounts' history in Bluesky's archive starts after their first record, which a crawl would find.
 
-**Gap replay.** When the live consumer's cursor is older than Jetstream keeps, HappyView creates a replay job for the gap between its last applied seq and the archive's sealed tip, and resumes the live stream at that tip. The consumer waits at most 30 seconds for the archive's plan; past that it resumes without a replay. Live events and the replay overlap safely, because the rev guard and tombstones make every write idempotent. Instances on `BACKFILL_SOURCE=crawl` (the default), or on a Jetstream without an archive, keep the old behaviour of skipping the gap.
+**Gap replay.** When the live consumer's cursor is older than Jetstream keeps, HappyView creates a replay job for the gap between its last applied seq and the archive's sealed tip, and resumes the live stream at that tip. The consumer waits at most 30 seconds for the archive's plan; past that it resumes without a replay. Live events and the replay overlap safely, because the rev guard and tombstones make every write idempotent. Instances on `BACKFILL_SOURCE=crawl` (the default), or on a Jetstream without an archive, skip the gap.
 
+## Database schema
+
+Tables are named `happyview_<name>`, and the headings below drop the prefix. These are the tables a contributor meets first, not all of them. Types are indicative: SQLite stores most of these as TEXT or INTEGER, and `migrations/` holds each backend's definitions.
 
 ### `records`
 
+`happyview_records` is a view, and it is what reads and raw SQL see. The rows live in `happyview_records_v2`, with DIDs and collection NSIDs interned in `happyview_dids` and `happyview_collections`. A record's body is its JSON text exactly as received: `record` on Postgres, and `body` on SQLite, which a background task compresses with a per-collection zstd dictionary.
+
 | Column       | Type        | Description                         |
 | ------------ | ----------- | ----------------------------------- |
-| `uri`        | text (PK)   | AT URI (`at://did/collection/rkey`) |
+| `uri`        | text        | AT URI (`at://did/collection/rkey`), derived |
 | `did`        | text        | Author DID                          |
 | `collection` | text        | Lexicon NSID                        |
 | `rkey`       | text        | Record key                          |
-| `record`     | jsonb       | Record value                        |
+| `record`     | text (JSON) | Record value                        |
 | `cid`        | text        | Content identifier                  |
-| `indexed_at` | timestamptz | When HappyView indexed this version of the record. Redelivering an identical record (same CID and body) keeps the original value. A local write that Jetstream will echo back (an XRPC procedure, a `happyview.record` mirror, a linked-repo write) stores `NULL`, on insert and on update, until the echo stamps it. A plugin's direct local-index write gets no echo, so an update through it keeps the existing value |
+| `indexed_at` | timestamp   | When HappyView indexed this version of the record. Redelivering an identical record (same CID and body) keeps the original value. A local write that Jetstream will echo back (an XRPC procedure, a `happyview.record` mirror, a linked-repo write) stores `NULL`, on insert and on update, until the echo stamps it. A plugin's direct local-index write gets no echo, so an update through it keeps the existing value |
+| `created_at` | timestamp   | When the row was first written      |
 | `rev`        | text        | TID of the repo commit that wrote this version, from Jetstream. `NULL` for local writes, `listRecords` backfill rows and rows written before revs were stored. A delivery with an older rev than the stored one is ignored |
 
 ### `record_tombstones` and `did_tombstones`
@@ -252,10 +286,15 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------------- | ----------- | ----------------------------------------------- |
 | `id`                | text (PK)   | Lexicon NSID                                    |
 | `revision`          | integer     | Incremented on upsert                           |
-| `lexicon_json`      | jsonb       | Raw lexicon definition                          |
-| `lexicon_type`      | text        | record, query, procedure, definitions           |
+| `lexicon_json`      | text (JSON) | Raw lexicon definition                          |
 | `backfill`          | boolean     | Whether to backfill on upload                   |
 | `target_collection` | text        | For queries/procedures: which record collection |
+| `action`            | text        | For procedures: `create`, `update`, `delete` or `upsert` |
+| `source`            | text        | `manual` or `network`                           |
+| `authority_did`     | text        | For a network lexicon: its authority's DID      |
+| `last_fetched_at`   | timestamptz | For a network lexicon: when it was last fetched |
+| `token_cost`        | integer     | Rate-limit cost, overriding the type's default  |
+| `indexed`           | boolean     | Whether HappyView ingests this collection       |
 | `created_at`        | timestamptz |                                                 |
 | `updated_at`        | timestamptz |                                                 |
 
@@ -275,6 +314,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | ------------ | ----------- | -------------------------------------------- |
 | `user_id`    | uuid (FK)   | References `users.id`                        |
 | `permission` | text        | Permission string (e.g. `lexicons:create`)   |
+| `granted_at` | timestamptz |                                              |
+| `granted_by` | uuid (FK)   | References `users.id`                        |
 | (PK)         |             | Composite primary key: (`user_id`, `permission`) |
 
 ### `api_keys`
@@ -286,7 +327,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `name`       | text        | Descriptive label                            |
 | `key_hash`   | text        | SHA-256 hash of the full key                 |
 | `key_prefix` | text        | First 11 characters for display              |
-| `permissions`| text[]      | Permissions granted to this key              |
+| `permissions`| text (JSON) | Permissions granted to this key              |
 | `created_at` | timestamptz |                                              |
 | `last_used_at`| timestamptz|                                              |
 | `revoked_at` | timestamptz | Set when revoked (soft delete)               |
@@ -297,6 +338,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | -------------- | ----------- | -------------------------------------------- |
 | `did`          | text (PK)   | User's atproto DID                       |
 | `session_data` | text        | Serialized OAuth session (managed by atrium) |
+| `signing_kid`  | text        | The client key that established the session  |
 | `created_at`   | timestamptz |                                              |
 | `updated_at`   | timestamptz |                                              |
 
@@ -333,7 +375,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | Column       | Type        | Description                                  |
 | ------------ | ----------- | -------------------------------------------- |
 | `key`        | text (PK)   | Variable name                                |
-| `value`      | text        | Variable value (encrypted at rest)           |
+| `value`      | text        | Variable value                               |
 | `created_at` | timestamptz |                                              |
 | `updated_at` | timestamptz |                                              |
 
@@ -363,7 +405,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | -------------- | ----------- | ------------------------------------------------ |
 | `id`           | text (PK)   |                                                  |
 | `space_id`     | text (FK)   | References `spaces.id`                           |
-| `did`          | text        | Member's DID (or space URI for delegation)       |
+| `member_did`   | text        | Member's DID (or space URI for delegation)       |
 | `can_read`     | boolean     | Whether the member can read the space            |
 | `can_write`    | boolean     | Whether the member can write to the space        |
 | `read_self`    | boolean     | Whether reads are limited to the member's own records |
@@ -397,6 +439,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `ikm`          | bytea       | Input keying material for deniable signatures    |
 | `sig`          | bytea       | Signature                                        |
 | `mac`          | bytea       | Message authentication code                      |
+| `host_mode`    | text        | Where the repo lives: `polyfill`, `migrating` or `native` |
+| `sync_cursor`  | text        | Last rev consumed from the PDS in `native` mode  |
 | `updated_at`   | text        |                                                  |
 
 ### `space_record_oplog`
@@ -455,7 +499,9 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `space_id`   | text (FK) | References `spaces.id`                           |
 | `token_hash` | text      | SHA-256 hash of the invite token                 |
 | `created_by` | text      | DID of the user who created the invite           |
-| `access`     | text      | Access level granted: `read`, `read_self`, `write` |
+| `can_read`   | boolean   | Whether the invite grants read access            |
+| `can_write`  | boolean   | Whether the invite grants write access           |
+| `read_self`  | boolean   | Whether reads are limited to the member's own records |
 | `max_uses`   | integer?  | Maximum number of uses (null = unlimited)        |
 | `uses`       | integer   | Current use count                                |
 | `expires_at` | text?     | Expiry timestamp (null = never)                  |
@@ -492,11 +538,11 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | Column                | Type        | Description                                      |
 | --------------------- | ----------- | ------------------------------------------------ |
 | `id`                  | integer (PK)| Always 1 (singleton)                             |
-| `mode`                | text        | `did_web`, `did_plc`, or `linked_account`        |
+| `mode`                | text        | `did_web`, `did_plc`, `attach_account` or `not_exposed` |
 | `did`                 | text        | The service's DID                                |
 | `signing_key_enc`     | text        | Encrypted signing key                            |
 | `rotation_key_enc`    | text?       | Encrypted rotation key (did:plc only)            |
-| `attached_account_did`| text?       | Linked account DID (linked_account mode)         |
+| `attached_account_did`| text?       | The attached account's DID (`attach_account` mode) |
 | `setup_complete`      | boolean     | Whether setup has been finalized                 |
 | `created_at`          | text        |                                                  |
 | `updated_at`          | text        |                                                  |
@@ -508,7 +554,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `id`          | integer (PK)|                                                  |
 | `fragment_id` | text        | DID document fragment identifier                 |
 | `service_type`| text        | Service type (e.g. `AtprotoAppView`)             |
-| `access_mode` | text        | `all` or scoped to specific XRPCs                |
+| `access_mode` | text        | `all`, or `specific` for the XRPCs in `service_entry_xrpcs` |
 | `created_at`  | text        |                                                  |
 | `updated_at`  | text        |                                                  |
 
@@ -539,11 +585,15 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `did`             | text        | Target DID (null = all)                                  |
 | `status`          | text        | pending, running, pausing, paused, cancelling, cancelled, completed, failed |
 | `stage`           | text        | pending, discovering_repos, resolving_and_fetching, completed, failed, cancelled |
-| `total_repos`     | integer     | Work units discovered (a unit is one repo under one collection; one per account for account-targeted jobs) |
+| `total_repos`     | integer     | Work units discovered (a unit is one account under one collection; one per account for account-targeted jobs) |
 | `resolved_repos`  | integer     | Units with PDS endpoint resolved                         |
 | `processed_repos` | integer     | Units with records fetched                               |
 | `total_records`   | integer     | Total records indexed                                    |
 | `error`           | text        | Error message if failed                                  |
+| `scope`           | text        | `network` (accounts from the relay) or `dids` (accounts given at creation) |
+| `source`          | text        | `crawl` or `replay`                                      |
+| `note`            | text        | What the backfill executor said about the job            |
+| `hook_stats`      | text (JSON) | What the job's records cost in record scripts            |
 | `started_at`      | timestamptz |                                                          |
 | `completed_at`    | timestamptz |                                                          |
 | `created_at`      | timestamptz |                                                          |
@@ -554,13 +604,18 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 # Unit tests (no database needed)
 cargo test --lib
 
-# All tests including end-to-end (SQLite by default)
+# Unit tests that run a script natively
+cargo test --features lua-reference --lib
+
+# All tests, against SQLite or Postgres
+bash scripts/build-plugin-fixtures.sh
+export TEST_DATABASE_URL='sqlite:///tmp/happyview-test.db?mode=rwc'
 cargo test
 
-# Or run against Postgres
+# Or against Postgres
 docker compose -f docker-compose.test.yml up -d
 TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test cargo test
 docker compose -f docker-compose.test.yml down
 ```
 
-End-to-end tests use `wiremock` to mock external services (PLC directory, PDSes) and a real database for full integration coverage. By default tests use SQLite; set `TEST_DATABASE_URL` to a Postgres connection string to test against Postgres.
+End-to-end tests use `wiremock` to mock external services (PLC directory, PDSes) and a real database for full integration coverage. A test that needs `TEST_DATABASE_URL` or a built plugin fixture fails without it, so a green run means it ran. Set `HAPPYVIEW_ALLOW_SKIPS=1` to skip those tests instead.

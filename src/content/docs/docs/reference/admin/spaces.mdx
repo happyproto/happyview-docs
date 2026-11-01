@@ -9,6 +9,36 @@ Browse the [spaces](/docs/guides/spaces) on this instance for moderation. These 
 Listing spaces and reading their metadata and members requires `spaces:read`. Reading records and blobs requires `spaces:manage-records`, and each read is written to the [event log](/docs/guides/event-logs#space-events) as a `space.moderator_read` event.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -33,6 +63,48 @@ Every space on the instance, newest first.
 | `cursor` | string | no       | Pagination cursor from a previous response  |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces?limit=20", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces?limit=20", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces?limit=20")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces?limit=20", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -81,6 +153,48 @@ GET /admin/spaces/{id}
 A space's metadata, its resolved member list (including members added through delegation), and the record count of each collection in it. `{id}` is the space's `id` from [List spaces](#list-spaces).
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-...", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-...", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-...")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-...", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -122,6 +236,48 @@ Records in a space, newest first. Requires `spaces:manage-records`.
 | `cursor`     | string | no       | Pagination cursor from a previous response  |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.example.forum.post", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.example.forum.post", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.example.forum.post")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.example.forum.post", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -165,6 +321,48 @@ A blob referenced by a record in the space, fetched from its author's PDS. The r
 | `cid` | string | yes      | The blob CID |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei...", {
+  headers,
+});
+const blob = await response.blob();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei...", {
+  headers,
+});
+const blob = await response.blob();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei...")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let bytes = response.bytes().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei...", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh

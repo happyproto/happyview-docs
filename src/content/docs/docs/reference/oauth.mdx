@@ -4,7 +4,7 @@ title: Third-party API clients
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Third-party applications can manage their own API clients via the `dev.happyview.*` XRPC endpoints. A third-party client is always tied to exactly one parent — the admin-created top-level API client whose DPoP session made the request. Only one level of nesting is allowed; third-party clients cannot create further children. Each third-party client gets its own rate limit bucket with instance default settings.
+Third-party applications can manage their own API clients via the `dev.happyview.*` XRPC endpoints. A third-party client is always tied to exactly one parent: the top-level API client whose DPoP session made the request, created through the admin API. Only one level of nesting is allowed; third-party clients cannot create further children. Each third-party client gets its own rate limit bucket with instance default settings.
 
 All endpoints use [DPoP authentication](/docs/reference/authentication#authenticating-users-for-procedures). See the [admin API client docs](/docs/reference/admin/api-clients) for managing clients through the admin API, and the [API Clients guide](/docs/guides/api-clients) for how API clients work.
 
@@ -383,7 +383,7 @@ Returns `404` if the client doesn't exist or isn't owned by the authenticated us
 
 ## Confidential client authentication
 
-These two endpoints are unrelated to the third-party (XRPC) CRUD flow above — they belong to any top-level API client that wants to run its own atproto OAuth flow against a user's PDS as a **confidential** client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard's Access > API Clients > "AT Protocol Client Auth" card.
+These two endpoints are unrelated to the third-party XRPC methods above. They belong to any top-level API client that wants to run its own atproto OAuth flow against a user's PDS as a **confidential** client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard's Access > API Clients > "AT Protocol Client Auth" card.
 
 ### Get the client's JWKS
 
@@ -391,7 +391,7 @@ These two endpoints are unrelated to the third-party (XRPC) CRUD flow above — 
 GET /oauth/clients/{id}/jwks.json
 ```
 
-Public and unauthenticated — this is the URL your app publishes as `jwks_uri` in its `client_id_url` document, so the user's PDS (a stranger to HappyView) can fetch it during authorization. An id with no provisioned key returns an empty key set rather than a 404, so this endpoint can't be used to enumerate which client ids exist.
+Public and unauthenticated: this is the URL your app publishes as `jwks_uri` in its `client_id_url` document, so the user's PDS (a stranger to HappyView) can fetch it during authorization. An id with no provisioned key returns an empty key set rather than a 404, so this endpoint can't be used to enumerate which client ids exist.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -472,9 +472,13 @@ curl https://happyview.example.com/oauth/clients/550e8400-e29b-41d4-a716-4466554
 POST /oauth/client-assertion
 ```
 
-Mints a `private_key_jwt` assertion for the calling client, for use in an atproto OAuth flow the client is running itself against a user's PDS. Needed **twice per flow** — once for the pushed authorization request (PAR), once for the token exchange — since each assertion expires after 60 seconds and only covers one request.
+Mints a `private_key_jwt` assertion for the calling client, for use in an atproto OAuth flow the client is running itself against a user's PDS. Needed **twice per flow**, once for the pushed authorization request (PAR) and once for the token exchange, since each assertion expires after 60 seconds and only covers one request.
 
-Authenticate as a confidential client with `X-Client-Key` + `X-Client-Secret`, or as a public client with `X-Client-Key` + an active DPoP-bound session (`Authorization: DPoP <token>` + a `DPoP` proof covering this request).
+Authenticate in one of three ways:
+
+- As a confidential client, with `X-Client-Key` + `X-Client-Secret`.
+- With `X-Client-Key` + an active DPoP-bound session (`Authorization: DPoP <token>` + a `DPoP` proof covering this request).
+- During a public client's first sign-in, when it has neither, with `X-Client-Key`, `provision_id` and `pkce_verifier`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -581,7 +585,9 @@ curl -X POST https://happyview.example.com/oauth/client-assertion \
 | Field    | Type   | Required | Description                                                          |
 | -------- | ------ | -------- | ---------------------------------------------------------------------|
 | `issuer` | string | yes      | The `issuer` URL from the target PDS authorization server's metadata |
-| `kid`    | string | no       | Sign with this specific key instead of whichever is current. Required when refreshing — see below |
+| `kid`    | string | no       | Sign with this specific key instead of whichever is current. Required when refreshing; see below |
+| `provision_id` | string | if `pkce_verifier` is sent | The `provision_id` from `POST /oauth/dpop-keys`. A provision keeps the key its first assertion used |
+| `pkce_verifier` | string | if `provision_id` is sent | The verifier for that provision's `pkce_challenge` |
 
 **Response**: `200 OK`
 
@@ -594,13 +600,13 @@ curl -X POST https://happyview.example.com/oauth/client-assertion \
 }
 ```
 
-Attach `client_assertion` and `client_assertion_type` as form parameters on the PAR request and, separately, on the token exchange request — each needs its own call to this endpoint.
+Attach `client_assertion` and `client_assertion_type` as form parameters on the PAR request and, separately, on the token exchange request. Each needs its own call to this endpoint.
 
 #### Refreshing a token: store the `kid`
 
 `kid` names the key that signed the assertion. **Store it alongside the session you establish**, and pass it back as the `kid` field whenever you request an assertion to *refresh* that session.
 
-This matters after a key rotation. An authorization server binds a session to the key that established it. If you refresh with an assertion signed by a newer key, the server sees a key it never bound the session to — and a conforming server responds by **destroying the session**, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
+This matters after a key rotation. An authorization server binds a session to the key that established it. If you refresh with an assertion signed by a newer key, the server sees a key it never bound the session to, and a conforming server responds by **destroying the session**, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
 
 Omit `kid` for an initial authorization, where any currently valid key is correct.
 
@@ -612,11 +618,10 @@ Returns `400` (`no usable authentication key '<kid>' ...`) if the requested `kid
 
 | Status | Error                                     | Cause                                                            |
 | ------ | ----------------------------------------- | ---------------------------------------------------------------- |
-| 400    | `Invalid client_type`                     | `client_type` is not `"confidential"` or `"public"`              |
-| 400    | `invalid request body`                    | Missing required fields or malformed JSON                        |
-| 401    | `requires DPoP authentication`            | `Authorization` header is missing or doesn't use the DPoP scheme |
-| 401    | `requires an API client key`              | `X-Client-Key` header is absent                                  |
-| 401    | `token_expired`                           | The access token has expired                                     |
+| 400    | `client_type must be 'confidential' or 'public'` | `clientType` is neither                                    |
+| 400    | none                                      | Missing required fields or malformed JSON                        |
+| 401    | `<method> requires DPoP authentication`   | `Authorization` header is missing or doesn't use the DPoP scheme |
+| 401    | `<method> requires an API client key`     | `X-Client-Key` header is absent                                  |
 | 401    | `Invalid client`                          | `X-Client-Key` doesn't match a known client                     |
 | 401    | `child clients cannot manage API clients` | The calling client is itself a third-party (child) client        |
 | 403    | `Child clients cannot create API clients` | The calling client is itself a third-party (child) client        |

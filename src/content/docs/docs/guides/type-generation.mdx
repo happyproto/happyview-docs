@@ -1,6 +1,9 @@
 ---
-title: "Editor types"
+title: Editor types
+description: Write declaration files for a project with happyview types, so your editor can complete and check scripts in Lua, JavaScript and TypeScript.
 ---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 `happyview types <root>` writes declaration files for the project at `<root>`, so your editor's own language server can complete and check what a script sees: each `happyview.*` library, a handler's input and return value from its lexicon, `ctx`, and records by NSID.
 
@@ -10,11 +13,11 @@ happyview types . --out ./types            # somewhere else
 happyview types . --plugin ./plugins/lua   # load this interpreter instead of the project's
 ```
 
-It builds the project the way `happyview check` does, with no database and no network, then asks each interpreter the project uses to render the types in its own language. Each language gets its own directory, such as `.happyview/types/lua/` and `.happyview/types/typescript/`, holding the files your language server already reads: LuaLS `---@meta` files for Lua, `.d.ts` files for JavaScript and TypeScript.
+It builds the project the way `happyview check` does, with no database and no network, then asks each loaded interpreter to render the types in its own language. Each language gets its own directory, such as `.happyview/types/lua/` and `.happyview/types/typescript/`, holding the files your language server already reads: LuaLS `---@meta` files for Lua, `.d.ts` files for JavaScript and TypeScript.
 
 Interpreters come from `--plugin`, else `$PLUGIN_DIR`, else `<root>/.happyview/plugins`, as for `check`. Libraries are loaded from the same places.
 
-`happyview dev` keeps `.happyview/types/` current on its own: it writes the types once it starts watching, and again after every build that changes what a script can see, printing a `types:` line only when it wrote something or failed. A failed build leaves the last good types in place.
+`happyview dev` keeps `.happyview/types/` current on its own: it writes the types once it starts watching, and again after every build that changes what a script can see, printing a `types:` line only when it wrote something or failed, plus any interpreter it skipped on the first pass. A failed build leaves the last good types in place.
 
 ## What it prints
 
@@ -43,6 +46,9 @@ A directory is replaced whole, so an editor never reads half of a set, and files
 
 A language server cannot give a function's parameters types from outside its file, so a handler names its types once. The names come from the lexicon's NSID and the kind of script; each interpreter plugin documents its own. For a query `com.example.getThing`:
 
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
 ```lua
 ---@param input lexicons.com.example.getThing.Params
 ---@param ctx happyview.QueryCtx
@@ -50,6 +56,22 @@ A language server cannot give a function's parameters types from outside its fil
 function handle(input, ctx)
 end
 ```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+/**
+ * @param {import("happyview:lexicons/com.example.getThing").Params} input
+ * @param {import("happyview:ctx").QueryCtx} ctx
+ * @returns {Promise<import("happyview:lexicons/com.example.getThing").Output>}
+ */
+export default async function handle(input, ctx) {
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
 
 ```ts
 import type { Params, Output } from "happyview:lexicons/com.example.getThing";
@@ -59,10 +81,14 @@ export default async function handle(input: Params, ctx: QueryCtx): Promise<Outp
 }
 ```
 
-Pointing your editor at `.happyview/types/` is the language server's own setting: `workspace.library` in `.luarc.json` for LuaLS, and `include` or `typeRoots` in `tsconfig.json`.
+</TabItem>
+</Tabs>
+
+Pointing your editor at `.happyview/types/` is the language server's own setting: `workspace.library` in `.luarc.json` for LuaLS, and `include` in `tsconfig.json` or `jsconfig.json`, naming `.happyview/types/typescript` or `.happyview/types/javascript`.
 
 ## In the dashboard
 
 The dashboard's script editor reads the same declarations, rendered for the whole instance through [`GET /admin/editor/declarations`](/docs/reference/admin/scripts#editor-declarations). They cover every installed library and every lexicon the instance serves.
+
 - **Lua:** the editor completes the members of a `require`d library and of what its calls return. It types `input` and `ctx` from the script's trigger, so a handler needs no annotations there, and shows each member's type and description on hover.
-- **TypeScript and JavaScript:** `import type` from `happyview:ctx` and `happyview:lexicons/<nsid>` resolve as they do in an editor.
+- **JavaScript and TypeScript:** imports from `happyview:ctx` and `happyview:lexicons/<nsid>` resolve as they do in an editor.

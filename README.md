@@ -28,7 +28,7 @@ Reference pages own every key, flag and field. A guide explains the few a reader
 
 Links are root-absolute (`/docs/guides/backfill`), with no `.md`. Relative links resolve differently with and without a trailing slash, which is how the old site collected its broken links.
 
-Every claim about HappyView should be checkable against its code on `alpha`. Mark behaviour that is only in an open pull request as pending, naming the pull request.
+Every claim about HappyView should be checkable against its code on `alpha`. Mark behaviour that is only in an open pull request as pending, naming the pull request. A dashboard label an open pull request is changing may be quoted in its new wording, with one note on the page saying so.
 
 ## Generated content
 

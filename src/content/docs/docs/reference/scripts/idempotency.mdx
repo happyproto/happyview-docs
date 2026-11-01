@@ -3,13 +3,15 @@ title: Create scripts may run more than once
 description: The same record can reach a record-created script more than once, so write create scripts to be idempotent.
 ---
 
-HappyView doesn't yet track which records a script has already handled. The same record can reach a create script more than once, so treat every create event as "this record exists now", not "this record is new".
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+HappyView doesn't track which records a script has already handled. The same record can reach a create script more than once, so treat every create event as "this record exists now", not "this record is new".
 
 This applies to any script that handles creates: a `record.create:<nsid>` script, and a `record.index:<nsid>` script when `input.action` is `"create"`.
 
 ## When it happens
 
-- **Backfills.** A backfill reads each repo's existing records and sends every one through the record script as a create, whether HappyView has seen it before or not. Running a backfill again, or backfilling a collection that is already indexed, delivers those creates again.
+- **Backfills.** A backfill reads each account's existing records and sends every one through the record script as a create, whether HappyView has seen it before or not. Running a backfill again, or backfilling a collection that is already indexed, delivers those creates again.
 - **Retries.** A record script that fails is run again, up to 4 attempts in total. Anything the script did before it failed, such as an HTTP call or a write, happens again on the next attempt.
 - **Dead-letter retries.** Retrying a dead-lettered event from the dashboard runs the script for that event again.
 
@@ -26,7 +28,8 @@ Running a create script twice for the same record should leave things the same a
 
 A create script that mirrors records into an external index. It uses `PUT` to a URL built from the record's URI, so a second delivery overwrites the same document instead of adding another.
 
-### Lua
+<Tabs syncKey="lang">
+  <TabItem label="Lua">
 
 ```lua
 local json = require("internal.json")
@@ -42,7 +45,8 @@ function handle(input, ctx)
 end
 ```
 
-### JavaScript
+  </TabItem>
+  <TabItem label="JavaScript">
 
 ```js
 import http from "happyview.http";
@@ -57,7 +61,8 @@ export default async function handle(input, ctx) {
 }
 ```
 
-### TypeScript
+  </TabItem>
+  <TabItem label="TypeScript">
 
 ```ts
 import http from "happyview.http";
@@ -77,6 +82,9 @@ export default async function handle(input: RecordEvent, ctx: { env: Record<stri
   return input.record ?? true;
 }
 ```
+
+  </TabItem>
+</Tabs>
 
 ## Next steps
 

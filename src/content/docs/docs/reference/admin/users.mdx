@@ -508,7 +508,7 @@ curl -X POST http://127.0.0.1:3000/admin/users/transfer-super \
 DELETE /admin/users/{id}
 ```
 
-Requires `users:delete` permission. You cannot delete an operator with superadmin, or yourself.
+Requires `users:delete` permission. You cannot delete an operator with superadmin, or yourself; either returns `403 Forbidden`. Deleting an operator also revokes their API keys.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

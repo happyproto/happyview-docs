@@ -2,7 +2,7 @@
 title: Linked repos
 ---
 
-Admin API endpoints for managing linked repos and their invites. The whole lifecycle is available here, so the feature can be driven headlessly without the dashboard. For a conceptual overview, see [Linked Repos](/docs/guides/linked-repos).
+Admin API endpoints for managing linked repos and their invites. The whole lifecycle is available here, so the feature can be driven headlessly without the dashboard. For a conceptual overview, see [Linked repos](/docs/guides/linked-repos).
 
 The repo write operations themselves are not part of this API. The admin API manages grants; scripts use them through the [`happyview.linked_repos` library](/docs/reference/scripts/libraries).
 
@@ -194,7 +194,7 @@ GRANT=$(curl -s -X POST https://appview.example.com/admin/linked-repos \
   -d '{"reason":"Mirror notes","scopes":"repo:com.example.note?action=create"}' \
   | jq -r .id)
 
-# 2. Mint an invite, capturing the URL — it can't be read back later
+# 2. Mint an invite, capturing the URL: it can't be read back later
 curl -s -X POST "https://appview.example.com/admin/linked-repos/$GRANT/invite" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
@@ -208,6 +208,6 @@ curl -s https://appview.example.com/admin/linked-repos \
 
 ## See also
 
-- [Linked Repos guide](/docs/guides/linked-repos): Concepts, scopes, and the invite flow
-- [Linked Repos guide](/docs/guides/linked-repos#using-a-linked-repo-from-a-script): Writing to a linked repo from a script
+- [Linked repos guide](/docs/guides/linked-repos): Concepts, scopes, and the invite flow
+- [Linked repos guide](/docs/guides/linked-repos#using-a-linked-repo-from-a-script): Writing to a linked repo from a script
 - [Permissions](/docs/guides/permissions): The full permission list

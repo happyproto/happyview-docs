@@ -29,7 +29,7 @@ For example, publishing `com.example.notes.getNote` to `did:plc:abc123` needs:
 _lexicon.notes.example.com.  TXT  "did=did:plc:abc123"
 ```
 
-HappyView runs this check itself, from its own server. The **DNS** column on the Lexicons page checks every authority at once, and each lexicon's **Publishing** panel checks its own, with a **Check again** button for after you change DNS. When the record is missing or names a different DID, both show the record to add. Until a rule decides where a lexicon goes, the panel can only give the record's name, since the value depends on the account.
+HappyView runs this check itself, from the instance. The **DNS** column on the Lexicons page checks every authority at once, and each lexicon's **Publishing** panel checks its own, with a **Check again** button for after you change DNS. When the record is missing or names a different DID, both show the record to add. Until a rule decides where a lexicon goes, the panel can only give the record's name, since the value depends on the account.
 
 ## Targets
 
@@ -39,7 +39,7 @@ Each rule sends lexicons to one of two places.
 
 Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **attach account** mode (see [Service Identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
 
-Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If yours was attached before HappyView could publish lexicons, or was last signed in through the ordinary dashboard login, the target shows as unavailable with what the session was granted: press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
+Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If its session lacks that permission, or the account last signed in through the ordinary dashboard login, the target shows as unavailable with what the session was granted: press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
 
 ### A linked repo
 
@@ -107,7 +107,7 @@ The Lexicons page shows each lexicon's status in its **Published** column. **Des
 
 ## Auto-publish
 
-With auto-publish on, HappyView publishes any matching lexicon that is `unpublished`, `moved`, or `outdated`. A `withdrawn` lexicon is skipped. It runs after the server starts, after you upload a lexicon, and after you create, change or delete a rule. There's no polling loop, so a failed publish is retried at the next of those, or when you publish by hand.
+With auto-publish on, HappyView publishes any matching lexicon that is `unpublished`, `moved`, or `outdated`. A `withdrawn` lexicon is skipped. It runs after the instance starts, after you upload a lexicon, and after you create, change or delete a rule. There's no polling loop, so a failed publish is retried at the next of those, or when you publish by hand.
 
 Only one run happens at a time. A trigger that arrives mid-run doesn't start a second run: it marks the work pending and the running pass goes round once more, so a change made during a run isn't missed.
 
@@ -123,7 +123,7 @@ Unpublishing also withdraws the lexicon from auto-publish: its status becomes `w
 
 Reading the publishing page needs `lexicons:read`. Creating, changing, or deleting rules, and publishing or unpublishing, needs `lexicons:publish`. Pointing a rule at a linked repo also needs `linked-repos:read`; without it, the page shows linked-repo destinations only as "A linked repo".
 
-The **Manager** template includes `lexicons:publish` for users created from it going forward. Existing operators without superadmin don't get it automatically: grant it to them explicitly from **Access > Users**. An operator with superadmin can always publish.
+The **Manager** template includes `lexicons:publish`, but only operators created from it hold it. Other operators without superadmin don't get it automatically: grant it to them explicitly from **Access > Users**. An operator with superadmin can always publish.
 
 ## See also
 

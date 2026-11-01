@@ -34,8 +34,8 @@ chose (a language, a plugin type, a global), that part is shown as `<…>`.
 interpreter plugin, and a fresh instance has none. The record or label is
 still indexed; only the script didn't run.
 
-**Fix.** Install the interpreter for the script's language from **Integrations →
-Plugins → Add plugin** (`happyview-lua`, `happyview-javascript` or `happyview-typescript`),
+**Fix.** Install the interpreter for the script's language from **Integrations >
+Plugins > Add plugin** (`happyview-lua`, `happyview-javascript` or `happyview-typescript`),
 then retry. Replay the dead letters once it is installed.
 
 ### A script uses a removed v2 global
@@ -98,7 +98,7 @@ same failure as its error.
 |---|---|---|---|
 | Instructions | 1,000,000 | 1,000 to 1,000,000,000 | Every script kind except jobs |
 | Wall clock | 10 seconds | 1 to 300 | Every script kind except jobs |
-| Memory | 64 MiB | — | Every script kind, jobs included |
+| Memory | 64 MiB | not configurable | Every script kind, jobs included |
 
 The wall clock counts only time the script itself runs, not time spent
 waiting on the host (an HTTP request, a database read). Jobs are exempt from
@@ -188,11 +188,11 @@ approve the request.
 { "error": "InsufficientPermissions", "message": "Missing permission: lexicons:publish" }
 ```
 
-**Why.** Publishing needs the `lexicons:publish` permission. The Manager
-template includes it, but users created before v3 didn't get it. An operator with
-superadmin can always publish.
+**Why.** Publishing needs the `lexicons:publish` permission. The **Manager**
+template includes it, but an operator given that template before v3 doesn't hold
+it. An operator with superadmin can always publish.
 
-**Fix.** Grant `lexicons:publish` to the user under **Access > Users**.
+**Fix.** Grant `lexicons:publish` to the operator under **Access > Users**.
 
 ## Records
 

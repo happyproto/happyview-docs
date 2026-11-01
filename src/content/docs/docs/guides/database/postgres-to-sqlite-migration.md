@@ -6,7 +6,7 @@ This guide covers migrating an existing HappyView deployment from Postgres to SQ
 
 ## Overview
 
-HappyView now defaults to SQLite and writes all internal SQL in SQLite syntax. When running against Postgres, HappyView translates queries automatically. However, if you have **Lua scripts** that contain raw Postgres SQL, those scripts need to be updated to use SQLite syntax instead.
+The new database starts empty: records come back through backfill, and everything else is re-created by hand (step 6). HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw Postgres SQL to `happyview.sql`'s `raw` does need changing, because raw SQL reaches the backend untranslated.
 
 ## Step 1: Export your data
 
@@ -34,17 +34,20 @@ If you had `DATABASE_BACKEND` set, update it as well:
 DATABASE_BACKEND=sqlite
 ```
 
-## Step 3: Migrate Lua scripts
+## Step 3: Migrate raw SQL in scripts
 
-If you have Lua scripts with raw SQL queries, they need to be converted from Postgres syntax to SQLite syntax. A codemod tool is provided to automate this.
+Convert raw SQL in Lua scripts from Postgres syntax to SQLite syntax. `migrate-lua-sql` automates this. It reads `.lua` files on disk, so copy any script you keep in the dashboard into a file first, and paste the result back afterwards. Convert raw SQL in JavaScript or TypeScript scripts by hand, using the list below.
 
 ### Run the codemod tool
 
 ```sh
-cargo run --bin migrate-lua-sql -- /path/to/lua/scripts
+# Preview the changes first
+migrate-lua-sql --dry-run /path/to/lua/scripts
+
+migrate-lua-sql /path/to/lua/scripts
 ```
 
-The tool scans all `.lua` files in the given directory and rewrites Postgres SQL patterns to SQLite equivalents.
+The tool ships in the [release archive](/docs/guides/self-hosting/binary), not the Docker image; from a clone, run `cargo run --bin migrate-lua-sql -- /path/to/lua/scripts`. It scans all `.lua` files in the given directory and rewrites Postgres SQL patterns to SQLite equivalents.
 
 ### What the codemod converts automatically
 
@@ -59,35 +62,39 @@ The tool scans all `.lua` files in the given directory and rewrites Postgres SQL
 
 The tool prints warnings for patterns it cannot convert automatically:
 
-- JSONB `?` (contains-key) operator — consider using `json_each()` with an `EXISTS` subquery
-- `make_interval()` — Postgres-specific, needs manual conversion
-- `SIMILAR TO` — use `LIKE` or `GLOB` instead
-- `ANY()` / `ALL()` array operators — no direct SQLite equivalent
-- Type casts other than `::jsonb` (e.g., `::text`, `::integer`) — may need manual conversion to `CAST(... AS ...)`
+- JSONB `?` (contains-key) operator: consider using `json_each()` with an `EXISTS` subquery
+- `make_interval()`: Postgres-specific, needs manual conversion
+- `SIMILAR TO`: use `LIKE` or `GLOB` instead
+- `ANY()` / `ALL()` array operators: no direct SQLite equivalent
+- Type casts other than `::jsonb` (e.g., `::text`, `::integer`): may need manual conversion to `CAST(... AS ...)`
 
 Review the flagged lines and update them manually.
 
 ## Step 4: Import data into SQLite
 
-Start HappyView with the new `DATABASE_URL`. It will create the SQLite database and run migrations automatically. If you need to import existing records, use the backfill feature to re-index from the network:
+There is no direct import. Start HappyView with the new `DATABASE_URL`, and it creates the SQLite database and runs migrations automatically. Then re-index your records from the network:
 
 1. Start HappyView with the new SQLite `DATABASE_URL`
-2. Upload your lexicons via the dashboard or admin API
+2. Install your interpreters and libraries, then redeploy your project, or upload your lexicons via the dashboard or admin API
 3. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
 
-For small datasets, this is the simplest approach since backfill fetches all records fresh from the network.
+Backfill fetches records fresh from the network, so records that exist only on this instance don't come back.
 
 ## Step 5: Update Docker Compose (if applicable)
 
-If you were running Postgres via Docker Compose, you can now comment out the `postgres` service since it is no longer needed. See the [database setup guide](/docs/guides/database/database-setup#docker-compose) for details.
+If you were running Postgres via Docker Compose, switch to `docker-compose.prod.sqlite.yml`. See [Docker](/docs/guides/self-hosting/docker#1-choose-a-database).
+
+## Step 6: Re-create admin settings
+
+Instance settings (app name, logo, terms and privacy URIs), API keys, API clients, operators, plugins, script variables and labeler subscriptions are stored in the database and are not carried over. Re-create these via the dashboard or admin API after switching. OAuth sessions don't carry over either, so everyone signs in again.
 
 ## Rollback
 
-To switch back to Postgres, revert your `DATABASE_URL` to the Postgres connection string. Your Postgres database remains unchanged — HappyView does not modify it during the migration to SQLite.
+To switch back to Postgres, revert your `DATABASE_URL` to the Postgres connection string, and revert any script you converted. HappyView does not modify your Postgres database during the migration to SQLite, so it stays as it was when you switched.
 
 ## Next steps
 
-- [SQLite → Postgres migration](/docs/guides/database/sqlite-to-postgres-migration) — migrate in the opposite direction
-- [Database setup](/docs/guides/database/database-setup) — choose between SQLite and Postgres for new instances
-- [Backfill](/docs/guides/backfill) — re-index records from the network after switching backends
-- [Scripts](/docs/getting-started/scripts) — write SQL that works against either backend
+- [SQLite to Postgres migration](/docs/guides/database/sqlite-to-postgres-migration): migrate in the opposite direction
+- [Database setup](/docs/guides/database/database-setup): choose between SQLite and Postgres for new instances
+- [Backfill](/docs/guides/backfill): re-index records from the network after switching backends
+- [Scripts](/docs/getting-started/scripts): write SQL that works against either backend

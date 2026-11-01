@@ -1,0 +1,165 @@
+---
+title: Algolia sync
+description: A record script that keeps an Algolia search index in step with a collection, in Lua, JavaScript and TypeScript.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Push records to an Algolia search index whenever they are created, updated, or deleted on the network.
+
+**Trigger:** `record.index:<nsid>`. **Needs:** `happyview-http`. **Script variables:** `ALGOLIA_APP_ID`, `ALGOLIA_API_KEY`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+local json = require("internal.json")
+local http = require("happyview.http")
+
+-- Percent-encode everything but unreserved characters, so the AT URI fits in a path segment
+local function enc(s)
+  return (s:gsub("[^%w%-_%.~]", function(c) return string.format("%%%02X", c:byte()) end))
+end
+
+function handle(input, ctx)
+  local url = "https://" .. ctx.env.ALGOLIA_APP_ID .. ".algolia.net/1/indexes/records/" .. enc(input.uri)
+  local headers = {
+    ["X-Algolia-API-Key"] = ctx.env.ALGOLIA_API_KEY,
+    ["X-Algolia-Application-Id"] = ctx.env.ALGOLIA_APP_ID,
+    ["Content-Type"] = "application/json",
+  }
+
+  local res
+  if input.action == "delete" then
+    res = http.delete(url, { headers = headers })
+  else
+    res = http.put(url, {
+      headers = headers,
+      body = json.encode({
+        objectID = input.uri,
+        collection = input.collection,
+        did = input.did,
+        record = input.record,
+      }),
+    })
+  end
+
+  if res.status >= 400 then
+    error("algolia answered " .. res.status)
+  end
+
+  -- `record` is absent on delete; `true` lets the delete proceed.
+  return input.record or true
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import http from "happyview.http";
+
+export default async function handle(input, ctx) {
+  const url = `https://${ctx.env.ALGOLIA_APP_ID}.algolia.net/1/indexes/records/${encodeURIComponent(input.uri)}`;
+  const headers = {
+    "X-Algolia-API-Key": ctx.env.ALGOLIA_API_KEY,
+    "X-Algolia-Application-Id": ctx.env.ALGOLIA_APP_ID,
+    "Content-Type": "application/json",
+  };
+
+  const res = input.action === "delete"
+    ? await http.delete(url, { headers })
+    : await http.put(url, {
+        headers,
+        body: JSON.stringify({
+          objectID: input.uri,
+          collection: input.collection,
+          did: input.did,
+          record: input.record,
+        }),
+      });
+
+  if (res.status >= 400) {
+    throw new Error(`algolia answered ${res.status}`);
+  }
+
+  // `record` is absent on delete; `true` lets the delete proceed.
+  return input.record ?? true;
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import http from "happyview.http";
+
+interface RecordEvent {
+  action: "create" | "update" | "delete";
+  uri: string;
+  did: string;
+  collection: string;
+  record?: Record<string, unknown>;
+}
+
+interface Context {
+  env: Record<string, string>;
+}
+
+export default async function handle(input: RecordEvent, ctx: Context) {
+  const url = `https://${ctx.env.ALGOLIA_APP_ID}.algolia.net/1/indexes/records/${encodeURIComponent(input.uri)}`;
+  const headers = {
+    "X-Algolia-API-Key": ctx.env.ALGOLIA_API_KEY,
+    "X-Algolia-Application-Id": ctx.env.ALGOLIA_APP_ID,
+    "Content-Type": "application/json",
+  };
+
+  const res = input.action === "delete"
+    ? await http.delete(url, { headers })
+    : await http.put(url, {
+        headers,
+        body: JSON.stringify({
+          objectID: input.uri,
+          collection: input.collection,
+          did: input.did,
+          record: input.record,
+        }),
+      });
+
+  if (res.status >= 400) {
+    throw new Error(`algolia answered ${res.status}`);
+  }
+
+  // `record` is absent on delete; `true` lets the delete proceed.
+  return input.record ?? true;
+}
+```
+
+</TabItem>
+</Tabs>
+
+## How it works
+
+1. On **create** or **update**: sends a `PUT` request to Algolia's index API with the record data, using the AT URI as the `objectID`. Algolia replaces an object that already exists.
+2. On **delete**: sends a `DELETE` request to remove the object from the index by its AT URI.
+
+The AT URI is percent-encoded in the request path, with `enc` in Lua and `encodeURIComponent` in JavaScript and TypeScript, because its `/` characters would otherwise be read as path separators.
+
+`input` is the [record event](/docs/reference/scripts/contract#input-by-script-type). `happyview.http` returns a 4xx or 5xx answer as an ordinary result, so the script checks `status` and raises for it. A failed record script is [retried and then dead-lettered](/docs/reference/scripts/types-and-triggers#failures-and-retries).
+
+## Configuration
+
+Set these as [script variables](/docs/reference/admin/script-variables) from the dashboard or the [admin API](/docs/reference/admin/admin-api):
+
+| Variable | Value |
+| --- | --- |
+| `ALGOLIA_APP_ID` | Your Algolia Application ID |
+| `ALGOLIA_API_KEY` | An Algolia API key with write permissions |
+
+The index name is the `records` segment of the URL. Change it to any name you like.
+
+## Use case
+
+This record script keeps an external search index in step with your indexed records as events arrive, with no polling or scheduled jobs.
+
+Combine this with a [query script](/docs/reference/scripts/types-and-triggers#xrpc-scripts) that searches Algolia instead of the local database for full-text search beyond the substring match of `happyview.db`'s `search`.

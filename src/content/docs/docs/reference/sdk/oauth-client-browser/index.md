@@ -4,7 +4,7 @@ title: Browser client
 
 The browser client handles the full OAuth redirect flow for browser apps authenticating with a HappyView instance. It wraps the [OAuth Client](/docs/reference/sdk/oauth-client) with Web Crypto, localStorage, and atproto handle/DID resolution.
 
-If you're starting a new app, consider using [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent) with `@atproto/lex` instead — it provides type-safe XRPC calls and is the recommended way to interact with HappyView. This package is primarily useful if your app already uses `@atproto/oauth-client-browser` and you want to add HappyView authentication alongside it.
+If you're starting a new app, use [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent) with `@atproto/lex` on top of this client. It provides type-safe XRPC calls and is the recommended way to interact with HappyView. Used on its own, this package suits an app that already uses `@atproto/oauth-client-browser` and wants to add HappyView authentication alongside it.
 
 ## Installation
 
@@ -32,7 +32,7 @@ const client = new HappyViewBrowserClient({
 | `redirectUri` | No       | OAuth callback URL. Defaults to `${window.location.origin}/oauth/callback`    |
 | `scopes`      | No       | OAuth scopes to request. Defaults to `"atproto"`                              |
 | `storage`     | No       | Custom storage adapter. Defaults to localStorage                              |
-| `sessionHooks`| No       | Event hooks for session lifecycle events                                      |
+| `sessionHooks`| No       | Callbacks for [session lifecycle events](#session-event-hooks)                |
 | `fetch`       | No       | Custom fetch implementation                                                   |
 
 The client uses localStorage by default. You can override it:
@@ -47,7 +47,7 @@ const client = new HappyViewBrowserClient({
 ```
 
 :::note
-The API client must be registered as a **public** client (no secret) with your app's origin in `allowed_origins`. See [Authentication — API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
+The API client must be registered as a **public** client (no secret) with your app's origin in `allowed_origins`. See [API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
 :::
 
 ## Sign in
@@ -56,7 +56,7 @@ The API client must be registered as a **public** client (no secret) with your a
 
 ```typescript
 await client.signIn("alice.bsky.social");
-// Browser redirects — code stops here
+// Browser redirects, so code stops here
 ```
 
 Every sign-in method accepts either a handle or a DID as the identifier:
@@ -121,13 +121,13 @@ if (result) {
 For more control, use the specific methods:
 
 ```typescript
-// Restore only — ignores callback params in the URL
+// Restore only: ignores callback params in the URL
 const result = await client.initRestore();
 if (result) {
   const { session } = result;
 }
 
-// Callback only — throws if no callback params are present
+// Callback only: throws if no callback params are present
 const { session, state } = await client.initCallback();
 ```
 
@@ -152,7 +152,7 @@ Calling `restore()` with no arguments returns the last active session, or `null`
 ```typescript
 const params = client.readCallbackParams();
 if (params) {
-  // URL contains OAuth callback params — process them
+  // URL contains OAuth callback params, so process them
   const { session } = await client.initCallback();
 }
 ```
@@ -201,7 +201,7 @@ await client.revoke(session.did);
 `logout()` still works as an alias for `revoke()`.
 :::
 
-The stored session is always cleared, even when the server refuses the revocation. `404`, `401`, and `403` are treated as a completed logout — there is no live credential left to revoke. `5xx` and network errors still throw so you know revocation may not have reached the server, but they throw after the local session is gone, so the user is never left signed in by a failed logout.
+The stored session is always cleared, even when the server refuses the revocation. `404`, `401`, and `403` are treated as a completed logout, because there is no live credential left to revoke. `5xx` and network errors still throw so you know revocation may not have reached the server, but they throw after the local session is gone, so the user is never left signed in by a failed logout.
 
 To clear a session locally without contacting the server at all:
 
@@ -209,7 +209,7 @@ To clear a session locally without contacting the server at all:
 await client.forgetSession(session.did);
 ```
 
-## Resolution utilities
+### Session properties
 
 | Property | Type     | Description                              |
 | -------- | -------- | ---------------------------------------- |
@@ -245,7 +245,7 @@ const client = new HappyViewBrowserClient({
 ```
 
 - `onSessionUpdate(did)` fires after a new session is registered (from `callback()`).
-- `onSessionDelete(did)` fires after a session is revoked (from `revoke()`, `logout()`, or `session.signOut()`).
+- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `logout()`, `forgetSession()` or `session.signOut()`).
 
 ## Error handling
 
@@ -284,25 +284,7 @@ if (result) {
 }
 ```
 
-This works because `HappyViewSession` implements the `SessionManager` interface that `Agent` expects — it has `did` and a `fetchHandler` that attaches DPoP authentication headers and prepends the HappyView instance URL.
-
-## Revoke session
-
-From the client:
-
-```typescript
-await client.revoke(session.did);
-```
-
-Or from the session itself:
-
-```typescript
-await session.signOut();
-```
-
-:::note
-`logout()` still works as an alias for `revoke()`.
-:::
+This works because `HappyViewSession` implements the `SessionManager` interface that `Agent` expects: it has `did` and a `fetchHandler` that attaches DPoP authentication headers and prepends the HappyView instance URL.
 
 ## Identity resolution
 
@@ -365,7 +347,7 @@ For local development with atproto's loopback client ID convention, use `buildLo
 import { buildLoopbackClientId } from "@happyview/oauth-client-browser";
 
 const clientId = buildLoopbackClientId(window.location);
-// → "http://localhost?redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2F"
+// "http://localhost?redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2F"
 ```
 
 This builds a client ID that authorization servers recognize as a local development app. The `redirect_uri` is encoded in the client ID URL query string.
@@ -391,8 +373,11 @@ This package re-exports everything from `@happyview/oauth-client`, `@atproto-lab
 
 ```typescript
 import {
-  // From @happyview/oauth-client
   HappyViewBrowserClient,
+  LocalStorageAdapter,
+  LoginContinuedInParentWindowError,
+
+  // From @happyview/oauth-client
   HappyViewSession,
   ApiError,
   OAuthCallbackError,

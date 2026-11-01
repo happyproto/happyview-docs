@@ -1,12 +1,16 @@
 ---
 title: Cascading delete
+description: A procedure script that deletes a record and the related records of other collections, in Lua, JavaScript and TypeScript.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Delete a record and all related records across collections.
 
-**Lexicon type:** procedure
+**Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local db = require("happyview.db")
@@ -46,10 +50,89 @@ function handle(input, ctx)
 end
 ```
 
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import db from "happyview.db";
+import record from "happyview.record";
+
+export default async function handle(input, ctx) {
+  if (!input.uri) {
+    return { error: "UriRequired", message: "uri is required" };
+  }
+
+  const row = await db.get(input.uri);
+  if (!row) {
+    return { error: "RecordNotFound", message: "no record at that uri" };
+  }
+
+  if (row.did !== ctx.caller_did) {
+    return { error: "NotOwner", message: "you can only delete your own records" };
+  }
+
+  // Find the caller's comments that reference this URI
+  const comments = await db.records("xyz.statusphere.comment")
+    .where("postUri", "=", input.uri)
+    .did(ctx.caller_did)
+    .limit(100)
+    .run();
+
+  const toDelete = [input.uri, ...comments.records.map((comment) => comment.uri)];
+
+  for (const uri of toDelete) {
+    await record.delete(uri);
+  }
+
+  return { deleted: toDelete.length };
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import db from "happyview.db";
+import record from "happyview.record";
+
+export default async function handle(input: { uri?: string }, ctx: { caller_did: string }) {
+  if (!input.uri) {
+    return { error: "UriRequired", message: "uri is required" };
+  }
+
+  const row = await db.get(input.uri);
+  if (!row) {
+    return { error: "RecordNotFound", message: "no record at that uri" };
+  }
+
+  if (row.did !== ctx.caller_did) {
+    return { error: "NotOwner", message: "you can only delete your own records" };
+  }
+
+  // Find the caller's comments that reference this URI
+  const comments = await db.records("xyz.statusphere.comment")
+    .where("postUri", "=", input.uri)
+    .did(ctx.caller_did)
+    .limit(100)
+    .run();
+
+  const toDelete = [input.uri, ...comments.records.map((comment) => comment.uri)];
+
+  for (const uri of toDelete) {
+    await record.delete(uri);
+  }
+
+  return { deleted: toDelete.length };
+}
+```
+
+</TabItem>
+</Tabs>
+
 ## How it works
 
 1. Check the primary record exists with `db.get` and belongs to the caller. Return a structured error if it doesn't. Each error name (`UriRequired`, `RecordNotFound`, `NotOwner`) must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "NotOwner" }]`, for the response to be a 400; an undeclared one is sent as a 200.
-2. Query for related records: comments by the same user whose `postUri` field is the primary record's URI. `where` filters on a field of the stored body, so the match happens in the database rather than in Lua.
+2. Query for related records: comments by the same user whose `postUri` field is the primary record's URI. `where` filters on a field of the stored body, so the match happens in the database rather than in the script.
 3. Delete everything with `record.delete`. Each call removes the record from the user's PDS and the local index.
 
 ## Usage
@@ -146,6 +229,6 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.deletePost \
 
 ## Use case
 
-Cascading deletes are useful when your data model has parent-child relationships across collections. For example, deleting a post should also clean up its comments, reactions, or metadata records. This keeps the user's repo and the local index consistent.
+Use a cascading delete when your data model has parent-child relationships across collections. For example, deleting a post should also clean up its comments, reactions or metadata records.
 
-Note that this only deletes records owned by `ctx.caller_did`. atproto records can only be deleted by their owner. If the related records could have more than 100 matches, paginate through all of them before deleting.
+This only deletes records in the caller's own repo, because a record write can't reach another account's repo. If the related records could have more than 100 matches, paginate through all of them before deleting.

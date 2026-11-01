@@ -6,9 +6,9 @@ v3 takes the script runtime out of HappyView. In v2 a Lua interpreter was compil
 
 The libraries went the same way. `db`, `http`, `Record` and the rest were the host in v2; in v3 they are library plugins a script reaches through `require("happyview.*")`, and HappyView ships none of those either.
 
-Everything else about running an instance is where you left it: the database upgrades in place, every environment variable you set for v2 still means the same thing, and the admin API keeps its routes. The breaking changes are concentrated in scripts and plugins.
+The database upgrades in place, but one way only: the first start moves every record into a compact format, and the way back is the backup you take first. Every environment variable you set for v2 still means the same thing, and the admin API keeps its routes. The other breaking changes are concentrated in scripts and plugins.
 
-This guide covers the operator-facing changes. The script contract itself — the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers — is in [Migrating Scripts to v3](/docs/guides/migrating-scripts).
+This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating Scripts to v3](/docs/guides/migrating-scripts).
 
 **v3 is in alpha.** The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
 
@@ -24,6 +24,15 @@ This guide covers the operator-facing changes. The script contract itself — th
 | Plugin manifests at `api_version` `"1"` | `api_version` `"2"`, declaring capabilities |
 | Plugins installed from a URL and checked against a `sha256` you supply | Installed from a registry of `software.release` records and verified by CID |
 | Instruction limit never fired; no time or memory limit | Instruction limit enforced, plus a request wall clock and a per-run memory ceiling |
+| `happyview_records` and `happyview_record_refs` are tables | Views over a compact format, compressed on SQLite |
+
+## Before you start
+
+1. Take a database backup. See [Backups](/docs/guides/self-hosting/production#backups). The only way back to v2 is to restore it.
+2. Check you have the free disk [the compact record format](/docs/guides/database/database-setup#before-you-upgrade) needs.
+3. On Postgres, stop every HappyView instance before starting v3. On either backend, read the same section if you built indexes, triggers or views on the record tables: some of them have to go first.
+
+Then start v3. The upgrade runs once, before the server accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so clients start again from the first page.
 
 ## 1. Install an interpreter plugin
 
@@ -44,7 +53,7 @@ Until then, every script surface refuses in its own way:
 | Label event | Dead-lettered on the first attempt, and the label still persists unmodified |
 | Job | Fails, with the same message in its `error` column |
 
-Record and label events are deliberately let through rather than held: an absent interpreter is an operator's problem, not a reason to stop indexing. The dead-letter rows are the record of what went unprocessed, at **Dead Letters** in the dashboard.
+Record and label events are let through rather than held, so indexing doesn't stop. The dead-letter rows are the record of what went unprocessed, at **Dead Letters** in the dashboard.
 
 To see what is installed:
 
@@ -64,21 +73,21 @@ Three are published, each its own project in the registry:
 | JavaScript | `javascript` | `happyview-javascript` | `.js`, `.mjs` |
 | TypeScript | `typescript` | `happyview-typescript` | `.ts`, `.mts` |
 
-An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The other two are for scripts you write from here on, and all three can be installed at once — an interpreter claims a language id and a set of file extensions, and a second one claiming either is refused at install.
+An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The other two are for scripts you write from here on, and all three can be installed at once: an interpreter claims a language id and a set of file extensions, and a second one claiming either is refused at install.
 
 ### Installing it
 
 Go to **Integrations > Plugins**, click **Add plugin**, pick the project from the registry, choose a channel, review the capabilities it asks for, and install. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference; three things about it matter here.
 
-**It is the `alpha` channel.** A project publishes up to three — `latest`, `beta` and `alpha` — and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has; `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later, once there is somewhere to move it to — see [Channels](/docs/guides/plugins#channels).
+**It is the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has; `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later, once there is somewhere to move it to; see [Channels](/docs/guides/plugins#channels).
 
 **There is nothing to checksum.** A registry version names its manifest and its module by CID; HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
 
-**The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded — which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it stops HappyView reading the registry, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
+**The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded, which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it stops HappyView reading the registry, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
 
-To install without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`. To give a fleet its interpreter without anyone clicking, `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of sources on the first boot that names them — see [Default plugins](/docs/guides/plugins#default-plugins).
+To install without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`. To give a fleet its interpreter without anyone clicking, `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of sources on the first boot that names them; see [Default plugins](/docs/guides/plugins#default-plugins).
 
-If you installed an interpreter from a release URL earlier in the alpha, you needn't reinstall: the next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working — [From a URL](/docs/guides/plugins#from-a-url) covers both.
+If you installed an interpreter from a release URL earlier in the alpha, you needn't reinstall: the next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working. [From a URL](/docs/guides/plugins#from-a-url) covers both.
 
 ## 2. Migrate your stored scripts
 
@@ -89,7 +98,7 @@ A script stored before the upgrade stays in the table untouched and fails the fi
 Two things that matter for the order you do this in:
 
 - **The codemod does not need an interpreter.** It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
-- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`: run `docker run <image> happyview-codemod …` against the same `DATABASE_URL`, or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
+- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`: run `docker run <image> happyview-codemod --database-url <url>` against the same database, or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
 
 Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception, so a script with markers can be stored once you confirm.
 
@@ -114,7 +123,7 @@ The `require` block the codemod writes at the top of each script is the list of 
 
 They install exactly as an interpreter does, from the same registry and the same `alpha` channel. The registry carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
 
-The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3 — the one exporting `lexicon` — and says so by name if it meets an older one; the row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
+The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one; the row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
 
 ## 4. Rebuild or replace your plugins
 
@@ -125,27 +134,27 @@ auth plugins need an api_version: "2" manifest declaring capabilities
 (got api_version "1"); republish the plugin with a capabilities-declaring manifest
 ```
 
-There is no fallback for any plugin type, auth included. A v2-era manifest also has to declare its `capabilities`, and the loader cross-checks that declaration against the compiled module's import section — a plugin that imports something its manifest does not cover is refused before it runs.
+There is no fallback for any plugin type, auth included. A v2-era manifest also has to declare its `capabilities`, and the loader cross-checks that declaration against the compiled module's import section. A plugin that imports something its manifest does not cover is refused before it runs.
 
-The instance still boots. A refused plugin logs `Failed to install plugin at boot` or `Failed to load plugins from database` and is simply absent, so anything that depended on it — account linking through an auth plugin, say — stops working until you replace it. Check your boot log after the upgrade.
+The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it (account linking through an auth plugin, say) stops working until you replace it. Check your boot log after the upgrade.
 
-The official auth plugins — Steam, Xbox, Microsoft and itch.io — are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing Plugins](/docs/guides/developing-plugins) covers what it now has to declare.
+The official auth plugins (Steam, Xbox, Microsoft and itch.io) are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing Plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
 ## 5. Script limits now apply
 
-v2 set a one-million-instruction limit and then never enforced it: the instruction counter was installed on the wrong thread, so the coroutine `handle` ran on never saw it. v3 enforces it, and adds two limits v2 had none of. A script that quietly ran long in v2 can fail in v3.
+v2 set a one-million-instruction limit and never enforced it. v3 enforces it, and adds two limits v2 had none of. A script that quietly ran long in v2 can fail in v3.
 
 | Limit | Default | Applies to | Setting |
 |-------|---------|------------|---------|
-| Instructions per run | 1,000,000 | Every kind but jobs | `script_instruction_limit`, env `SCRIPT_INSTRUCTION_LIMIT`, range 1,000–1,000,000,000 |
-| Wall clock per run | 10 s | Every kind but jobs | `script_wall_clock_seconds`, env `SCRIPT_WALL_CLOCK_SECONDS`, range 1–300 |
+| Instructions per run | 1,000,000 | Every kind but jobs | `script_instruction_limit`, env `SCRIPT_INSTRUCTION_LIMIT`, range 1,000 to 1,000,000,000 |
+| Wall clock per run | 10 s | Every kind but jobs | `script_wall_clock_seconds`, env `SCRIPT_WALL_CLOCK_SECONDS`, range 1 to 300 |
 | Memory per run | 64 MiB | Every kind, jobs included | Not configurable |
 
-Jobs are exempt from the first two — running long is what a job is for, and `ctx.job.should_stop()` is its stop.
+Jobs are exempt from the first two, and `ctx.job.should_stop()` is how a job stops.
 
-Both settings resolve database → environment → default, so the **Instruction limit** and **Request wall clock** fields in **System > General** take precedence over the environment. A value outside the range is refused on save; an environment value outside it is warned about and the default stands. A change lands in-process and reaches a second instance on the same database within ten seconds.
+Both settings resolve from the database, then the environment, then the default, so the **Instruction limit** and **Request wall clock** fields in **System > General** take precedence over the environment. A value outside the range is refused on save; an environment value outside it is warned about and the default stands. A change lands in-process and reaches a second instance on the same database within ten seconds.
 
-The wall clock counts only time the script itself runs. Waiting on the host — an HTTP request, a database read — is not charged to it.
+The wall clock counts only time the script itself runs. Waiting on the host (an HTTP request, a database read) is not charged to it.
 
 A run that spends either budget fails with `timeout`; one that exhausts its memory fails with `memory`. An XRPC caller sees `{"error": "script_error", "errorType": "timeout"}` at 408, or `"memory"` at 500.
 
@@ -153,7 +162,7 @@ A run that spends either budget fails with `timeout`; one that exhausts its memo
 
 If you have alerting or log queries over script failures, two columns changed shape.
 
-**Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened — `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
+**Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened: `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
 
 **An unrecognised `script_type`.** v2 validated the field during deserialisation, so an unknown language was a 422 from the request body. v3 accepts any string there and refuses it in the handler with a 400 naming the language, because what is valid now depends on which interpreters are installed.
 
@@ -165,33 +174,33 @@ The HTTP surface is unaffected. `createSpace` and `listSpaces` accept `spaceType
 
 ## 8. Library record reads return an envelope
 
-A record read through a library — `require("happyview.db")`'s `get`, `search` and `records(…)` chains, and `require("happyview.backlinks")` — answers `{uri, did, collection, rkey, cid, indexed_at, record}`, with the stored body verbatim under `record`. v2 answered the body with `uri` written onto it. `cid` is null while the row holds a local write's placeholder, and `indexed_at` is null until Jetstream has echoed the record.
+A record read through a library (`require("happyview.db")`'s `get`, `search` and `records(…)` chains, and `require("happyview.backlinks")`) answers `{uri, did, collection, rkey, cid, indexed_at, record}`, with the stored body verbatim under `record`. v2 answered the body with `uri` written onto it. `cid` is null while the row holds a local write's placeholder, and `indexed_at` is null until Jetstream has echoed the record.
 
-The public XRPC query routes keep their flat body-plus-`uri` shape. That is a client contract, and it did not change — a scriptless lexicon query still answers what it answered in v2.
+The public XRPC query routes keep their flat body-plus-`uri` shape. A scriptless lexicon query still answers what it answered in v2.
 
 A script the codemod migrated keeps v2's flat rows, through a shim the codemod inlines; [Migrating Scripts to v3](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
 
 ## 9. Building from source
 
-A default build compiles no Lua interpreter at all — `mlua` sits behind a non-default `lua-reference` feature. The resulting binary cannot run a script without an interpreter plugin, which is the point.
+A default build compiles no Lua interpreter at all: `mlua` sits behind a non-default `lua-reference` feature. The resulting binary cannot run a script without an interpreter plugin.
 
 `lua-reference` is **not** a fallback runtime. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
 
-Two new environment variables, both optional and additive:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PLUGIN_CACHE_DIR` | `plugin-cache` beside the SQLite database, else none | Where compiled plugin modules are kept between restarts. A Postgres instance has no such directory of its own and keeps the cache in memory unless you set this |
-| `HAPPYVIEW_DEFAULT_PLUGINS` | _(none)_ | Comma-separated plugin sources to install once, on the first boot that lists them. Listing a source consents to every capability its manifest declares. Installs run in the background and never delay boot |
+Two new environment variables are optional and additive: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. See the [Configuration reference](/docs/reference/configuration#plugins).
 
 ## 10. Rolling back
 
-v3's own schema change is one irreversible migration: it drops `happyview_plugin_dedup_keys`, a table nothing read or wrote. Nothing else it adds is destructive.
+There is no in-place way back. Restore the backup you took before the upgrade, and run v2 against it:
 
-That is not the same as a return path. A script the codemod rewrote will not run on v2, since the globals it now reaches through `require` were never there. And if you are skipping v2 releases to get here, their migrations come along too — the spaces work in the 2.x line drops columns outright. Take a database backup before the upgrade.
+- The compact record format replaces the record tables with views, and an older release can't read them.
+- v2 refuses to start on a database carrying migrations it doesn't know.
+- A script the codemod rewrote won't run on v2, since the globals it now reaches through `require` were never there.
+
+Anything written after the upgrade, including operators, scripts and settings, is lost by restoring. Records come back through [backfill](/docs/guides/backfill) or the network.
 
 ## Checklist
 
+- [ ] Take a database backup, and confirm `record store upgrade complete` in the first boot's log
 - [ ] Install an interpreter plugin from the registry on the `alpha` channel, and confirm boot no longer warns
 - [ ] Run the codemod over every stored script, and finish any `-- codemod:` markers by hand
 - [ ] Install a library plugin for every `happyview.*` module the rewritten scripts require
@@ -206,4 +215,4 @@ That is not the same as a return path. A script the codemod rewrote will not run
 - [Migrating Scripts to v3](/docs/guides/migrating-scripts): the script contract, the codemod, and every marker it emits
 - [Plugins](/docs/guides/plugins): installing and configuring plugins
 - [Developing Plugins](/docs/guides/developing-plugins): the SDK, capabilities, and the library surface
-- [Configuration](/docs/guides/configuration): the full environment variable reference
+- [Configuration reference](/docs/reference/configuration): every environment variable

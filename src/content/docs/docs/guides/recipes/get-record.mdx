@@ -3,11 +3,14 @@ title: Get a record
 description: A query script that fetches one record by its AT URI, in Lua, JavaScript and TypeScript.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 Fetch a single record by its AT URI.
 
 **Trigger:** `xrpc.query:<nsid>`. **Needs:** `happyview-db`.
 
-## Lua
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local db = require("happyview.db")
@@ -26,7 +29,8 @@ function handle(input, ctx)
 end
 ```
 
-## JavaScript
+</TabItem>
+<TabItem label="JavaScript">
 
 ```js
 import db from "happyview.db";
@@ -45,7 +49,8 @@ export default async function handle(input, ctx) {
 }
 ```
 
-## TypeScript
+</TabItem>
+<TabItem label="TypeScript">
 
 ```ts
 import db from "happyview.db";
@@ -68,13 +73,16 @@ export default async function handle(input: Input) {
 }
 ```
 
+</TabItem>
+</Tabs>
+
 ## How it works
 
 1. Check that the `uri` query parameter is present, and return a structured error if not.
 2. Look the record up with `db.get`. It returns an envelope, `{ uri, did, collection, rkey, cid, indexed_at, record }`, or nothing. The record body is the envelope's `record` field. In JavaScript and TypeScript, `db.get` returns a promise, so it is awaited.
 3. Return the envelope wrapped in an object.
 
-The script returns structured errors instead of throwing, so the client gets a body it can handle rather than a `500`. A returned error is a `400` only when its name is declared under `defs.main.errors` in the lexicon:
+The script returns structured errors instead of throwing, so the app gets a body it can handle rather than a `500`. A returned error is a `400` only when its name is declared under `defs.main.errors` in the lexicon:
 
 ```json
 "errors": [{ "name": "UriRequired" }, { "name": "RecordNotFound" }]

@@ -3,6 +3,8 @@ title: A background job
 description: A procedure that queues a job and the job script that processes it, reporting progress and stopping when asked, in Lua, JavaScript and TypeScript.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 A procedure that queues a job, and the job script that does the work in the background.
 
 **Triggers:** `xrpc.procedure:<nsid>` and `job.run:app.example.process`. **Needs:** `happyview-jobs`.
@@ -11,7 +13,8 @@ A procedure that queues a job, and the job script that does the work in the back
 
 The procedure returns straight away with the job's id.
 
-### Lua
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local jobs = require("happyview.jobs")
@@ -22,7 +25,8 @@ function handle(input, ctx)
 end
 ```
 
-### JavaScript
+</TabItem>
+<TabItem label="JavaScript">
 
 ```js
 import jobs from "happyview.jobs";
@@ -33,7 +37,8 @@ export default async function handle(input, ctx) {
 }
 ```
 
-### TypeScript
+</TabItem>
+<TabItem label="TypeScript">
 
 ```ts
 import jobs from "happyview.jobs";
@@ -44,11 +49,15 @@ export default async function handle(input: { items: unknown[] }) {
 }
 ```
 
+</TabItem>
+</Tabs>
+
 ## Run the job
 
 The job script works through `input.items`, saves progress as it goes, and stops early if the job is cancelled or paused.
 
-### Lua
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local log = require("internal.logging")
@@ -69,7 +78,8 @@ function handle(input, ctx)
 end
 ```
 
-### JavaScript
+</TabItem>
+<TabItem label="JavaScript">
 
 ```js
 import log from "internal.logging";
@@ -90,7 +100,8 @@ export default async function handle(input, ctx) {
 }
 ```
 
-### TypeScript
+</TabItem>
+<TabItem label="TypeScript">
 
 ```ts
 import log from "internal.logging";
@@ -117,6 +128,9 @@ export default async function handle(input: { items: unknown[] }, ctx: { job: Jo
   return { processed: total };
 }
 ```
+
+</TabItem>
+</Tabs>
 
 ## How it works
 

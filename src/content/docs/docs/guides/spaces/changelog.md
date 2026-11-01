@@ -16,7 +16,7 @@ title: "Changelog"
 
 ---
 
-## v2.16 — Space Authority, Signed Credentials, and Sync
+## v2.16: Space authority, signed credentials, and sync
 
 Aligns credentials and sync with the latest [Proposal 0016](https://github.com/bluesky-social/proposals/blob/main/0016-permissioned-data/README.md) updates.
 
@@ -111,23 +111,23 @@ In v3, scripts use `require("happyview.spaces")` instead. Its space handle sets 
 
 ---
 
-## v2.11 — Final Proposal 0016 Alignment
+## v2.11: Final Proposal 0016 alignment
 
 Aligns with the merged [Proposal 0016](https://github.com/bluesky-social/proposals/blob/main/0016-permissioned-data/README.md) specification.
 
 ### URI scheme change
 
-- **`ats://` → `at://` with `space` path segment** — space URIs now use the standard `at://` scheme with a literal `space` segment: `at://<did>/space/<type>/<skey>`. Record URIs follow: `at://<did>/space/<type>/<skey>/<author>/<collection>/<rkey>`.
+- **`ats://` → `at://` with `space` path segment**: space URIs now use the standard `at://` scheme with a literal `space` segment: `at://<did>/space/<type>/<skey>`. Record URIs follow: `at://<did>/space/<type>/<skey>/<author>/<collection>/<rkey>`.
 
 ### Endpoint changes
 
-- **`getRepoState` → `getLatestCommit`** — renamed to match the proposal. The old name is kept as a backward-compatible alias.
-- **`getRepo`** (GET) — new endpoint that exports a user's repo as a CAR v1 file (two roots: signedCommit + DRISL index)
+- **`getRepoState` → `getLatestCommit`**: renamed to match the proposal. The old name is kept as a backward-compatible alias.
+- **`getRepo`** (GET): new endpoint that exports a user's repo as a CAR v1 file (two roots: signedCommit + DRISL index)
 - **`listRepoOps`** now inlines record values by default via LEFT JOIN against `space_records`. Pass `excludeValues=true` for metadata-only responses.
 
 ### Commit changes
 
-- **`SignedCommit.ver`** — new version field (currently `1`) for future-proofing
+- **`SignedCommit.ver`**: new version field (currently `1`) for future-proofing
 - **Commit context string** now includes the author's DID: `tag || space || author || rev || ikm` (was `tag || space || rev || ikm`)
 
 ### Breaking changes
@@ -136,7 +136,7 @@ Aligns with the merged [Proposal 0016](https://github.com/bluesky-social/proposa
 
 ---
 
-## v2.10.0 — Proposal 0016 Alignment
+## v2.10.0: Proposal 0016 alignment
 
 Major restructuring to align with [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data).
 
@@ -149,40 +149,40 @@ Major restructuring to align with [atproto Proposal 0016](https://github.com/blu
 
 ### New terminology
 
-- **`owner_did` → `authority_did`** — the DID that controls the space. A separate `creator_did` tracks who originally created it.
-- **`accessMode` → `mintPolicy`** — controls who can create permissioned repos: `member-list` (default), `public`, or `managing-app`
-- **`appAllowlist`/`appDenylist` → `appAccess`** — controls third-party app access: `open` (default) or `allowList`
-- **`getMemberGrant` → `getDelegationToken`** — renamed and changed from POST to GET. Returns a delegation token (JWT with `typ: atproto-space-delegation+jwt`, ES256K, 60-second TTL)
-- **`redeemInvite` → `acceptInvite`** — renamed for clarity
-- **Space credential `typ`** — changed from `space_credential` to `atproto-space-credential+jwt`
-- **Space credential TTL** — reduced from 4 hours to 2 hours
+- **`owner_did` → `authority_did`**: the DID that controls the space. A separate `creator_did` tracks who originally created it.
+- **`accessMode` → `mintPolicy`**: controls who can create permissioned repos: `member-list` (default), `public`, or `managing-app`
+- **`appAllowlist`/`appDenylist` → `appAccess`**: controls third-party app access: `open` (default) or `allowList`
+- **`getMemberGrant` → `getDelegationToken`**: renamed and changed from POST to GET. Returns a delegation token (JWT with `typ: atproto-space-delegation+jwt`, ES256K, 60-second TTL)
+- **`redeemInvite` → `acceptInvite`**: renamed for clarity
+- **Space credential `typ`**: changed from `space_credential` to `atproto-space-credential+jwt`
+- **Space credential TTL**: reduced from 4 hours to 2 hours
 
 ### New access level
 
-- **`read_self`** — a new membership access level that restricts reads to only the member's own records within the space
+- **`read_self`**: a new membership access level that restricts reads to only the member's own records within the space
 
 ### New endpoints
 
-- **`com.atproto.space.getRepoState`** (GET) — returns per-user repo state including LtHash state and signed commit
-- **`com.atproto.space.listRepoOps`** (GET) — returns the record operation log for sync
-- **`com.atproto.space.listRepos`** (GET) — lists repos (authors) in a space
-- **`com.atproto.space.getBlob`** (GET) — retrieves a blob from a space
-- **`com.atproto.space.registerNotify`** (POST) — registers for write notifications
-- **`com.atproto.space.notifyWrite`** (POST) — pushes a write notification
-- **`com.atproto.space.notifySpaceDeleted`** (POST) — pushes a space-deleted notification
-- **`com.atproto.simplespace.getConfig`** (GET) — gets space configuration (mint policy, app access, managing app)
-- **`com.atproto.simplespace.updateConfig`** (POST) — updates space configuration
+- **`com.atproto.space.getRepoState`** (GET): returns per-user repo state including LtHash state and signed commit
+- **`com.atproto.space.listRepoOps`** (GET): returns the record operation log for sync
+- **`com.atproto.space.listRepos`** (GET): lists repos (authors) in a space
+- **`com.atproto.space.getBlob`** (GET): retrieves a blob from a space
+- **`com.atproto.space.registerNotify`** (POST): registers for write notifications
+- **`com.atproto.space.notifyWrite`** (POST): pushes a write notification
+- **`com.atproto.space.notifySpaceDeleted`** (POST): pushes a space-deleted notification
+- **`com.atproto.simplespace.getConfig`** (GET): gets space configuration (mint policy, app access, managing app)
+- **`com.atproto.simplespace.updateConfig`** (POST): updates space configuration
 
 ### Cryptographic primitives
 
-- **LtHash** — homomorphic set-hash for per-user repo state. 2048-byte state with 1024 little-endian uint16 lanes using BLAKE3 XOF. Supports insert/remove operations for incremental record tracking.
-- **Deniable commit signatures** — users sign context (space DID + rev + random IKM) rather than content hash, producing a MAC that proves authorship without binding the user to specific content.
+- **LtHash**: homomorphic set-hash for per-user repo state. 2048-byte state with 1024 little-endian uint16 lanes using BLAKE3 XOF. Supports insert/remove operations for incremental record tracking.
+- **Deniable commit signatures**: users sign context (space DID + rev + random IKM) rather than content hash, producing a MAC that proves authorship without binding the user to specific content.
 
 ### Data model changes
 
-- New `happyview_space_repo_state` table — per-user LtHash state + signed commit per space
-- New `happyview_space_record_oplog` table — ordered record operation log per space
-- New `happyview_space_notify_registrations` table — write notification registrations
+- New `happyview_space_repo_state` table: per-user LtHash state + signed commit per space
+- New `happyview_space_record_oplog` table: ordered record operation log per space
+- New `happyview_space_notify_registrations` table: write notification registrations
 - Spaces now use `authority_did` and `creator_did` instead of `owner_did`
 - `mint_policy` and `app_access` columns replace `access_mode`, `app_allowlist`, `app_denylist`
 

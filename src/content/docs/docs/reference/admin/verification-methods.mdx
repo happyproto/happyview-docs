@@ -287,6 +287,6 @@ curl -X DELETE http://127.0.0.1:3000/admin/verification-methods/%23attestation \
 </TabItem>
 </Tabs>
 
-The `fragment_id` path parameter is the full fragment including the `#`, URL-encoded as `%23` (e.g. `%23attestation` for `#attestation`). Sending it without the `#` answers `404 Not Found`.
+The `fragment_id` path parameter is the fragment with or without its `#`: `attestation` and `%23attestation` both name `#attestation`.
 
 **Response**: `204 No Content`. Returns `404 Not Found` if no method with that fragment ID exists.

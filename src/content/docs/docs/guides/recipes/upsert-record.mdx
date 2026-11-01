@@ -1,13 +1,16 @@
 ---
 title: Upsert a record
-description: A procedure script that creates a record, or updates it when the client sends its rkey, in Lua, JavaScript and TypeScript.
+description: A procedure script that creates a record, or updates it when the app sends its rkey, in Lua, JavaScript and TypeScript.
 ---
 
-Create a new record, or update an existing one when the client provides its rkey.
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Create a new record, or update an existing one when the app provides its rkey.
 
 **Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
 
-## Lua
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local time = require("internal.time")
@@ -36,7 +39,8 @@ function handle(input, ctx)
 end
 ```
 
-## JavaScript
+</TabItem>
+<TabItem label="JavaScript">
 
 ```js
 import time from "internal.time";
@@ -63,7 +67,8 @@ export default async function handle(input, ctx) {
 }
 ```
 
-## TypeScript
+</TabItem>
+<TabItem label="TypeScript">
 
 ```ts
 import time from "internal.time";
@@ -100,9 +105,12 @@ export default async function handle(input: Input, ctx: Context) {
 }
 ```
 
+</TabItem>
+</Tabs>
+
 ## How it works
 
-1. Use the client's `rkey` if it sent one, otherwise make a new TID with `tids.create()`. Leaving `rkey` out always creates; sending one allows an update.
+1. Use the app's `rkey` if it sent one, otherwise make a new TID with `tids.create()`. Leaving `rkey` out always creates; sending one allows an update.
 2. Build the record's AT URI from the caller's DID, the target collection and the rkey, and look it up with `db.get`.
 3. If the record exists, change its fields and write it back with `record.put`.
 4. If not, create it with `record.create`, passing the rkey in the options so the record gets that key. Both writes return `{ uri, cid }`.

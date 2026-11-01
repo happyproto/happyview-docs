@@ -27,7 +27,7 @@ On a new instance, the first account to sign in becomes the operator, with the s
 
 Signing in needs a secure `SESSION_SECRET` of at least 32 bytes. With a missing or weak one, HappyView refuses to start a sign-in.
 
-To let more people into the dashboard, add them as users and give them permissions. See [Permissions](/docs/guides/permissions).
+To let more people into the dashboard, add them as operators and give them permissions. See [Permissions](/docs/guides/permissions).
 
 ## Let your app's users sign in
 
@@ -66,7 +66,7 @@ if (!result) {
 } else {
   // Signed in: calls carry the DPoP proof and the client key for you.
   const response = await result.session.fetchHandler(
-    "/xrpc/xyz.statusphere.getStatuses",
+    "/xrpc/xyz.statusphere.listStatuses",
     { method: "GET" },
   );
   console.log(result.session.did, await response.json());
@@ -85,7 +85,7 @@ You only need this if you aren't using the SDK. The full protocol is in [OAuth](
 Because HappyView and your app hold the same key, HappyView can sign its own proofs and write to the user's PDS for them. Each device gets its own key and its own session.
 
 :::caution[API keys don't work on XRPC]
-`/xrpc/` routes refuse `Authorization: Bearer`, so an `hv_` admin API key is rejected there. Use a DPoP session, or send no `Authorization` header for an anonymous call.
+`/xrpc/` routes refuse an `hv_` admin API key. Use a DPoP session, or send no `Authorization` header for an anonymous call.
 :::
 
 ## Who is calling, inside a script
@@ -146,11 +146,11 @@ export default function handle(input: Record<string, unknown>, ctx: Ctx) {
 </TabItem>
 </Tabs>
 
-Other AppViews and services can also call your XRPC endpoints with an atproto service-auth JWT. They don't need to be registered: when your instance exposes a service identity, any valid service-auth JWT is accepted. See [Service identity](/docs/guides/service-identity).
+Other AppViews and services can also call your XRPC endpoints with an atproto service-auth JWT. They don't need to be registered, but your instance must expose a service identity. The JWT's audience must name your instance and one of its service entries, and that entry must allow the method. See [Service identity](/docs/guides/service-identity).
 
 ## Use the admin API with an API key
 
-For automation, create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API:
+For automation, create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API with a key you already have, held in `$AUTH` as `Authorization: Bearer <key>`:
 
 ```sh
 curl -X POST "http://127.0.0.1:3000/admin/api-keys" \

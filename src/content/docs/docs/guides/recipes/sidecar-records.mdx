@@ -1,12 +1,16 @@
 ---
 title: Sidecar records
+description: A procedure script that creates two records in different collections under the same rkey, in Lua, JavaScript and TypeScript.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Create two records with different collection NSIDs but the same rkey, linking them together by key.
 
-**Lexicon type:** procedure
+**Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-record`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local time = require("internal.time")
@@ -32,11 +36,74 @@ function handle(input, ctx)
 end
 ```
 
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import time from "internal.time";
+import tids from "internal.tids";
+import record from "happyview.record";
+
+export default async function handle(input, ctx) {
+  const rkey = tids.create();
+  const ts = time.to_iso8601(time.now());
+
+  const post = await record.create("xyz.statusphere.post", {
+    text: input.text,
+    createdAt: ts,
+  }, { rkey });
+
+  const metadata = await record.create("xyz.statusphere.postMetadata", {
+    lang: input.lang ?? "en",
+    source: input.source ?? "web",
+    createdAt: ts,
+  }, { rkey });
+
+  return { post, metadata };
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import time from "internal.time";
+import tids from "internal.tids";
+import record from "happyview.record";
+
+interface Input {
+  text: string;
+  lang?: string;
+  source?: string;
+}
+
+export default async function handle(input: Input) {
+  const rkey = tids.create();
+  const ts = time.to_iso8601(time.now());
+
+  const post = await record.create("xyz.statusphere.post", {
+    text: input.text,
+    createdAt: ts,
+  }, { rkey });
+
+  const metadata = await record.create("xyz.statusphere.postMetadata", {
+    lang: input.lang ?? "en",
+    source: input.source ?? "web",
+    createdAt: ts,
+  }, { rkey });
+
+  return { post, metadata };
+}
+```
+
+</TabItem>
+</Tabs>
+
 ## How it works
 
 1. Mint a single TID with [`tids.create()`](/docs/reference/scripts/built-in-modules#internaltids) to use as the rkey for both records.
 2. Create a record in each collection with `record.create`, passing the shared rkey in `opts`.
-3. Return both `{ uri, cid }` results so the client knows the identity of each record.
+3. Return both `{ uri, cid }` results so the app knows the identity of each record.
 
 ## Usage
 
@@ -147,7 +214,7 @@ The response includes URIs for both the post and its metadata:
 
 ## Use case
 
-Sidecar records are useful when you want to associate related data across collections without embedding everything in a single record. Because they share an rkey, you can derive one URI from the other:
+Use sidecar records to associate related data across collections without embedding everything in a single record. Because they share an rkey, you can derive one URI from the other:
 
 ```
 at:// did:plc:abc /xyz.statusphere.post         /3abc123
