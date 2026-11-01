@@ -8,7 +8,7 @@ The website and documentation for [HappyView](https://github.com/gamesgamesgames
 bun install
 bun run dev        # http://localhost:4321
 bun run build      # builds dist/, and fails on a broken internal link or anchor
-bun test           # the frozen-URL, link-style, glossary and diagram tests; run after a build
+bun test           # the frozen-URL and link-style tests; run after a build
 ```
 
 ## Where things are
