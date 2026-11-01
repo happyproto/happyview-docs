@@ -798,8 +798,7 @@
 
 /* ---- Reduced motion ------------------------------------------------------- */
 
-/* No reveal and no play (their pending states need motion allowed, and the
-   head script never sets .js-motion), and no transitions. */
+/* No transitions. */
 @media (prefers-reduced-motion: reduce) {
   .mk-link {
     transition: none;
