@@ -1,7 +1,6 @@
 ---
-title: "Configuration"
+title: Configuration reference
 description: "Every environment variable, instance setting and happyview.toml key HappyView reads, with defaults and accepted values."
-type: reference
 ---
 
 HappyView takes its configuration from three places. When one value is set in more than one, the first in this list wins:

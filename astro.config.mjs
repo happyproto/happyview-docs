@@ -7,21 +7,22 @@ import starlightLinksValidator from 'starlight-links-validator';
 import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightSidebarTopics from 'starlight-sidebar-topics';
 import { redirectsFile } from './src/integrations/redirects-file.ts';
+import { rehypeTables } from './src/lib/rehype-tables.ts';
 import { remarkMermaid } from './src/lib/remark-mermaid.ts';
 import { v3Sidebar } from './src/sidebar.ts';
 import v2Sidebar from './src/v2-sidebar.json' with { type: 'json' };
 
 export default defineConfig({
   site: 'https://happyview.dev',
-  markdown: { processor: unified({ remarkPlugins: [remarkMermaid] }) },
+  markdown: { processor: unified({ remarkPlugins: [remarkMermaid], rehypePlugins: [rehypeTables] }) },
   vite: { plugins: [tailwindcss()] },
   integrations: [
     starlight({
       title: 'HappyView',
       description: 'An open-source AppView for atproto.',
       logo: {
-        light: './src/assets/logo.light.png',
-        dark: './src/assets/logo.dark.png',
+        light: './src/assets/logo.light.webp',
+        dark: './src/assets/logo.dark.webp',
         replacesTitle: true,
       },
       favicon: '/img/favicon.png',
@@ -32,10 +33,13 @@ export default defineConfig({
       customCss: [
         '@happyview/design-system/tokens.css',
         '@happyview/design-system/components.css',
+        './src/styles/focus.css',
         './src/styles/docs.css',
       ],
       components: {
+        Footer: './src/components/overrides/Footer.astro',
         Header: './src/components/overrides/Header.astro',
+        MobileMenuFooter: './src/components/overrides/MobileMenuFooter.astro',
         PageTitle: './src/components/overrides/PageTitle.astro',
       },
       plugins: [
@@ -46,7 +50,7 @@ export default defineConfig({
               label: 'v3',
               link: '/docs/',
               icon: 'rocket',
-              badge: { text: 'Alpha', variant: 'caution' },
+              badge: { text: 'Alpha', variant: 'tip' },
               items: v3Sidebar,
             },
             {

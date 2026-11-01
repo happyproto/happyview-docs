@@ -1,5 +1,5 @@
 ---
-title: "Service Identity"
+title: Service identity
 ---
 
 An atproto service identity lets your AppView authenticate itself to other services on the network. When a user's PDS routes a request, it verifies the destination by resolving the AppView's DID — without a service identity, standard atproto app routing won't reach your instance.

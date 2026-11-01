@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Prose from '../components/landing/Prose.astro';
 import SamplePanel from '../components/landing/SamplePanel.astro';
-import { capabilities, hero, hosting, sample } from '../content/landing/landing';
+import { capabilities, close, hero, hosting, sample } from '../content/landing/landing';
 
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -12,7 +12,7 @@ const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month
 ---
 
 <Base title="HappyView: an open-source AppView for atproto" description={hero.subline}>
-  <section class="mk-hero lp-hero" aria-labelledby="hero-title">
+  <section class="mk-hero lp-hero" data-backdrop aria-labelledby="hero-title">
     <div class="mk-container lp-hero-inner">
       <div class="lp-hero-copy">
         <span class="hp-tag" data-tone="alt">v3 alpha</span>
@@ -23,18 +23,18 @@ const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month
           <a class="hp-button" href={hero.ctas.secondary.href}>{hero.ctas.secondary.label}</a>
         </div>
       </div>
+      <SamplePanel tabs={sample.tabs} />
     </div>
   </section>
 
   <section class="mk-section" aria-labelledby="sample-title">
     <div class="mk-container lp-split">
+      <h2 class="mk-section-title" id="sample-title">{sample.title}</h2>
       <div class="lp-split-head">
-        <h2 class="mk-section-title" id="sample-title">{sample.title}</h2>
         <p class="lp-help"><Prose text={sample.intro} /></p>
         <p class="lp-help"><Prose text={sample.after} /></p>
         <p class="lp-help"><a class="mk-link" href={sample.needs.href}>{sample.needs.label}</a></p>
       </div>
-      <SamplePanel tabs={sample.tabs} />
     </div>
   </section>
 
@@ -93,15 +93,33 @@ const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month
       </ul>
     </div>
   </section>
+
+  <section class="mk-section mk-cta-section" data-backdrop aria-labelledby="close-title">
+    <div class="mk-container lp-close">
+      <h2 class="mk-section-title" id="close-title">{close.title}</h2>
+      <a class="hp-button hp-button-primary" href={close.cta.href}>{close.cta.label}</a>
+    </div>
+  </section>
 </Base>
 
 <style>
+  /* This page's sections hold less than happyproto.at's. */
+  :global(.mk-page) {
+    --mk-gap-section: calc(2 * var(--hp-space-12));
+  }
   .lp-hero {
-    padding-block: calc(2 * var(--hp-space-12)) var(--hp-space-12);
+    padding-block: var(--hp-space-12);
   }
   .lp-hero-inner {
     display: grid;
     justify-items: center;
+    gap: var(--hp-space-8);
+    text-align: center;
+  }
+  .lp-close {
+    display: grid;
+    justify-items: center;
+    gap: var(--hp-space-6);
     text-align: center;
   }
   .lp-hero-copy {
@@ -122,7 +140,7 @@ const date = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month
   }
   @media (min-width: 64rem) {
     .lp-split {
-      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
       align-items: start;
     }
   }

@@ -1,5 +1,5 @@
 ---
-title: "Developing Plugins"
+title: Developing plugins
 ---
 
 This guide covers how to build your own HappyView plugins, which are WebAssembly modules. For installing and configuring plugins, see the [Plugins guide](/docs/guides/plugins). [Plugin SDK](/docs/reference/plugin-sdk) in the reference has every manifest field, capability, host function and limit, and how to publish to the registry.

@@ -1,7 +1,6 @@
 ---
 title: "Telemetry"
 description: "What a self-hosted HappyView sends when you turn telemetry on, where it goes, and how to turn it off."
-type: conceptual
 ---
 
 :::caution[This page is being written]

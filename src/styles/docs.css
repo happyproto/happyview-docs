@@ -14,7 +14,8 @@
 
   --sl-color-white: var(--hp-color-fg);
   --sl-color-gray-1: var(--hp-color-fg);
-  --sl-color-gray-2: var(--hp-color-fg);
+  /* Between fg and muted, so Starlight's gray-2 to white hover is visible. */
+  --sl-color-gray-2: color-mix(in oklab, var(--hp-color-fg) 72%, var(--hp-color-fg-muted));
   --sl-color-gray-3: var(--hp-color-fg-muted);
   --sl-color-gray-4: var(--hp-color-fg-muted);
   --sl-color-gray-5: var(--hp-color-border);
@@ -73,9 +74,87 @@ body {
   letter-spacing: var(--hp-tracking-tight);
 }
 
-/* One hairline between header, sidebar and page, as on happyproto.at. */
-.header {
-  border-block-end: 1px solid var(--hp-color-border);
+/* The focus ring is the design system's, set in focus.css. The banner's
+   ground is the accent, so its link takes its own ink instead. */
+.sl-banner a:focus-visible {
+  outline-color: currentColor;
+}
+
+/* No rule between the title and the page: the heading already separates them. */
+main .content-panel + .content-panel {
+  border-block-start: 0;
+  padding-block-start: 0;
+}
+
+/* Sidebar: group labels lead, and links and nested groups share one quiet
+   weight. The current page is a tint, not a filled block. */
+#starlight__sidebar .top-level > li > details > summary .large {
+  font-size: var(--hp-text-sm);
+  font-weight: var(--hp-weight-semibold);
+  color: var(--hp-color-fg);
+}
+#starlight__sidebar .top-level > li > a.large,
+#starlight__sidebar ul ul .large {
+  font-size: var(--hp-text-sm);
+  font-weight: var(--hp-weight-medium);
+  color: var(--sl-color-gray-2);
+}
+#starlight__sidebar :is(a, summary) {
+  border-radius: var(--hp-radius-sm);
+}
+#starlight__sidebar :is(a:not([aria-current='page']), summary):hover {
+  background: var(--hp-color-surface-raised);
+}
+#starlight__sidebar :is(a:not([aria-current='page']), summary):hover .large {
+  color: var(--hp-color-fg);
+}
+#starlight__sidebar a[aria-current='page'],
+#starlight__sidebar a[aria-current='page']:hover,
+#starlight__sidebar a[aria-current='page']:focus {
+  background: var(--sl-color-accent-low);
+  color: var(--hp-color-accent);
+  font-weight: var(--hp-weight-semibold);
+}
+#starlight__sidebar a[aria-current='page'] .large {
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* The version switch stays in reach however far the sidebar scrolls, and
+   focus stops short of it. */
+#starlight__sidebar {
+  scroll-padding-block-start: 7rem;
+}
+.starlight-sidebar-topics {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: var(--hp-color-bg);
+}
+
+/* An archived label should recede: outlined, never the current page's fill. */
+.sl-badge.default {
+  background: transparent;
+  border-color: var(--hp-color-border-strong);
+  color: var(--hp-color-fg-muted);
+}
+
+/* On a touch screen the copy button is always showing, so it sits on a solid
+   ground rather than over the code. */
+@media (pointer: coarse) {
+  .expressive-code .copy button {
+    background: var(--hp-color-surface-raised);
+    opacity: 1;
+  }
+}
+
+/* Previous and next: hairlines, as everywhere else on the site. */
+.pagination-links a,
+.sl-link-card {
+  box-shadow: none;
+}
+.pagination-links a:hover {
+  background: var(--hp-color-surface-raised);
 }
 
 /* Links in prose: the accent ink, underlined, as the design system's
@@ -84,13 +163,274 @@ body {
   color: var(--hp-color-accent);
   text-underline-offset: 0.2em;
 }
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Tables. rehype-tables wraps each in a scroller; the edge shadows appear
+   only while there is more to scroll to. In a column under 40rem a table
+   stacks, each row a block and each cell naming its column. The width that
+   counts is the column's, which a sidebar narrows at any screen size. */
+.table-scroll,
+pre.mermaid,
+.diagram-full {
+  overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--hp-color-bg) 40%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--hp-color-bg) 40%, transparent) right / 2rem 100% no-repeat local,
+    linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+}
+.table-scroll {
+  container-type: inline-size;
+}
+.sl-markdown-content .table-scroll > table {
+  display: table;
+  inline-size: 100%;
+  margin: 0;
+  overflow: visible;
+}
+.sl-markdown-content td code {
+  overflow-wrap: anywhere;
+}
+.sl-markdown-content td code.name {
+  white-space: nowrap;
+}
+.sl-markdown-content table.stack td:last-child {
+  inline-size: 40%;
+}
+@container (max-width: 40rem) {
+  .sl-markdown-content table.stack,
+  .sl-markdown-content table.stack :is(tbody, tr, td) {
+    display: block;
+    inline-size: auto;
+  }
+  .sl-markdown-content table.stack thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sl-markdown-content table.stack tr {
+    padding-block: var(--hp-space-3);
+    border-block-end: 1px solid var(--hp-color-border);
+  }
+  .sl-markdown-content table.stack td,
+  .sl-markdown-content table.stack td:last-child {
+    inline-size: auto;
+    padding: 0;
+    border: 0;
+  }
+  .sl-markdown-content td code.name {
+    white-space: normal;
+  }
+  .sl-markdown-content table.stack td + td {
+    margin-block-start: var(--hp-space-2);
+  }
+  .sl-markdown-content table.stack td:empty {
+    display: none;
+  }
+  .sl-markdown-content table.stack td:first-child {
+    font-weight: var(--hp-weight-semibold);
+  }
+  .sl-markdown-content table.stack td + td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-xs);
+    font-weight: var(--hp-weight-medium);
+  }
+}
 
 /* Code blocks: Expressive Code's frame on the raised surface. */
 .expressive-code {
   --ec-brdRad: var(--hp-radius-md);
 }
 
+/* A diagram never scales below labels of about 12px, or about 10.5px where
+   the screen is wide enough to open it full size; past that it scrolls.
+   --diagram-width is set where the diagram renders. Until then the source is
+   hidden and its room held, unless scripts are off and it's all there is. */
 pre.mermaid {
-  background: transparent;
   border: 0;
+  padding: 0;
+}
+pre.mermaid svg {
+  min-inline-size: calc(var(--diagram-width, 0px) * 0.75);
+}
+@media (min-width: 72rem) {
+  pre.mermaid svg {
+    min-inline-size: calc(var(--diagram-width, 0px) * 0.66);
+  }
+}
+pre.mermaid small,
+.diagram-full small {
+  font-size: 1em;
+}
+/* If rendering stalls, the source comes back rather than a blank box. */
+@media (scripting: enabled) {
+  pre.mermaid:not([data-processed], [data-failed]) {
+    min-block-size: 18rem;
+    color: transparent;
+    animation: diagram-source 0s linear 8s forwards;
+  }
+}
+@keyframes diagram-source {
+  to {
+    color: var(--hp-color-fg);
+  }
+}
+.diagram-expand:not([hidden]) {
+  display: flex;
+  margin-block-end: var(--hp-space-2);
+  margin-inline-start: auto;
+}
+/* Only the diagram scrolls, so Close stays in reach. */
+.diagram-dialog {
+  inline-size: min(100vw - 2rem, 96rem);
+  block-size: calc(100dvh - 2rem);
+  margin: auto;
+  max-inline-size: none;
+  max-block-size: none;
+  padding: var(--hp-space-4);
+  overflow: hidden;
+  border: 1px solid var(--hp-color-border);
+  border-radius: var(--hp-radius-md);
+  background: var(--hp-color-bg);
+  color: var(--hp-color-fg);
+}
+.diagram-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.diagram-dialog::backdrop {
+  background: color-mix(in oklab, var(--hp-color-bg) 70%, transparent);
+}
+.diagram-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hp-space-2);
+  margin-block-end: var(--hp-space-2);
+}
+.diagram-note {
+  color: var(--hp-color-fg-muted);
+  font-size: var(--hp-text-sm);
+}
+.diagram-full {
+  overflow: auto;
+}
+.diagram-full {
+  touch-action: pinch-zoom;
+}
+.diagram-full svg {
+  display: block;
+  inline-size: var(--diagram-width);
+  max-inline-size: none !important;
+}
+[data-fitted] .diagram-full svg {
+  inline-size: 100%;
+  max-block-size: 100%;
+}
+@media (max-width: 49.99rem) {
+  .diagram-dialog {
+    inline-size: 100vw;
+    block-size: 100dvh;
+    padding-inline: var(--hp-space-2);
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+/* Search. */
+.search-scope {
+  margin: 0 0 var(--hp-space-3);
+  color: var(--hp-color-fg-muted);
+  font-size: var(--hp-text-sm);
+}
+.pagefind-ui__results > .pagefind-ui__result:first-child > .pagefind-ui__result-inner > .pagefind-ui__result-title {
+  background: var(--sl-color-accent-low);
+}
+.search-none {
+  display: none;
+}
+[data-no-match] .search-none {
+  display: block;
+}
+[data-no-match] .pagefind-ui__results,
+[data-no-match] .pagefind-ui__message,
+[data-no-match] .pagefind-ui__button {
+  display: none;
+}
+.search-status {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Splash pages have no column to hold their measure. */
+:root:not([data-has-sidebar]) .sl-markdown-content {
+  max-inline-size: 60ch;
+}
+
+/* Phone targets. */
+@media (max-width: 49.99rem) {
+  .sl-menu-button,
+  site-search > button {
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+  .sl-menu-button {
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--hp-color-border);
+    background: var(--hp-color-bg);
+    box-shadow: none;
+    color: var(--hp-color-fg);
+  }
+  #starlight__sidebar :is(a, summary),
+  ul.isMobile a,
+  starlight-tabs a[role='tab'],
+  .sl-link-button,
+  .hp-button-small {
+    min-block-size: 2.75rem;
+    align-items: center;
+  }
+  ul.isMobile a,
+  starlight-tabs a[role='tab'] {
+    display: flex;
+  }
+  #starlight__sidebar :is(a, .large) {
+    font-size: var(--hp-text-sm);
+  }
+  .site-title {
+    min-block-size: 2.75rem;
+  }
+  starlight-tabs [role='tablist'] {
+    flex-wrap: wrap;
+  }
+  .crumbs a,
+  .sl-banner a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+  }
+  .pagefind-ui__button {
+    min-block-size: 2.75rem;
+  }
+  .pagefind-ui__result-link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+  }
+  #starlight__sidebar a {
+    display: flex;
+  }
+  .meta a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+  }
 }

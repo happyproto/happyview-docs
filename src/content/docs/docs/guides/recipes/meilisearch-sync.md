@@ -1,5 +1,5 @@
 ---
-title: "Meilisearch Sync"
+title: Meilisearch sync
 ---
 
 Push records to a Meilisearch search index whenever they are created, updated, or deleted on the network.

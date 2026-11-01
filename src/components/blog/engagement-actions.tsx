@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Agent } from '@atproto/api';
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser';
 import { getOAuthClient } from '../../lib/atproto-oauth';
@@ -16,6 +16,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
   const [session, setSession] = useState<OAuthSession | null>(null);
   const [ready, setReady] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const loginTrigger = useRef<HTMLElement | null>(null);
   const [pendingAction, setPendingAction] = useState<ActionType | null>(null);
   const [recommended, setRecommended] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -75,6 +76,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
   const handleAction = useCallback((action: ActionType) => {
     if (!session) {
       setPendingAction(action);
+      loginTrigger.current = document.activeElement as HTMLElement | null;
       setShowLogin(true);
       return;
     }
@@ -95,13 +97,17 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
     }
   }, [session, pendingAction, handleAction]);
 
-  const handleLogin = async (handle: string) => {
+  // Resolves with a message if sign-in couldn't start; otherwise the page redirects.
+  const handleLogin = async (handle: string): Promise<string | undefined> => {
     const client = clientRef.current;
-    if (!client) return;
-    setShowLogin(false);
-    await client.signInRedirect(handle, {
-      state: window.location.href,
-    });
+    if (!client) return undefined;
+    try {
+      await client.signInRedirect(handle, {
+        state: window.location.href,
+      });
+    } catch {
+      return "Couldn't start sign-in. Check the handle and your connection, then try again.";
+    }
   };
 
   const handleLogout = async () => {
@@ -126,7 +132,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
     : 'recommend this article';
 
   return (
-    <div>
+    <div className="post-controls">
       <div className="flex flex-wrap items-center gap-3">
         {documentUri && (
           <button
@@ -216,11 +222,11 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
         className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:!duration-0"
         style={{ gridTemplateRows: showLogin ? '1fr' : '0fr' }}
       >
-        <div className="overflow-hidden">
+        <div className="overflow-hidden" inert={!showLogin}>
           <InlineLogin
             action={actionLabel}
             onSubmit={handleLogin}
-            onClose={() => { setShowLogin(false); setPendingAction(null); }}
+            onClose={() => { setShowLogin(false); setPendingAction(null); loginTrigger.current?.focus(); }}
             visible={showLogin}
           />
         </div>
@@ -229,6 +235,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
       {toast && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40 pointer-events-none">
           <div
+            role="status"
             className="pointer-events-auto rounded-full px-5 py-2.5 text-sm font-medium"
             style={{
               backgroundColor: 'var(--hp-color-surface)',
@@ -250,7 +257,7 @@ export function EngagementActions({ documentUri, publicationUri }: EngagementAct
 function SkeletonPill() {
   return (
     <div
-      className="rounded-full animate-pulse"
+      className="rounded-full animate-pulse motion-reduce:animate-none"
       style={{
         width: '120px',
         height: '36px',
@@ -267,13 +274,17 @@ function InlineLogin({
   visible,
 }: {
   action: string;
-  onSubmit: (handle: string) => void;
+  onSubmit: (handle: string) => Promise<string | undefined>;
   onClose: () => void;
   visible: boolean;
 }) {
   const [handle, setHandle] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [pending, setPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // A post shows these controls twice, above and below the article.
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
 
   useEffect(() => {
     if (visible) {
@@ -291,7 +302,7 @@ function InlineLogin({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [visible, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = handle.trim();
     if (!trimmed) return;
@@ -302,17 +313,24 @@ function InlineLogin({
     }
 
     setValidationError('');
-    onSubmit(trimmed);
+    setPending(true);
+    const failure = await onSubmit(trimmed);
+    setPending(false);
+    if (failure) setValidationError(failure);
   };
 
   return (
     <div className="pt-4">
       <p className="text-sm mb-3" style={{ color: 'var(--hp-color-fg-muted)' }}>
-        Sign in with Bluesky to {action}.
+        Sign in with your atproto account to {action}.
       </p>
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-start gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[200px]">
+          <label htmlFor={inputId} className="block mb-1 text-sm">
+            Handle or DID
+          </label>
           <input
+            id={inputId}
             ref={inputRef}
             type="text"
             value={handle}
@@ -321,50 +339,42 @@ function InlineLogin({
               if (validationError) setValidationError('');
             }}
             placeholder="yourname.bsky.social"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             tabIndex={visible ? 0 : -1}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-            style={{
-              backgroundColor: 'var(--hp-color-bg)',
-              color: 'var(--hp-color-fg)',
-              borderWidth: '1px',
-              borderColor: validationError
-                ? 'color-mix(in oklab, var(--hp-color-accent-alt) 50%, transparent)'
-                : 'var(--hp-color-border)',
-            }}
+            className="hp-field w-full"
             aria-invalid={!!validationError}
-            aria-describedby={validationError ? 'inline-handle-error' : undefined}
+            aria-describedby={validationError ? errorId : undefined}
           />
-          {validationError && (
-            <p
-              id="inline-handle-error"
-              className="mt-1.5 text-xs"
-              style={{ color: 'var(--hp-color-accent-alt)' }}
-            >
-              {validationError}
-            </p>
-          )}
         </div>
         <button
           type="submit"
-          disabled={!handle.trim()}
+          disabled={!handle.trim() || pending}
           tabIndex={visible ? 0 : -1}
-          className="rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 disabled:opacity-50"
-          style={{
-            backgroundColor: 'var(--hp-color-accent)',
-            color: 'var(--hp-color-bg)',
-          }}
+          className="hp-button hp-button-primary"
         >
-          Log in
+          Sign in
         </button>
         <button
           type="button"
           onClick={onClose}
           tabIndex={visible ? 0 : -1}
-          className="rounded-lg px-4 py-2 text-sm transition-colors duration-200"
-          style={{ color: 'var(--hp-color-fg-muted)' }}
+          className="hp-button hp-button-quiet"
         >
           Cancel
         </button>
+        {validationError && (
+          <p
+            id={errorId}
+            role="alert"
+            className="basis-full text-xs"
+            style={{ color: 'var(--hp-color-danger)' }}
+          >
+            {validationError}
+          </p>
+        )}
       </form>
     </div>
   );

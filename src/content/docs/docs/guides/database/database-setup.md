@@ -1,5 +1,5 @@
 ---
-title: "Database Setup"
+title: Database setup
 ---
 
 :::caution[Pending HAP-272]

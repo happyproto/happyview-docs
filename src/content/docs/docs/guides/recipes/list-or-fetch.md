@@ -1,5 +1,5 @@
 ---
-title: "List or Fetch"
+title: List or fetch
 ---
 
 This query handles both single-record lookups (when a `uri` param is provided) and paginated listing.

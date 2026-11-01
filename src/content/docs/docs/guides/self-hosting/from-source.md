@@ -1,5 +1,5 @@
 ---
-title: "From Source"
+title: From source
 ---
 
 This guide runs HappyView directly with `cargo run`. If you'd rather run the whole stack in containers, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md. To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).

@@ -1,0 +1,48 @@
+---
+// Starlight's footer, then the links and copyright every other page ends on.
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { footer } from '../../site';
+---
+
+<Default />
+<div class="site-foot not-content print:hidden">
+  <p>{footer.copyright}</p>
+  <ul role="list">
+    {footer.links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}
+  </ul>
+</div>
+
+<style>
+  .site-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--hp-space-2) var(--hp-space-4);
+    margin-block-start: var(--hp-space-8);
+    padding-block-start: var(--hp-space-4);
+    border-block-start: 1px solid var(--hp-color-border);
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-sm);
+  }
+  .site-foot p,
+  .site-foot ul {
+    margin: 0;
+    padding: 0;
+  }
+  .site-foot ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hp-space-4);
+    list-style: none;
+  }
+  .site-foot a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+    color: inherit;
+  }
+  .site-foot a:hover {
+    color: var(--hp-color-fg);
+  }
+</style>

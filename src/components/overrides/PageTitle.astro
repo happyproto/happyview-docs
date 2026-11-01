@@ -1,84 +1,464 @@
 ---
-// The title, then what kind of page this is and what to read first, then a
-// button that copies the page's Markdown source.
+// Where the page sits, the title beside a button that copies the page's
+// Markdown source, then what to read first.
+import { getCollection, getEntry } from 'astro:content';
+import type { StarlightRouteData } from '@astrojs/starlight/route-data';
+import redirects from '../../redirects.json';
+
 // Starlight's PAGE_TITLE_ID, which the package does not export.
 const PAGE_TITLE_ID = '_top';
 
-const { entry } = Astro.locals.starlightRoute;
-const { title, type, prerequisites } = entry.data as {
-  title: string;
-  type?: 'conceptual' | 'how-to' | 'reference';
-  prerequisites?: string[];
-};
-const typeLabel = { conceptual: 'Concept', 'how-to': 'How-to', reference: 'Reference' } as const;
+const { entry, sidebar } = Astro.locals.starlightRoute;
+const { title, prerequisites } = entry.data as { title: string; prerequisites?: string[] };
 const isV2 = entry.id.startsWith('docs/v2/') || entry.id === 'docs/v2';
-const markdownUrl = isV2 ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
+const markdownUrl = isV2 || entry.id === '404' ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
+
+// The sidebar groups holding the current page, outermost first. A group whose
+// first entry is its Overview links there.
+type Entry = StarlightRouteData['sidebar'][number];
+type Crumb = { label: string; href?: string };
+const trail = (entries: Entry[]): Crumb[] | null => {
+  for (const item of entries) {
+    if (item.type === 'link') {
+      if (item.isCurrent) return [];
+    } else {
+      const inner = trail(item.entries);
+      if (!inner) continue;
+      const first = item.entries[0];
+      const href = first?.type === 'link' && first.label === 'Overview' ? first.href : undefined;
+      return [{ label: item.label, href }, ...inner];
+    }
+  }
+  return null;
+};
+const crumbs = trail(sidebar) ?? [];
+const section = crumbs[crumbs.length - 1]?.label;
+const searchTitle = section && section !== title ? `${title} · ${section}` : title;
+
+// The same page in the other version, for the version switch to land on: the
+// same path, or failing that the redirect map, whose old paths are v2's.
+const pageIds = new Set((await getCollection('docs')).map((page) => page.id));
+const moved = Object.entries(redirects as Record<string, string>)
+  .filter(([, to]) => !to.startsWith('/docs/v2'))
+  .map(([from, to]) => [`docs/v2${from}`, to.replace(/^\//, '')] as const);
+const counterpartId = isV2
+  ? (moved.find(([v2]) => v2 === entry.id)?.[1] ?? entry.id.replace(/^docs\/v2/, 'docs'))
+  : (moved.find(([, v3]) => v3 === entry.id)?.[0] ?? entry.id.replace(/^docs/, 'docs/v2'));
+const counterpart = entry.id.startsWith('docs') && pageIds.has(counterpartId) ? `/${counterpartId}/` : undefined;
+
+const prereqs = await Promise.all(
+  (prerequisites ?? []).map(async (href) => {
+    const page = await getEntry('docs', href.replace(/^\/|\/$/g, ''));
+    return { href, label: page?.data.title ?? href };
+  }),
+);
 ---
 
-<h1 id={PAGE_TITLE_ID}>{title}</h1>
-{(type || markdownUrl) && (
-  <div class="page-meta not-content">
-    {type && <span class="hp-tag" data-tone="brand">{typeLabel[type]}</span>}
-    {markdownUrl && (
-      <button type="button" class="hp-button hp-button-quiet hp-button-small" data-copy-markdown={markdownUrl}>
-        Copy as Markdown
-      </button>
-    )}
-  </div>
+{crumbs.length > 0 && (
+  <nav class="crumbs not-content" aria-label="Breadcrumb" data-pagefind-ignore>
+    <ol role="list">{crumbs.map((crumb) => <li>{crumb.href ? <a href={crumb.href}>{crumb.label}</a> : crumb.label}</li>)}</ol>
+  </nav>
 )}
-{prerequisites && prerequisites.length > 0 && (
+<div class="title-row" data-counterpart={counterpart}>
+  <h1 id={PAGE_TITLE_ID} data-pagefind-meta="title[data-search-title]" data-search-title={searchTitle}>{title}</h1>
+  {markdownUrl && (
+    <span class="copy-page not-content" data-pagefind-ignore>
+      <button type="button" class="hp-button hp-button-small" data-copy-markdown={markdownUrl}>Copy as Markdown</button>
+      <span class="copy-status" role="status"></span>
+    </span>
+  )}
+</div>
+{prereqs.length > 0 && (
   <p class="prerequisites">
     Read first:{' '}
-    {prerequisites.map((href, i) => (
-      <Fragment>{i > 0 && ', '}<a href={href}>{href.replace(/^\/docs\//, '').replace(/\/$/, '')}</a></Fragment>
+    {prereqs.map(({ href, label }, i) => (
+      <Fragment>{i > 0 && ', '}<a href={href}>{label}</a></Fragment>
     ))}
   </p>
 )}
 
 <script>
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy-markdown]')) {
+    const label = button.textContent;
+    const url = button.dataset.copyMarkdown!;
+    const status = button.parentElement!.querySelector<HTMLElement>('.copy-status')!;
+    let reset: ReturnType<typeof setTimeout>;
     button.addEventListener('click', async () => {
-      const label = button.textContent;
+      clearTimeout(reset);
+      delete status.dataset.failed;
       try {
-        const res = await fetch(button.dataset.copyMarkdown!);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.statusText);
         await navigator.clipboard.writeText(await res.text());
         button.textContent = 'Copied';
+        status.textContent = 'Copied the page as Markdown.';
+        reset = setTimeout(() => {
+          button.textContent = label;
+          status.textContent = '';
+        }, 2000);
       } catch {
-        button.textContent = 'Copy failed';
+        status.innerHTML = `Couldn’t copy. <a href="${url}">Open the Markdown</a>.`;
+        status.dataset.failed = '';
       }
-      setTimeout(() => (button.textContent = label), 2000);
     });
   }
 
-  // Diagrams: load mermaid only on pages that have one.
-  const diagrams = document.querySelectorAll<HTMLElement>('pre.mermaid');
+  // On a cold load Starlight has no stored scroll to restore, so the current
+  // page can sit far below the fold. The phone's menu is a popover with no
+  // layout until it opens, which is why this also runs on toggle.
+  const sidebar = document.getElementById('starlight__sidebar');
+  const revealCurrentPage = () => {
+    const link = sidebar?.querySelector('a[aria-current="page"]');
+    if (!sidebar || !link) return;
+    const pane = sidebar.getBoundingClientRect();
+    const box = link.getBoundingClientRect();
+    if (box.top < pane.top || box.bottom > pane.bottom) {
+      sidebar.scrollTop += box.top - pane.top - pane.height / 2;
+    }
+  };
+  revealCurrentPage();
+  sidebar?.addEventListener('toggle', revealCurrentPage);
+
+  // The version switch lands on this page's counterpart when there is one.
+  const counterpart = document.querySelector<HTMLElement>('[data-counterpart]')?.dataset.counterpart;
+  if (counterpart) {
+    const switchTo = counterpart.startsWith('/docs/v2/') ? '/docs/v2/' : '/docs/';
+    const topic = sidebar?.querySelector<HTMLAnchorElement>(`.starlight-sidebar-topics a[href="${switchTo}"]`);
+    if (topic) topic.href = counterpart;
+    const banner = document.querySelector<HTMLAnchorElement>('.sl-banner a');
+    if (banner) banner.href = counterpart;
+  }
+
+  // A scroller is a tab stop, and a named landmark, only while it has somewhere
+  // to scroll.
+  const scrollerLabels = new WeakMap<Element, string>();
+  const syncScroller = (el: Element) => {
+    const label = el.getAttribute('aria-label');
+    if (label) scrollerLabels.set(el, label);
+    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'region');
+      el.setAttribute('aria-label', scrollerLabels.get(el) ?? 'Scrollable content');
+    } else {
+      el.removeAttribute('tabindex');
+      el.removeAttribute('role');
+      el.removeAttribute('aria-label');
+    }
+  };
+  const scrollers = new ResizeObserver((entries) => entries.forEach((entry) => syncScroller(entry.target)));
+  document.querySelectorAll('.table-scroll').forEach((el) => scrollers.observe(el));
+
+  // Expressive Code makes an overflowing block a region but gives it no name.
+  document.querySelectorAll('.expressive-code pre').forEach((pre, i) => {
+    const language = pre.getAttribute('data-language');
+    const label = `Code ${i + 1}${language ? `: ${language}` : ''}`;
+    new MutationObserver(() => {
+      if (pre.getAttribute('role') === 'region') pre.setAttribute('aria-label', label);
+      else pre.removeAttribute('aria-label');
+    }).observe(pre, { attributeFilter: ['role'] });
+    if (pre.getAttribute('role') === 'region') pre.setAttribute('aria-label', label);
+  });
+
+  // Pagefind builds its search field after this runs. Its results take Tab
+  // only, so add the arrows, and Enter from the field opens the first result.
+  const search = document.querySelector('site-search dialog');
+  search?.addEventListener('focusin', () => {
+    document.querySelector('.pagefind-ui__search-input')?.setAttribute('aria-label', 'Search the docs');
+  });
+
+  // Pagefind's result count isn't announced, and it rewrites that element, so
+  // a status region of ours repeats it. The v2 docs are kept out of search.
+  if (search) {
+    const announcer = document.createElement('p');
+    announcer.className = 'search-status';
+    announcer.setAttribute('role', 'status');
+    search.append(announcer);
+    // The status region is inside what's observed, so an unconditional write
+    // would trigger this observer forever.
+    // Pagefind matches on fragments as short as a letter, so it answers even
+    // nonsense confidently. Results whose longest highlight is that short
+    // count as none.
+    const none = document.createElement('p');
+    none.className = 'search-none';
+    search.querySelector('.dialog-frame')?.append(none);
+    new MutationObserver(() => {
+      const query = search.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.value.trim() ?? '';
+      // A match shares most of the query's opening letters with a highlight,
+      // so a typo or a word ending still counts and a chance prefix doesn't.
+      const word = query.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').split(/\s+/)[0] ?? '';
+      const shared = (mark: string) => {
+        let i = 0;
+        while (i < word.length && word[i] === mark[i]) i++;
+        return i;
+      };
+      const marks = [...search.querySelectorAll('.pagefind-ui__result mark')].map((mark) =>
+        (mark.textContent ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''),
+      );
+      const noMatch = marks.length > 0 && Math.max(...marks.map(shared)) < Math.ceil(Math.min(word.length, 5) * 0.6);
+      const text = `No matches for “${query}”. Try a shorter term, or browse the sidebar.`;
+      if (noMatch && none.textContent !== text) none.textContent = text;
+      search.toggleAttribute('data-no-match', noMatch);
+      const message = noMatch ? text : (search.querySelector('.pagefind-ui__message')?.textContent ?? '');
+      if (announcer.textContent !== message) announcer.textContent = message;
+    }).observe(search, { childList: true, subtree: true, characterData: true });
+    if (location.pathname.startsWith('/docs/v2/')) {
+      const scope = document.createElement('p');
+      scope.className = 'search-scope';
+      scope.textContent = 'Search covers the v3 docs only; the v2 docs aren’t indexed.';
+      search.querySelector('.dialog-frame')?.prepend(scope);
+    }
+  }
+
+  // Other pages send the search shortcut here.
+  if (new URLSearchParams(location.search).has('search')) {
+    history.replaceState(null, '', location.pathname);
+    document.querySelector<HTMLElement>('site-search button')?.click();
+    const focusField = () => {
+      const input = search?.querySelector<HTMLElement>('.pagefind-ui__search-input');
+      if (input) input.focus();
+      return Boolean(input);
+    };
+    if (search && !focusField()) {
+      const waiting = new MutationObserver(() => focusField() && waiting.disconnect());
+      waiting.observe(search, { childList: true, subtree: true });
+    }
+  }
+  search?.addEventListener('keydown', (event) => {
+    const { key, target } = event as KeyboardEvent;
+    if (key !== 'ArrowDown' && key !== 'ArrowUp' && key !== 'Enter') return;
+    const input = search.querySelector<HTMLElement>('.pagefind-ui__search-input');
+    const links = [...search.querySelectorAll<HTMLAnchorElement>('.pagefind-ui__result-link')];
+    if (key === 'Enter') {
+      if (target === input && links[0] && !search.hasAttribute('data-no-match')) links[0].click();
+      return;
+    }
+    event.preventDefault();
+    const stops = [input, ...links];
+    const here = stops.indexOf(target as HTMLElement);
+    const next = stops[Math.min(Math.max(here + (key === 'ArrowDown' ? 1 : -1), 0), stops.length - 1)];
+    next?.focus();
+  });
+
+  // Diagrams: load mermaid only on pages that have one, and draw them from
+  // the site's tokens, again whenever the theme changes.
+  // Theme changes arriving mid-render collapse into one more. If mermaid can't
+  // load, the source stays.
+  const diagrams = [...document.querySelectorAll<HTMLElement>('pre.mermaid')];
   if (diagrams.length) {
-    const { default: mermaid } = await import('mermaid');
-    const dark = document.documentElement.dataset.theme === 'dark';
-    mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
-    await mermaid.run({ nodes: [...diagrams] });
+    const sources = new Map(diagrams.map((el) => [el, el.textContent ?? '']));
+
+    // A diagram wider than its column can also open at the size of the screen.
+    const dialog = document.createElement('dialog');
+    dialog.className = 'diagram-dialog';
+    dialog.setAttribute('closedby', 'any');
+    dialog.innerHTML =
+      '<div class="diagram-bar"><button type="button" class="hp-button hp-button-small" data-size-toggle></button><form method="dialog"><button class="hp-button hp-button-small">Close</button></form></div><div class="diagram-full"></div>';
+    document.body.append(dialog);
+    const full = dialog.querySelector<HTMLElement>('.diagram-full')!;
+    // Fitted shows the whole shape; actual size is readable. Wide screens have
+    // room to open readable, and everything else opens on the whole shape.
+    const sizeToggle = dialog.querySelector<HTMLButtonElement>('[data-size-toggle]')!;
+    const setFitted = (fitted: boolean) => {
+      dialog.toggleAttribute('data-fitted', fitted);
+      sizeToggle.textContent = fitted ? 'Actual size' : 'Fit to screen';
+      syncScroller(full);
+    };
+    sizeToggle.addEventListener('click', () => setFitted(!dialog.hasAttribute('data-fitted')));
+    let showing: HTMLElement | undefined;
+    const fillDialog = (el: HTMLElement) => {
+      const svg = el.querySelector('svg')?.cloneNode(true) as SVGSVGElement | undefined;
+      if (!svg) return;
+      const title = el.getAttribute('aria-label') ?? 'Diagram';
+      svg.removeAttribute('aria-labelledby');
+      svg.setAttribute('aria-label', title);
+      full.style.setProperty('--diagram-width', el.style.getPropertyValue('--diagram-width'));
+      full.setAttribute('aria-label', title);
+      full.replaceChildren(svg);
+      dialog.setAttribute('aria-label', title);
+    };
+    // The copy repeats the diagram's ids, so it leaves with the dialog.
+    dialog.addEventListener('close', () => {
+      showing = undefined;
+      full.replaceChildren();
+    });
+    const expanders = new Map<HTMLElement, HTMLButtonElement>();
+    const syncExpander = (el: HTMLElement) => {
+      if (!el.querySelector('svg')) return;
+      const svg = el.querySelector('svg')!;
+      const shrunk = svg.getBoundingClientRect().width < 0.85 * svg.viewBox.baseVal.width;
+      const scrolls = el.scrollWidth > el.clientWidth + 1 || shrunk;
+      let button = expanders.get(el);
+      if (scrolls && !button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'hp-button hp-button-small diagram-expand not-content';
+        button.textContent = 'View full size';
+        button.setAttribute('aria-label', `View full size: ${el.getAttribute('aria-label') ?? 'diagram'}`);
+        button.addEventListener('click', () => {
+          showing = el;
+          fillDialog(el);
+          dialog.showModal();
+          setFitted(!matchMedia('(min-width: 72rem)').matches);
+        });
+        el.before(button);
+        expanders.set(el, button);
+      }
+      if (button) button.hidden = !scrolls;
+    };
+
+    // Mermaid can't parse the tokens' oklch, so read each back as hex.
+    const paint = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
+    const render = async () => {
+      const { default: mermaid } = await import('mermaid');
+      const css = getComputedStyle(document.documentElement);
+      const token = (name: string) => {
+        paint.fillStyle = css.getPropertyValue(`--hp-color-${name}`).trim();
+        paint.fillRect(0, 0, 1, 1);
+        const [r, g, b] = paint.getImageData(0, 0, 1, 1).data;
+        return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+      };
+      mermaid.initialize({
+        startOnLoad: false,
+        suppressErrorRendering: true,
+        theme: 'base',
+        flowchart: { nodeSpacing: 30, rankSpacing: 40 },
+        sequence: { actorMargin: 20, width: 110 },
+        themeVariables: {
+          background: token('bg'),
+          primaryColor: token('surface-raised'),
+          primaryTextColor: token('fg'),
+          primaryBorderColor: token('fg-muted'),
+          secondaryColor: token('surface'),
+          tertiaryColor: token('surface'),
+          lineColor: token('fg-muted'),
+          textColor: token('fg'),
+          edgeLabelBackground: token('bg'),
+          noteBkgColor: token('surface-raised'),
+          noteTextColor: token('fg'),
+          noteBorderColor: token('fg-muted'),
+          fontFamily: css.getPropertyValue('--hp-font-sans').trim(),
+        },
+      });
+      const scrolled = new Map(diagrams.map((el) => [el, el.scrollLeft]));
+      for (const [el, source] of sources) {
+        el.style.minBlockSize = `${el.offsetHeight}px`;
+        el.removeAttribute('data-processed');
+        el.textContent = source;
+      }
+      diagrams.forEach((el) => el.setAttribute('aria-busy', 'true'));
+      await mermaid.run({ nodes: diagrams });
+      for (const el of diagrams) {
+        el.removeAttribute('aria-busy');
+        const svg = el.querySelector('svg');
+        if (!svg) continue;
+        el.style.setProperty('--diagram-width', `${svg.viewBox.baseVal.width}px`);
+        el.style.minBlockSize = '';
+        el.setAttribute('aria-label', svg.querySelector('title')?.textContent || 'Diagram');
+        el.scrollLeft = scrolled.get(el) ?? 0;
+        syncScroller(el);
+        syncExpander(el);
+      }
+      if (showing) fillDialog(showing);
+    };
+    let rendering = false;
+    let again = false;
+    const rerender = async () => {
+      again = rendering;
+      if (rendering) return;
+      rendering = true;
+      try {
+        await render();
+      } catch {
+        for (const [el, source] of sources) {
+          el.textContent = source;
+          el.removeAttribute('data-processed');
+          el.dataset.failed = '';
+          el.style.minBlockSize = '';
+          el.removeAttribute('aria-busy');
+          if (!el.previousElementSibling?.matches('.diagram-note')) {
+            el.insertAdjacentHTML('beforebegin', '<p class="diagram-note">This diagram couldn’t be drawn. Its source is below.</p>');
+          }
+        }
+      }
+      rendering = false;
+      if (again) rerender();
+    };
+    await rerender();
+    new MutationObserver(rerender).observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    const expanderSizes = new ResizeObserver((entries) => entries.forEach((entry) => syncExpander(entry.target as HTMLElement)));
+    diagrams.forEach((el) => expanderSizes.observe(el));
+    diagrams.forEach((el) => scrollers.observe(el));
+    scrollers.observe(full);
   }
 </script>
 
 <style>
+  .crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-sm);
+  }
+  .crumbs a {
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+  .crumbs a:hover {
+    color: var(--hp-color-fg);
+  }
+  .crumbs li + li::before {
+    content: '/';
+    margin-inline: var(--hp-space-2);
+    color: var(--hp-color-border-strong);
+  }
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--hp-space-3) var(--hp-space-4);
+    margin-block-start: var(--hp-space-3);
+  }
   h1 {
-    margin-top: 1rem;
+    flex: 1 1 min(20rem, 100%);
+    overflow-wrap: anywhere;
+    margin: 0;
     font-size: var(--sl-text-h1);
     line-height: var(--sl-line-height-headings);
     font-weight: var(--hp-weight-semibold);
     letter-spacing: var(--hp-tracking-tight);
     color: var(--sl-color-white);
   }
-  .page-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--hp-space-3);
-    margin-block-start: var(--hp-space-3);
+  .copy-page {
+    display: grid;
+    justify-items: end;
+    gap: var(--hp-space-1);
+  }
+  /* Announced always, shown only when it holds a way out. */
+  .copy-status:not([data-failed]) {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .copy-status {
+    color: var(--hp-color-fg-muted);
+    font-size: var(--hp-text-xs);
+  }
+  .copy-status :global(a) {
+    color: var(--hp-color-accent);
   }
   .prerequisites {
     margin-block-start: var(--hp-space-3);
     color: var(--hp-color-fg-muted);
     font-size: var(--hp-text-sm);
+  }
+  .prerequisites a {
+    color: var(--hp-color-accent);
+    text-underline-offset: 0.2em;
   }
 </style>

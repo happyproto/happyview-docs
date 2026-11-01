@@ -1,5 +1,5 @@
 ---
-title: "Linked Repos"
+title: Linked repos
 ---
 
 Admin API endpoints for managing linked repos and their invites. The whole lifecycle is available here, so the feature can be driven headlessly without the dashboard. For a conceptual overview, see [Linked Repos](/docs/guides/linked-repos).

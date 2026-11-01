@@ -1,7 +1,6 @@
 ---
 title: "Running locally"
 description: "Run your project on your own machine with hpy happyview dev, call its endpoint, and see each change without a restart."
-type: how-to
 prerequisites:
   - /docs/getting-started/installation
 ---

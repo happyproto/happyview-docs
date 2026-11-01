@@ -1,7 +1,6 @@
 ---
 title: "How HappyView fits atproto"
 description: "The atproto pieces HappyView works with, one sentence each, and the path a record takes from a user's repository to your app."
-type: conceptual
 ---
 
 HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting Started uses. You don't need more than this to build with HappyView.
@@ -23,7 +22,8 @@ HappyView is an AppView: it reads records from the atproto network, keeps the on
 ## How a record reaches your app
 
 ```mermaid
-flowchart LR
+flowchart TD
+  accTitle: How a record reaches your app
   user([A user]) -- writes a record --> pds[(Their PDS)]
   pds -- the change --> jetstream[Jetstream]
   jetstream -- records in collections it indexes --> instance[Your HappyView instance]

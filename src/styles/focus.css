@@ -1,0 +1,6 @@
+/* One focus ring across the site, the design system's, on the docs and on
+   the pages Starlight doesn't draw. */
+:focus-visible {
+  outline: 2px solid var(--hp-color-accent);
+  outline-offset: 2px;
+}

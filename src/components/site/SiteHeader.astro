@@ -2,8 +2,8 @@
 // happyproto.at's SiteHeader (src/components/SiteHeader.astro), with
 // HappyView's logo and the site's links in place of the beta sign-up.
 import { Image } from 'astro:assets';
-import logoDark from '../../assets/logo.dark.png';
-import logoLight from '../../assets/logo.light.png';
+import logoDark from '../../assets/logo.dark.webp';
+import logoLight from '../../assets/logo.light.webp';
 import { nav, repo } from '../../site';
 
 const path = Astro.url.pathname;
@@ -21,11 +21,67 @@ const path = Astro.url.pathname;
         <a class="mk-link" href={link.href} aria-current={path.startsWith(link.href) ? 'page' : undefined}>{link.label}</a>
       ))}
       <a class="mk-link" href={repo.happyview}>GitHub</a>
+      <a class="mk-link header-search" href="/docs/?search" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <span>Search</span>
+      </a>
+      <label class="theme-picker">
+        <span>Theme</span>
+        <select data-theme-picker>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="auto">Auto</option>
+        </select>
+      </label>
     </nav>
   </div>
 </header>
 
+<script>
+  // Search lives on the docs, so the shortcut opens it there.
+  addEventListener('keydown', (event: KeyboardEvent) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      event.preventDefault();
+      location.href = '/docs/?search';
+    }
+  });
+
+  // The docs' theme picker stores its choice under the same key.
+  const picker = document.querySelector<HTMLSelectElement>('[data-theme-picker]');
+  if (picker) {
+    picker.value = document.documentElement.dataset.theme ?? 'auto';
+    picker.addEventListener('change', () => {
+      const theme = picker.value;
+      if (theme === 'auto') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = theme;
+      try {
+        localStorage.setItem('starlight-theme', theme === 'auto' ? '' : theme);
+      } catch {}
+    });
+  }
+</script>
+
 <style>
+  .theme-picker span {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .theme-picker {
+    display: inline-flex;
+    align-items: center;
+  }
+  .theme-picker select {
+    min-block-size: 2.75rem;
+    border: 0;
+    background: none;
+    color: var(--hp-color-fg-muted);
+    font: inherit;
+    font-size: var(--hp-text-sm);
+    cursor: pointer;
+  }
   .site-logo {
     display: block;
     inline-size: auto;
@@ -51,7 +107,53 @@ const path = Astro.url.pathname;
   .mk-header-actions {
     gap: var(--hp-space-4);
   }
-  .mk-header-actions a[aria-current='page'] {
+  .header-search {
+    gap: var(--hp-space-1);
+  }
+  @media (max-width: 40rem) {
+    .header-search span {
+      display: none;
+    }
+    .mk-header-actions .mk-link.header-search {
+      min-inline-size: 2.75rem;
+      justify-content: center;
+    }
+  }
+  @media (max-width: 30rem) {
+    .mk-header-actions {
+      flex-wrap: nowrap;
+      gap: var(--hp-space-2);
+    }
+    /* The docs' sidebar carries it. */
+    .mk-header-actions a[href='/docs/changelog/'] {
+      display: none;
+    }
+    .theme-picker select {
+      max-inline-size: 4rem;
+    }
+  }
+  /* Too narrow for one row, and two rows pinned would take a quarter of the
+     screen. */
+  @media (max-width: 24rem) {
+    :global(.mk-header) {
+      position: static;
+    }
+    .mk-header-actions {
+      flex-wrap: wrap;
+    }
+  }
+  .mk-header-actions .mk-link {
+    min-inline-size: 0;
+    justify-content: flex-start;
+    color: var(--hp-color-fg-muted);
+    text-decoration: none;
+  }
+  .mk-header-actions .mk-link:hover,
+  .mk-header-actions .mk-link[aria-current='page'] {
     color: var(--hp-color-fg);
+  }
+  .mk-header-actions .mk-link[aria-current='page'] {
+    text-decoration: underline;
+    text-underline-offset: 0.35em;
   }
 </style>

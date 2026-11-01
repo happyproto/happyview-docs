@@ -1,5 +1,5 @@
 ---
-title: "Lexicon Publishing"
+title: Lexicon publishing
 ---
 
 Admin API endpoints for publishing lexicons as `com.atproto.lexicon.schema` records and managing the rules that decide where they go. For the concepts, DNS requirements and dashboard, see [Publishing Lexicons](/docs/guides/publishing-lexicons).

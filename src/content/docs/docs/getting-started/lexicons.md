@@ -1,7 +1,6 @@
 ---
 title: "Lexicons"
 description: "Add a record lexicon to your project and start indexing its collection, then decide whether to backfill."
-type: how-to
 prerequisites:
   - /docs/getting-started/project-structure
 ---

@@ -1,7 +1,6 @@
 ---
 title: "Database"
 description: "Admin API endpoints for the database's status, scheduling a SQLite VACUUM, and retraining record compression."
-type: reference
 ---
 
 Endpoints for looking after the instance's database. The dashboard's **System > Database** page uses them. All need `settings:manage`.

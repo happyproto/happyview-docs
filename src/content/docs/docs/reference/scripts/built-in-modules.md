@@ -1,5 +1,5 @@
 ---
-title: "Built-in Modules"
+title: Built-in modules
 ---
 
 `require` serves two kinds of module. Installed [libraries](/docs/reference/scripts/libraries) are plugins. Built-in modules are provided by the runtime directly, under the `internal.` prefix, because they need to be the host itself: a log line has to carry the trigger and script it came from, a clock has to be the host's clock. A plugin cannot claim a namespace starting with `internal.`.

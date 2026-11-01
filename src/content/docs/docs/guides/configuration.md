@@ -1,5 +1,5 @@
 ---
-title: "Configuration"
+title: Configuring an instance
 ---
 
 :::tip[Every variable in one place]
@@ -12,7 +12,7 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | yes | --- | Database connection string. SQLite (`sqlite://path/to/db?mode=rwc`) or Postgres (`postgres://user:pass@host/db`) |
+| `DATABASE_URL` | yes | none | Database connection string. SQLite (`sqlite://path/to/db?mode=rwc`) or Postgres (`postgres://user:pass@host/db`) |
 | `DATABASE_BACKEND` | no | auto-detected | Force `sqlite` or `postgres`. Auto-detected from `DATABASE_URL` scheme if not set |
 | `SQLITE_JOURNAL_SIZE_LIMIT` | no | `67108864` (64 MiB) | Bytes. Caps how large the SQLite write-ahead log is allowed to grow before it's truncated back down after a checkpoint, bounding disk usage from WAL growth. SQLite-only; ignored on Postgres |
 | `SQLITE_SYNCHRONOUS` | no | `NORMAL` | SQLite `synchronous` level for every connection: `NORMAL` or `FULL`. In WAL mode `NORMAL` cannot corrupt the database, but a crash or power loss can lose the last few transactions. `FULL` syncs the write-ahead log on every commit. SQLite-only; ignored on Postgres |
@@ -21,9 +21,9 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `RECORD_COMPRESSION` | no | `zstd` | `zstd` compresses record bodies with a dictionary trained for each collection; `none` stores new bodies uncompressed and stops the background compression. Bodies already compressed stay readable either way. Any other value uses `zstd`, with a warning. See [the compact record format](/docs/guides/database/database-setup#after-the-upgrade). SQLite-only; ignored on Postgres |
 | `ZSTD_DICT_TRAIN_AT` | no | `5000` | Records a collection needs before HappyView trains its compression dictionary. `0` or an invalid value uses `5000`. SQLite-only; ignored on Postgres |
 | `RECORD_COMPRESSION_INTERVAL_SECS` | no | `600` | Seconds between the background passes that train dictionaries and compress records stored uncompressed. The first pass runs within 30 seconds of startup. `0` or an invalid value uses `600`; to stop compressing, set `RECORD_COMPRESSION=none`. SQLite-only; ignored on Postgres |
-| `PUBLIC_URL` | yes | --- | Public-facing URL for HappyView (used for OAuth callbacks, e.g. `https://happyview.example.com`). **For local development, use `http://127.0.0.1:3000` — not `localhost`** (see note below). Do **not** include the base path — see `BASE_PATH` |
+| `PUBLIC_URL` | yes | none | Public-facing URL for HappyView (used for OAuth callbacks, e.g. `https://happyview.example.com`). **For local development, use `http://127.0.0.1:3000` — not `localhost`** (see note below). Do **not** include the base path — see `BASE_PATH` |
 | `BASE_PATH` | no | _(none)_ | Subpath prefix for mounting HappyView behind a reverse proxy (e.g. `/hv`). Must start with `/`; a trailing `/` is trimmed, and `/` alone means none. When set, all routes are served under this prefix and the dashboard is accessible at `https://example.com/hv/`. See [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath) |
-| `SESSION_SECRET` | yes, to sign in | --- | Signs the dashboard's session cookies. At least 32 bytes; generate one with `openssl rand -base64 48`. Unset, too short or a placeholder such as `change-me-in-production`, the instance starts but nobody can sign in to the dashboard |
+| `SESSION_SECRET` | yes, to sign in | none | Signs the dashboard's session cookies. At least 32 bytes; generate one with `openssl rand -base64 48`. Unset, too short or a placeholder such as `change-me-in-production`, the instance starts but nobody can sign in to the dashboard |
 | `HOST` | no | `0.0.0.0` | Bind host |
 | `PORT` | no | `3000` | Bind port |
 | `JETSTREAM_URL` | no | `wss://jetstream1.us-east.bsky.network` | Jetstream host for real-time record streaming. The scheme can be `ws`, `wss`, `http` or `https`, and a v1 or v2 subscribe path, a trailing slash and a query string are ignored, so all of them name the same host |
@@ -48,8 +48,8 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `RECORD_TOMBSTONE_RETENTION_HOURS` | no | `72` | Hours to remember a deleted record or account, so that a late or replayed copy of it cannot bring it back. The hourly cleanup deletes older tombstones. `0` keeps them indefinitely |
 | `JOB_WORKER_CONCURRENCY` | no | `1` | Number of background jobs that run at once. Values below 1 fall back to 1; values above 32 are capped at 32. Each running job uses database connections, so keep this below `DATABASE_MAX_CONNECTIONS`. |
 | `PLATFORM_API_KEY_HASH` | no | — | Hex SHA-256 of a key that a managed-hosting provider uses to administer this instance. Leave unset when self-hosting. See [Platform API](/docs/reference/admin/platform) |
-| `TELEMETRY_MANAGED_BY` | no | --- | Name of the managed-hosting platform that requires this instance to send telemetry. When set, the instance sends a report every day whatever **System > Telemetry** says, the report names the platform in `managed`, and the telemetry settings can't be changed from the dashboard or the API (`409`). The report covers the instance only: the contact address and the lexicon names, structures and documents are left out, and setting keys HappyView doesn't define are counted, not named. Lowercase letters, digits and `-`, starting with a letter or digit, at most 64 characters; any other value refuses boot. Leave unset when self-hosting |
-| `TOKEN_ENCRYPTION_KEY` | no | --- | Base64-encoded 32-byte key for encrypting stored OAuth tokens (`openssl rand -base64 32`). Without a valid one, app sign-in, spaces and service identity don't work; an invalid value is logged and ignored. **Set it in production** |
+| `TELEMETRY_MANAGED_BY` | no | none | Name of the managed-hosting platform that requires this instance to send telemetry. When set, the instance sends a report every day whatever **System > Telemetry** says, the report names the platform in `managed`, and the telemetry settings can't be changed from the dashboard or the API (`409`). The report covers the instance only: the contact address and the lexicon names, structures and documents are left out, and setting keys HappyView doesn't define are counted, not named. Lowercase letters, digits and `-`, starting with a letter or digit, at most 64 characters; any other value refuses boot. Leave unset when self-hosting |
+| `TOKEN_ENCRYPTION_KEY` | no | none | Base64-encoded 32-byte key for encrypting stored OAuth tokens (`openssl rand -base64 32`). Without a valid one, app sign-in, spaces and service identity don't work; an invalid value is logged and ignored. **Set it in production** |
 | `DEFAULT_RATE_LIMIT_CAPACITY` | no | `100` | Default token bucket capacity used when registering a new API client |
 | `DEFAULT_RATE_LIMIT_REFILL_RATE` | no | `2.0` | Default token bucket refill rate (tokens/second) for new API clients |
 | `ATTESTATION_PRIVATE_KEY` | no | auto-generated | Hex-encoded 32-byte secp256k1 private key for [attestation signing](/docs/guides/attestation-signing). Auto-generated and persisted to database on first run |
@@ -67,12 +67,12 @@ HappyView is configured via environment variables. Serving with a plain `happyvi
 | `BACKFILL_DATABASE_MAX_CONNECTIONS` | no | auto-calculated | Override the backfill connection pool size. Auto-calculated from concurrency settings if not set, capped at 16 on SQLite and 256 on Postgres |
 | `VERBOSE_EVENT_LOGGING` | no | `false` | Log every record index, record script run, and record script skip to the event log. High write volume — recommended only for debugging. Overridden by database setting if set via admin API |
 | `RUST_LOG` | no | `happyview=debug,tower_http=debug,sqlx=warn` | Log filter (uses `tracing_subscriber::EnvFilter`) |
-| `APP_NAME` | no | --- | Application name shown on OAuth authorization screens. Overridden by database setting if set via admin API |
-| `SUPERADMIN_DID` | no | --- | DID given superadmin at every boot, before the server accepts requests. Setting it turns off the first-sign-in admin bootstrap, even if seeding fails (restart to retry). A value that is not a valid DID refuses boot. Additive: other operators with superadmin keep it, and removing the variable later takes it from nobody. A platform superadmin transfer takes it from everyone else, and the configured DID gets it again at the next boot |
-| `HAPPYVIEW_PROJECT` | no | --- | Path to a project directory. Its `happyview.toml` is read at boot; see [Project file](#project-file-happyviewtoml). A path that does not exist stops boot |
-| `LOGO_URI` | no | --- | URL to application logo for OAuth screens. Overridden by database setting or logo upload |
-| `TOS_URI` | no | --- | URL to terms of service. Overridden by database setting if set via admin API |
-| `POLICY_URI` | no | --- | URL to privacy policy. Overridden by database setting if set via admin API |
+| `APP_NAME` | no | none | Application name shown on OAuth authorization screens. Overridden by database setting if set via admin API |
+| `SUPERADMIN_DID` | no | none | DID given superadmin at every boot, before the server accepts requests. Setting it turns off the first-sign-in admin bootstrap, even if seeding fails (restart to retry). A value that is not a valid DID refuses boot. Additive: other operators with superadmin keep it, and removing the variable later takes it from nobody. A platform superadmin transfer takes it from everyone else, and the configured DID gets it again at the next boot |
+| `HAPPYVIEW_PROJECT` | no | none | Path to a project directory. Its `happyview.toml` is read at boot; see [Project file](#project-file-happyviewtoml). A path that does not exist stops boot |
+| `LOGO_URI` | no | none | URL to application logo for OAuth screens. Overridden by database setting or logo upload |
+| `TOS_URI` | no | none | URL to terms of service. Overridden by database setting if set via admin API |
+| `POLICY_URI` | no | none | URL to privacy policy. Overridden by database setting if set via admin API |
 
 :::caution[Use 127.0.0.1, not localhost]
 atproto OAuth loopback clients are registered with `127.0.0.1`. If you set `PUBLIC_URL` to `http://localhost:3000`, OAuth sign-in will fail because the redirect URI won't match the loopback client ID. Always use `http://127.0.0.1:3000` for local development.

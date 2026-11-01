@@ -1,5 +1,5 @@
 ---
-title: "Lex Agent"
+title: Lex agent
 ---
 
 The Lex agent adapter is the recommended way to interact with HappyView from JavaScript. It creates an [`@atproto/lex`](https://npmx.dev/package/@atproto/lex) `Agent` from a `HappyViewSession`, so you can use `@atproto/lex`'s type-safe `Client` to make XRPC calls with HappyView's DPoP authentication. All requests are routed to your HappyView instance, which handles its own lexicons locally and proxies standard atproto methods (e.g., `com.atproto.repo.createRecord`) to the user's PDS.

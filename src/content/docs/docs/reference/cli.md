@@ -1,7 +1,6 @@
 ---
 title: "CLI"
 description: "Every command, flag, environment variable and exit code of hpy and of the happyview binary."
-type: reference
 ---
 
 Two command-line tools work with HappyView:

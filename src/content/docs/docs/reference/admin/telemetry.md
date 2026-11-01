@@ -1,7 +1,6 @@
 ---
 title: "Telemetry"
 description: "Admin API endpoints for an instance's telemetry consent: read and change it, preview a report, and send one."
-type: reference
 ---
 
 Endpoints behind the dashboard's **System > Telemetry** page. Telemetry is off unless an operator turns it on; [Telemetry](/docs/guides/telemetry) explains what a report contains. All need `settings:manage`.

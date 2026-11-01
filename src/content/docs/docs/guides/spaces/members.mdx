@@ -476,6 +476,7 @@ Delegation chains are resolved up to 10 levels deep. The delegation entry's own 
 
 ```mermaid
 graph TD
+    accTitle: Example: nested teams
     A[Forum Space] -->|delegation| B[Engineering Team Space]
     A -->|delegation| C[Design Team Space]
     B -->|read + write| D[Alice]

@@ -8,6 +8,7 @@ Guide for contributors working on HappyView itself. For a user-facing overview, 
 
 ```mermaid
 graph LR
+  accTitle: System overview
   Application
 
   Application -->|"GET /xrpc/{method}"| Query
@@ -43,6 +44,7 @@ Queries go through the query handler to the database (SQLite by default, or Post
 
 ```mermaid
 sequenceDiagram
+    accTitle: Reads (queries)
     participant C as Client
     participant X as xrpc_get()
     participant R as LexiconRegistry
@@ -67,6 +69,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    accTitle: Writes (procedures)
     participant C as Client
     participant A as Claims Extractor
     participant X as xrpc_post()
@@ -95,6 +98,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    accTitle: Admin endpoints
     participant C as Client
     participant A as AdminAuth Extractor
     participant U as Users Table
@@ -122,6 +126,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    accTitle: Real-time indexing
     participant J as Jetstream WebSocket
     participant H as HappyView
     participant D as Database
@@ -180,6 +185,7 @@ Admins can watch the consumer with `GET /admin/jetstream/status` and the About p
 
 ```mermaid
 sequenceDiagram
+    accTitle: Backfill
     participant A as Admin
     participant H as HappyView
     participant D as Database

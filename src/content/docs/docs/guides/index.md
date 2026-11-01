@@ -1,7 +1,6 @@
 ---
 title: Guides
 description: Task-by-task guides for building on HappyView and running it.
-type: how-to
 ---
 
 Getting Started walks through each part of HappyView once, in order. These guides go further into one task each.

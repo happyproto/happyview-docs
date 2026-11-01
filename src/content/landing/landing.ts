@@ -37,10 +37,10 @@ export const sample = {
 	intro:
 		'This is the heart of the project `hpy happyview create` gives you. The lexicon’s path is its route, and the script beside it answers it.',
 	tabs: [
-		{ label: 'happyview.toml', path: 'happyview.toml', lang: 'toml', code: toml },
+		{ label: 'Request', lang: 'shell', code: `$ hpy happyview dev\n\n$ ${request}\n${response}` },
 		{ label: 'Lexicon', path: 'src/lexicons/com/example/hello.json', lang: 'json', code: lexicon },
 		{ label: 'Script', path: 'src/lexicons/com/example/hello.lua', lang: 'lua', code: script },
-		{ label: 'Request', lang: 'shell', code: `$ hpy happyview dev\n\n$ ${request}\n${response}` },
+		{ label: 'happyview.toml', path: 'happyview.toml', lang: 'toml', code: toml },
 	] satisfies SampleTab[],
 	after: 'Change the script, save it and call it again: the new version answers, with no restart.',
 	// The sample runs `hpy`, which a visitor won't have yet.
@@ -54,6 +54,11 @@ export const sample = {
 		run: 'hpy happyview test',
 		output: ' PASS  src/lexicons/com/example/hello.test.lua (1 tests) 124ms',
 	},
+}
+
+export const close = {
+	title: 'Start with one lexicon.',
+	cta: hero.ctas.primary,
 }
 
 export type Tile = { title: string; blurb: string; href: string }

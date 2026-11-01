@@ -1,4 +1,4 @@
-// The v3 sidebar. Getting Started is in learning order; every other group is
+// The v3 sidebar. Getting started is in learning order; every other group is
 // ordered for scanning. A page that isn't listed here builds, but is reachable
 // only by link, so add new pages here.
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
@@ -10,7 +10,7 @@ const d = (slug: string) => (slug ? `docs/${slug}` : 'docs');
 export const v3Sidebar: Sidebar = [
   d(''),
   {
-    label: 'Getting Started',
+    label: 'Getting started',
     items: [
       d('getting-started/how-happyview-fits-atproto'),
       d('getting-started/installation'),
@@ -30,7 +30,7 @@ export const v3Sidebar: Sidebar = [
   {
     label: 'Guides',
     items: [
-      d('guides'),
+      { label: 'Overview', slug: d('guides') },
       {
         label: 'Data',
         collapsed: true,
@@ -74,29 +74,29 @@ export const v3Sidebar: Sidebar = [
         items: [
           d('guides/migrating-scripts'),
           d('guides/type-generation'),
-          {
-            label: 'Recipes',
-            collapsed: true,
-            items: [
-              d('guides/recipes/get-record'),
-              d('guides/recipes/paginated-list'),
-              d('guides/recipes/list-or-fetch'),
-              d('guides/recipes/expanded-query'),
-              d('guides/recipes/create-record'),
-              d('guides/recipes/upsert-record'),
-              d('guides/recipes/update-or-delete'),
-              d('guides/recipes/batch-save'),
-              d('guides/recipes/complex-mutations'),
-              d('guides/recipes/cascading-delete'),
-              d('guides/recipes/sidecar-records'),
-              d('guides/recipes/signed-record'),
-              d('guides/recipes/signed-record-verify'),
-              d('guides/recipes/record-webhook'),
-              d('guides/recipes/job'),
-              d('guides/recipes/algolia-sync'),
-              d('guides/recipes/meilisearch-sync'),
-            ],
-          },
+        ],
+      },
+      {
+        label: 'Recipes',
+        collapsed: true,
+        items: [
+          d('guides/recipes/get-record'),
+          d('guides/recipes/paginated-list'),
+          d('guides/recipes/list-or-fetch'),
+          d('guides/recipes/expanded-query'),
+          d('guides/recipes/create-record'),
+          d('guides/recipes/upsert-record'),
+          d('guides/recipes/update-or-delete'),
+          d('guides/recipes/batch-save'),
+          d('guides/recipes/complex-mutations'),
+          d('guides/recipes/cascading-delete'),
+          d('guides/recipes/sidecar-records'),
+          d('guides/recipes/signed-record'),
+          d('guides/recipes/signed-record-verify'),
+          d('guides/recipes/record-webhook'),
+          d('guides/recipes/job'),
+          d('guides/recipes/algolia-sync'),
+          d('guides/recipes/meilisearch-sync'),
         ],
       },
       {
@@ -104,45 +104,46 @@ export const v3Sidebar: Sidebar = [
         collapsed: true,
         items: [d('guides/plugins'), d('guides/developing-plugins')],
       },
+    ],
+  },
+  {
+    label: 'Operating',
+    collapsed: true,
+    items: [
       {
-        label: 'Operating',
+        label: 'Self-hosting',
         collapsed: true,
         items: [
-          {
-            label: 'Self-hosting',
-            collapsed: true,
-            items: [
-              d('guides/self-hosting/docker'),
-              d('guides/self-hosting/binary'),
-              d('guides/self-hosting/from-source'),
-              d('guides/self-hosting/production'),
-            ],
-          },
-          d('guides/configuration'),
-          d('guides/dashboard'),
-          {
-            label: 'Database',
-            collapsed: true,
-            items: [
-              d('guides/database/database-setup'),
-              d('guides/database/sqlite-to-postgres-migration'),
-              d('guides/database/postgres-to-sqlite-migration'),
-            ],
-          },
-          d('guides/hardening'),
-          d('guides/event-logs'),
-          d('guides/telemetry'),
-          d('guides/troubleshooting'),
-          d('guides/upgrading-to-v3'),
-          d('guides/upgrading-to-v2'),
+          d('guides/self-hosting/docker'),
+          d('guides/self-hosting/binary'),
+          d('guides/self-hosting/from-source'),
+          d('guides/self-hosting/production'),
         ],
       },
+      d('guides/configuration'),
+      d('guides/dashboard'),
+      {
+        label: 'Database',
+        collapsed: true,
+        items: [
+          d('guides/database/database-setup'),
+          d('guides/database/sqlite-to-postgres-migration'),
+          d('guides/database/postgres-to-sqlite-migration'),
+        ],
+      },
+      d('guides/hardening'),
+      d('guides/event-logs'),
+      d('guides/telemetry'),
+      d('guides/troubleshooting'),
+      d('guides/upgrading-to-v3'),
+      d('guides/upgrading-to-v2'),
     ],
   },
   {
     label: 'Reference',
+    collapsed: true,
     items: [
-      d('reference'),
+      { label: 'Overview', slug: d('reference') },
       d('reference/cli'),
       d('reference/configuration'),
       {
@@ -185,7 +186,7 @@ export const v3Sidebar: Sidebar = [
   },
   {
     label: 'Architecture',
-    items: [d('architecture'), d('architecture/glossary')],
+    items: [{ label: 'Overview', slug: d('architecture') }, d('architecture/glossary')],
   },
   d('changelog'),
 ];

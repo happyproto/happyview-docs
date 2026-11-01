@@ -1,7 +1,6 @@
 ---
 title: "Authentication reference"
 description: "How users, third-party apps and API clients authenticate to HappyView, in detail."
-type: reference
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -327,6 +326,7 @@ The client app and HappyView share the same DPoP keypair, so both can generate v
 
 ```mermaid
 sequenceDiagram
+    accTitle: Flow overview
     participant Client as Client App
     participant HV as HappyView
     participant PDS as User's PDS
