@@ -12,7 +12,7 @@ This page deploys your project to an instance: you sign in to it once with `hpy`
 ## Before you start
 
 - **Run your checks.** `hpy happyview check` builds the project the way an instance will, and `hpy happyview test` runs your [tests](/docs/getting-started/testing). Fix what they report first.
-- **An instance running HappyView v3.** On HappyProto, your instance is part of your HappyProto project; HappyProto is [in beta, by invite](https://happyproto.at). To run your own, follow [Self-hosting](/docs/guides/self-hosting/docker).
+- **An instance running HappyView v3.** On HappyProto, your instance is part of your HappyProto project; HappyProto is [in beta, by invite](https://happyproto.at). To run your own, follow [Self-hosting](/docs/guides/self-hosting/docker). An instance started with `HAPPYVIEW_PROJECT` serves that directory and refuses a deploy.
 - **An operator account on it with the `project:deploy` permission.** On a self-hosted instance, the first account to sign in to its dashboard, or the one its `SUPERADMIN_DID` names, has every permission and can give other accounts permissions under **Access > Users**. The **Manager** [template](/docs/guides/permissions#permission-templates) includes `project:deploy`.
 - **A PDS that supports atproto permission sets**, a recent part of atproto OAuth that lets an app ask for a named bundle of permissions. Signing in asks your PDS to grant `hpy` HappyView's admin permissions; a PDS that can't is refused with a message saying so. To deploy without signing in, use an API key, as [Deploy from CI](#deploy-from-ci) does.
 
@@ -49,7 +49,7 @@ If you're signed in to more than one instance, pass `--url` to each command belo
 hpy happyview deploy --dry-run
 ```
 
-A dry run builds your project on the instance and lists what would change, the plugins it would install, and any backfills it would start, without changing anything. If the project doesn't build there, it lists the problems with their files and lines.
+A dry run builds your project on the instance and lists what would change, the plugins it would install, and any backfills it would start, without changing anything. If the project doesn't build there, it lists the problems with their files and lines. While a plugin is still to be installed, the instance may not be able to build the project yet: the dry run says so, and the deploy builds it again after the plugins are in place.
 
 ## Deploy
 
@@ -60,7 +60,7 @@ hpy happyview deploy
 `hpy` shows the same preview and asks you to confirm (`--yes` skips the question). Then it:
 
 1. installs the interpreters and libraries your `happyview.lock` names, at exactly those versions;
-2. sends your project: `happyview.toml` and everything under `src/`;
+2. sends your project: `happyview.toml`, everything under `src/`, and each `[modules]` build;
 3. starts the backfills your lexicons ask for.
 
 The instance builds the project before it switches over. If the build fails, nothing changes: the project that was already there keeps serving, and the deploy prints the problems.
@@ -148,4 +148,4 @@ jobs:
 ## Next steps
 
 - [Backfill](/docs/guides/backfill): watch the backfills a deploy starts.
-- [Configuration](/docs/guides/configuration): the settings an instance takes from its environment.
+- [Configuration reference](/docs/reference/configuration): the settings an instance takes from its environment.

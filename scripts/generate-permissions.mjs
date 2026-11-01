@@ -55,7 +55,7 @@ for (const v of all) {
 }
 
 const lines = [
-	`HappyView has **${all.length} permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (${viewer.size}), **${middleLabel}** (${maintainer.size}), **Manager** (${manager.size}) and **Full Access** (all ${all.length}). The operator with superadmin holds every permission and can't be restricted.`,
+	`HappyView has **${all.length} permissions**. An operator holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (${viewer.size}), **${middleLabel}** (${maintainer.size}), **Manager** (${manager.size}) and **Full Access** (all ${all.length}). The operator with superadmin holds every permission and can't be restricted.`,
 	'',
 	'| Permission | What it allows | Lowest template that grants it |',
 	'|---|---|---|',

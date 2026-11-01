@@ -7,7 +7,7 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to test the scripts in a HappyView project. You'll write a test file, run it, fire triggers at your handlers, mock a library and act as a signed-in user.
+This page shows you how to test the scripts in a HappyView project. You'll write a test file, run it, fire triggers at your scripts, mock a library and act as a signed-in user.
 
 Tests run against a project on disk: a directory with a `happyview.toml` and a `src/` directory. `hpy happyview create` scaffolds one. Scripts saved only in the dashboard can't be tested this way.
 
@@ -79,7 +79,7 @@ describe("format.shout", () => {
 </TabItem>
 </Tabs>
 
-A test file imports the project's own modules by a path relative to itself, as a handler does.
+A test file imports the project's own modules by a path relative to itself, as a script does.
 
 The Lua assertions are `assert(value, message)`, `assert.are.equal`, `assert.are.same` (deep), `assert.is_true`, `assert.is_false`, `assert.is_nil` and `assert.has_error`. The JavaScript and TypeScript matchers are `toBe`, `toEqual`, `toBeTruthy`, `toBeNull`, `toContain`, `toMatchObject` and `toThrow`, plus `.resolves` and `.rejects` for a promise.
 
@@ -136,7 +136,7 @@ A whole file fails if it won't load, raises an error outside a test, reports no 
 
 ## Fire a trigger
 
-The `test` object from `internal.test` fires triggers at your handlers. Each trigger goes in through the same entry point as the real event, so your handler runs as it would in production, with auth and indexing around it. Each one returns `{ status, body }`.
+The `test` object from `internal.test` fires triggers at your scripts. Each trigger goes in through the same entry point as the real event, so your script runs as it would in production, with auth and indexing around it. Each one returns `{ status, body }`.
 
 This test fires a record create at the `xyz.statusphere.status` record script from [Reacting to records](/docs/getting-started/reacting-to-records):
 
@@ -214,7 +214,7 @@ The triggers are named in snake case in Lua and camel case in JavaScript and Typ
 | --- | --- | --- | --- |
 | `query(nsid, params, opts)` | `query` | Sends a GET through HappyView's XRPC router, in process. A list in `params` becomes a repeated parameter | The response JSON |
 | `procedure(nsid, input, opts)` | `procedure` | Sends a POST with `input` as the JSON body | The response JSON |
-| `record_create(collection, opts)` | `recordCreate` | Hands the record handler a create event, so the collection's record scripts run and the record is indexed | `outcome`, `uri`, `cid`, `errors` |
+| `record_create(collection, opts)` | `recordCreate` | Hands HappyView a create event, as the network would, so the collection's record scripts run and the record is indexed | `outcome`, `uri`, `cid`, `errors` |
 | `record_update(collection, opts)` | `recordUpdate` | The same, for an update. Needs `opts.rkey` | As above |
 | `record_delete(collection, opts)` | `recordDelete` | The same, for a delete. Needs `opts.rkey` | As above |
 | `job(type, input, opts)` | `job` | Creates a job of that type and runs its script once, to the end | `id`, `status`, `result`, `error`, `progress` |
@@ -229,14 +229,7 @@ A few details:
 
 ### Lexicon validation
 
-:::caution[Pending happyview#276]
-Until happyview#276 is released, query and procedure parameters aren't checked against the lexicon. A value past a `maxLength`, for example, still reaches your script and usually answers `200`, in a test run and on a served instance alike. The rules below apply once #276 ships.
-
-- A call whose parameters or input break the method's lexicon gets `400 {"error":"InvalidRequest"}` with a message naming the first problem, and the script doesn't run.
-- A parameter the lexicon declares as an array, sent once, arrives as a one-item array.
-- A missing parameter with a `default` arrives as that default.
-- `knownValues` isn't enforced, and parameters the lexicon doesn't declare pass through untouched.
-:::
+`query` and `procedure` go through the same [lexicon checks](/docs/getting-started/queries-and-procedures#lexicon-checks) as a real call. A call that breaks the lexicon gets `status` `400` with `InvalidRequest` in its `body`, and the script doesn't run.
 
 ## Act as a user
 
@@ -250,7 +243,7 @@ A forged caller only exists in a test run. HappyView honours it only when the re
 
 ## Mock a library
 
-A library you don't mock runs for real, network included. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. This test answers every `get` from `happyview.http`, then checks the handler made one call. `com.example.getWeather` stands in for a query your project defines.
+A library you don't mock runs for real, network included. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. This test answers every `get` from `happyview.http`, then checks the script made one call. `com.example.getWeather` stands in for a query your project defines.
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -362,7 +355,7 @@ HappyView itself reaches no real network during a test run: no PLC directory, re
 ## Time limits
 
 - **A test file** can spend 60 seconds running its own code. Time spent inside a trigger doesn't count. A file that runs past its limit fails, and the other files carry on.
-- **A handler** behind a trigger gets a served instance's limits: 10 seconds and 1,000,000 instructions by default. A test run has no dashboard settings, so set `SCRIPT_WALL_CLOCK_SECONDS` and `SCRIPT_INSTRUCTION_LIMIT` in the environment to match an instance that raised them.
+- **A script** behind a trigger gets a served instance's limits: 10 seconds and 1,000,000 instructions by default. A test run has no dashboard settings, so set `SCRIPT_WALL_CLOCK_SECONDS` and `SCRIPT_INSTRUCTION_LIMIT` in the environment to match an instance that raised them.
 - **A job** gets 60 seconds for its own code and another 60 seconds shared across its `ctx.job.wait` calls. A served job has no such limit.
 - **An unmocked library call** fails with a timeout after 60 seconds, network time included.
 
@@ -371,7 +364,7 @@ HappyView itself reaches no real network during a test run: no PLC directory, re
 `--watch` runs the tests, then waits for changes and reruns:
 
 - A change to test files only reruns those files.
-- Any other change, to a handler, a module, a lexicon or `happyview.toml`, reruns every test file.
+- Any other change, to a script, a module, a lexicon or `happyview.toml`, reruns every test file.
 - A change to `happyview.toml` or `.env.test` is loaded before the rerun.
 - A save that breaks the build prints the error and keeps watching. The next save that builds reruns everything the broken saves touched.
 - A save made while tests are running waits for the run to finish.

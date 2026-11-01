@@ -1,0 +1,150 @@
+---
+title: Expanded query
+description: A query script that lists statuses and includes each author's profile in the same response, in Lua, JavaScript and TypeScript.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+List statuses and include the profile of each user who created one.
+
+**Trigger:** `xrpc.query:<nsid>`. **Needs:** `happyview-db`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+local json = require("internal.json")
+local db = require("happyview.db")
+
+function handle(input, ctx)
+  local limit = tonumber(input.limit) or 20
+  if limit > 100 then limit = 100 end
+
+  local page = db.records("xyz.statusphere.status")
+    :did(input.did)
+    :limit(limit)
+    :cursor(input.cursor)
+    :run()
+
+  -- Load each author's profile once
+  local seen = {}
+  local profiles = {}
+  for _, status in ipairs(page.records) do
+    if not seen[status.did] then
+      seen[status.did] = true
+      local profile = db.get("at://" .. status.did .. "/app.bsky.actor.profile/self")
+      if profile then
+        profiles[#profiles + 1] = profile
+      end
+    end
+  end
+
+  return {
+    statuses = page.records,
+    profiles = json.to_array(profiles),
+    cursor = page.cursor,
+  }
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import db from "happyview.db";
+
+export default async function handle(input, ctx) {
+  const limit = Math.min(Number(input.limit) || 20, 100);
+
+  const page = await db.records("xyz.statusphere.status")
+    .did(input.did)
+    .limit(limit)
+    .cursor(input.cursor)
+    .run();
+
+  // Load each author's profile once
+  const dids = [...new Set(page.records.map((status) => status.did))];
+  const found = await Promise.all(
+    dids.map((did) => db.get(`at://${did}/app.bsky.actor.profile/self`)),
+  );
+
+  return {
+    statuses: page.records,
+    profiles: found.filter((profile) => profile !== null),
+    cursor: page.cursor,
+  };
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import db from "happyview.db";
+
+interface Input {
+  did?: string;
+  limit?: string | number;
+  cursor?: string;
+}
+
+export default async function handle(input: Input) {
+  const limit = Math.min(Number(input.limit) || 20, 100);
+
+  const page = await db.records("xyz.statusphere.status")
+    .did(input.did)
+    .limit(limit)
+    .cursor(input.cursor)
+    .run();
+
+  // Load each author's profile once
+  const dids = [...new Set(page.records.map((status) => status.did))];
+  const found = await Promise.all(
+    dids.map((did) => db.get(`at://${did}/app.bsky.actor.profile/self`)),
+  );
+
+  return {
+    statuses: page.records,
+    profiles: found.filter((profile) => profile !== null),
+    cursor: page.cursor,
+  };
+}
+```
+
+</TabItem>
+</Tabs>
+
+## How it works
+
+1. Query statuses from the target collection with pagination, same as a normal list query.
+2. Each envelope carries the author's `did`, so the unique DIDs fall out of the page without parsing URIs.
+3. Look up each DID's `app.bsky.actor.profile/self` record (this is where Bluesky profiles live) with `db.get`. A profile that isn't indexed returns nothing and is skipped.
+4. Return statuses and profiles as separate keys, with the cursor from the status query. In Lua, `json.to_array` keeps `profiles` a JSON array when it is empty.
+
+## Usage
+
+```
+GET /xrpc/xyz.statusphere.listStatusesWithProfiles?limit=10
+GET /xrpc/xyz.statusphere.listStatusesWithProfiles?did=did:plc:abc
+GET /xrpc/xyz.statusphere.listStatusesWithProfiles?cursor=<opaque>&limit=20
+```
+
+```json
+{
+  "statuses": [
+    { "uri": "at://did:plc:abc/xyz.statusphere.status/3abc123", "did": "did:plc:abc", "record": { "status": "😊", "createdAt": "..." } },
+    { "uri": "at://did:plc:def/xyz.statusphere.status/3def456", "did": "did:plc:def", "record": { "status": "🌟", "createdAt": "..." } }
+  ],
+  "profiles": [
+    { "uri": "at://did:plc:abc/app.bsky.actor.profile/self", "did": "did:plc:abc", "record": { "displayName": "Alice", "avatar": "..." } },
+    { "uri": "at://did:plc:def/app.bsky.actor.profile/self", "did": "did:plc:def", "record": { "displayName": "Bob", "avatar": "..." } }
+  ],
+  "cursor": "MjAyNi0wMS0wMVQxMjowMDowMFp8YXQ6Ly9kaWQ6..."
+}
+```
+
+## Use case
+
+An app gets statuses and profiles in one call, so it doesn't make one request per author. The deduplication step loads each profile once even if several statuses share an author.
+
+`db.get` reads from HappyView's index, so profiles appear only if `app.bsky.actor.profile` is also indexed. Each entry is an envelope, so an app reads `record.status` and `record.displayName`; the other envelope fields are elided above.

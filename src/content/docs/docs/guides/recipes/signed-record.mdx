@@ -1,12 +1,16 @@
 ---
 title: Signed record
+description: A procedure script that saves a record with an attestation signature attached, in Lua, JavaScript and TypeScript.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Save a record with an attestation signature attached.
 
-**Lexicon type:** procedure
+**Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-record`, `happyview-atproto`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
 
 ```lua
 local time = require("internal.time")
@@ -26,11 +30,61 @@ function handle(input, ctx)
 end
 ```
 
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import time from "internal.time";
+import record from "happyview.record";
+import atproto from "happyview.atproto";
+
+export default async function handle(input, ctx) {
+  const body = { text: input.text, createdAt: time.to_iso8601(time.now()) };
+
+  try {
+    body.signature = await atproto.sign(body);
+  } catch {
+    // No signature: the record is saved without one.
+  }
+
+  const ref = await record.create(ctx.collection, body);
+  return { uri: ref.uri, cid: ref.cid, signature: body.signature };
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import time from "internal.time";
+import record from "happyview.record";
+import atproto from "happyview.atproto";
+
+export default async function handle(input: { text: string }, ctx: { collection: string }) {
+  const body: Record<string, unknown> = {
+    text: input.text,
+    createdAt: time.to_iso8601(time.now()),
+  };
+
+  try {
+    body.signature = await atproto.sign(body);
+  } catch {
+    // No signature: the record is saved without one.
+  }
+
+  const ref = await record.create(ctx.collection, body);
+  return { uri: ref.uri, cid: ref.cid, signature: body.signature };
+}
+```
+
+</TabItem>
+</Tabs>
+
 ## How it works
 
 1. Build the record body.
-2. Sign it with `sign` on [`happyview.atproto`](/docs/reference/scripts/libraries). The `pcall` lets the script work without a signer configured, where `sign` raises `NO_SIGNER`. Signing also needs a caller: it fails when no account is signed in.
-3. Attach the signature to the body as `body.signature`, then save the record with `record.create`. The record lexicon must allow a `signature` field, or the write is refused.
+2. Sign it with `sign` on [`happyview.atproto`](/docs/reference/scripts/libraries). The `pcall` (Lua) or `try`/`catch` (JavaScript and TypeScript) lets the script work without a signer configured, where `sign` raises `NO_SIGNER`. Signing also needs a caller, which a procedure always has.
+3. Attach the signature to the body as `body.signature`, then save the record with `record.create`. Declare `signature` in the record lexicon, so apps reading the record know the field exists.
 4. Return the signature alongside the URI.
 
 The signature's `$type` defaults to `games.gamesgamesgamesgames.attestation`. Set `ATTESTATION_SIG_TYPE` to use another type.
@@ -129,6 +183,6 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.example.createPost \
 
 ## Use case
 
-Attestation signatures let clients verify that a record was processed by your HappyView instance — useful for contributions, moderation decisions, or cross-instance data where provenance matters. The signature covers both the record content and the author's DID, so it can't be replayed across users or tampered with.
+An attestation signature lets an app verify that a record was processed by your instance, for contributions, moderation decisions or data shared between instances. The signature covers both the record content and the author's DID, so it can't be replayed across users, and changing the record invalidates it.
 
-See [Attestation Signing](/docs/guides/attestation-signing) for setup and configuration, or [Verify Signed Record](/docs/guides/recipes/signed-record-verify) for the read-side counterpart.
+See [Attestation signing](/docs/guides/attestation-signing) for setup and configuration, or [Verify a signed record](/docs/guides/recipes/signed-record-verify) for the read side.

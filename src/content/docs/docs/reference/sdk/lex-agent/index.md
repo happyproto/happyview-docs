@@ -60,5 +60,5 @@ The `Client` validates parameters and return types against the lexicon schema at
 
 Creates an `@atproto/lex` `Agent` from a `HappyViewSession`.
 
-- `agent.did` — the session user's DID
-- `agent.fetchHandler(path, init)` — delegates to `session.fetchHandler`, which attaches DPoP authentication headers and prepends the HappyView instance URL to relative paths
+- `agent.did`: the session user's DID
+- `agent.fetchHandler(path, init)`: delegates to `session.fetchHandler`, which attaches DPoP authentication headers and prepends the HappyView instance URL to relative paths

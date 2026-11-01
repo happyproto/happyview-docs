@@ -7,7 +7,7 @@ A plugin is a WebAssembly module plus a `manifest.json` that says what it is and
 
 ## The SDK crate
 
-`happyview-plugin-sdk` (version 0.4.0) is the Rust side of the plugin interface: the allocator and calling convention, the JSON types that cross the boundary, a typed wrapper for every host function, and macros that generate a plugin's exports. It isn't on crates.io; depend on it from HappyView's repository:
+`happyview-plugin-sdk` (version 0.5.0) is the Rust side of the plugin interface: the allocator and calling convention, the JSON types that cross the boundary, a typed wrapper for every host function, and macros that generate a plugin's exports. It isn't on crates.io; depend on it from HappyView's repository:
 
 ```toml
 [dependencies]
@@ -45,7 +45,7 @@ Each export takes its input as a pointer and length the host wrote with the plug
 | `name` | string | all | Required. |
 | `version` | string | all | Required. |
 | `api_version` | string | all | Required, and must be `"2"`. Lower is refused as too old, higher as unsupported. |
-| `plugin_type` | `auth`, `library` or `interpreter` | — | Default `auth`. |
+| `plugin_type` | `auth`, `library` or `interpreter` | all | Default `auth`. |
 | `description`, `icon_url`, `banner_url`, `publisher` | strings | all | Optional. `publisher` is a DID. |
 | `wasm_file` | string | all | Default `plugin.wasm`, relative to the manifest's URL. |
 | `capabilities` | list | all | Must cover every import the module makes; see [Capabilities](#capabilities). The plugin gets exactly these. |
@@ -54,7 +54,7 @@ Each export takes its input as a pointer and length the host wrote with the plug
 | `namespace` | string | library | What scripts `require`, such as `happyview.db`. Default: the `id`. `internal.` is reserved, and two libraries can't share one. |
 | `dependencies` | `[{ id, version }]` | library | Other libraries this one calls, with a semver range (default `*`). Auth and interpreter plugins can't declare any. |
 | `language_id` | string | interpreter | Required. Lowercase letters, digits, `-` and `_`, starting with a letter. Unique among installed interpreters. |
-| `extensions` | list | interpreter | The file extensions it runs, 1–16 lowercase letters or digits, not `json`. Unique among installed interpreters. |
+| `extensions` | list | interpreter | The file extensions it runs, 1 to 16 lowercase letters or digits, not `json`. Unique among installed interpreters. |
 | `supports_libraries` | list | interpreter | Default `["*"]`, every library. Can't mix `*` with ids. |
 | `auth_type` | `oauth2`, `openid` or `api_key` | auth | Default `oauth2`. |
 | `config_schema` | JSON Schema | auth | Optional. |
@@ -110,7 +110,7 @@ The SDK's `host` module has a typed wrapper for each host function, grouped here
 
 | Capability | Wrappers |
 | --- | --- |
-| none | `log`, `debug`, `info`, `warn`, `error`, `allowed_hosts`, `lexicon_get` |
+| none | `log`, `debug`, `info`, `warn`, `error`, `allowed_hosts`, `lexicon_get`, `script_panic` |
 | `secrets:read` | `get_secret` |
 | `kv:read`, `kv:write` | `kv_get`, `kv_set(key, value, ttl_secs)`, `kv_delete` |
 | `network:*` | `http_request` |

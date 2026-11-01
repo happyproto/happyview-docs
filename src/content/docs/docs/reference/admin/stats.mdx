@@ -4,6 +4,8 @@ title: "Stats"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
+Read record counts by collection, operator and client counts, and Jetstream status. Every endpoint needs `stats:read`, or the platform key.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -133,6 +135,48 @@ GET /admin/stats/counts
 Returns the number of operators (seats, including those with superadmin) and registered API clients. It is cheap to call often, unlike the record counts above. Requires `stats:read`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/stats/counts", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/stats/counts", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/stats/counts")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/stats/counts", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh

@@ -139,7 +139,7 @@ curl -X POST http://127.0.0.1:3000/admin/backfill \
 | `did`        | string   | no       | A single account; kept for compatibility and added to `dids`                |
 | `source`     | string   | no       | `crawl`, `replay` or `auto`. Defaults to `BACKFILL_SOURCE` (`crawl` unless set). A job with `dids` always crawls, and `replay` with `dids` is refused. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl) |
 
-Every entry in `dids` must resolve, or the request fails with `400` listing each entry that did not and no job is created. Duplicates are ignored. A request can name at most 500 accounts. Any other `source` fails with `400` and the message `source must be one of auto, replay, crawl`. `source: "replay"` with `dids` fails with `400` and the message `replay is only available for collection backfills; account backfills always crawl`; account backfills crawl even when `BACKFILL_SOURCE` is `replay` or `auto`. A replay can only return what the archive holds: some repos' history in Bluesky's archive starts later than their first record. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl).
+Every entry in `dids` must resolve, or the request fails with `400` listing each entry that did not and no job is created. Duplicates are ignored. A request can name at most 500 accounts. Any other `source` fails with `400` and the message `source must be one of auto, replay, crawl`. `source: "replay"` with `dids` fails with `400` and the message `replay is only available for collection backfills; account backfills always crawl`; account backfills crawl even when `BACKFILL_SOURCE` is `replay` or `auto`. A replay can only return what the archive holds: some accounts' history in Bluesky's archive starts later than their first record. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl).
 
 **Response**: `201 Created`
 
@@ -150,13 +150,23 @@ Every entry in `dids` must resolve, or the request fails with `400` listing each
 }
 ```
 
+A job left with no collection to backfill completes at once, with `error` set to `no backfill-eligible collections`.
+
+:::note[Pending happyview#319]
+A job left with nothing because every collection it covers belongs to a record source's own backfill completes with no `error` and a `note` instead. [happyview#319](https://github.com/gamesgamesgamesgamesgames/happyview/pull/319) is open.
+:::
+
 ## Cancel a backfill job
 
 ```
 POST /admin/backfill/{id}/cancel
 ```
 
-Requests cancellation of a running backfill job. The job status transitions to `cancelling` immediately; the background worker will stop at its next checkpoint and set the final status to `cancelled`. See the [Backfill guide](/docs/guides/backfill#cancelling-a-job) for details on the two-phase process.
+Requests cancellation of a running backfill job. The job status transitions to `cancelling` immediately; the background worker stops at its next checkpoint and sets the final status to `cancelled`, with `error` set to `cancelled by user`. A paused job is cancelled at once, and a job already cancelling or cancelled answers with its status. See the [Backfill guide](/docs/guides/backfill#cancelling-a-job) for details on the two-phase process.
+
+:::note[Pending happyview#319]
+The `error` of a cancelled job becomes `Cancelled by an operator`. [happyview#319](https://github.com/gamesgamesgamesgamesgames/happyview/pull/319) is open.
+:::
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -221,7 +231,7 @@ curl -X POST "http://127.0.0.1:3000/admin/backfill/$JOB_ID/cancel" -H "$AUTH"
 }
 ```
 
-Returns `400` if the job is not currently running, or `404` if the job ID is not found.
+Returns `400` for a job in any other state, or `404` if the job ID is not found.
 
 ## Pause a backfill job
 
@@ -232,6 +242,50 @@ POST /admin/backfill/{id}/pause
 Requests a running backfill job to pause. The job status transitions to `pausing` immediately; the background worker will stop at its next checkpoint and set the status to `paused`. Paused jobs retain all progress and can be resumed later.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pause", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pause", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pause")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pause", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -261,6 +315,50 @@ POST /admin/backfill/{id}/resume
 Resume a paused backfill job, or a failed replay job. The job status transitions back to `running`, its `error` is cleared, and processing continues from where it left off. A replay job carries on from the last plan entry it finished, so a job that failed on an archive outage, or after 16 failed blocks in a row, doesn't start over. A failed crawl job can't be resumed and returns `400`. So does a failed replay job of specific accounts (created before account backfills always crawled) whose account list is gone (it goes when the job's details are cleared), and a job that another request resumed first. A replay job that failed because its error log is full (10,000 failures) fails again when resumed; start a new backfill instead.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume", {
+  method: "POST",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -296,7 +394,8 @@ interface BackfillJob {
   collection: string | null;
   did: string | null;
   scope: "network" | "dids";
-  source: "auto" | "replay" | "crawl";
+  // "auto", "replay", "crawl", or a record source's own name.
+  source: string;
   replay: {
     after_seq: number;
     through_seq: number | null;
@@ -316,6 +415,25 @@ interface BackfillJob {
   created_at: string;
   discovery_complete: boolean;
   recent_completions_limit: number | null;
+  note: string | null;
+  hooks: ScriptStats | null;
+  hook_stats: ScriptStats | null;
+}
+
+interface ScriptStats {
+  done: number;
+  failed: number;
+  timeouts: number;
+  dead_lettered: number;
+  skipped: number;
+  outcomes: Record<string, number>;
+  rate_per_s: number;
+  avg_rate_per_s: number;
+  eta_s: number | null;
+  record_ms_p50: number | null;
+  script_ms_p50: number | null;
+  script_share: number | null;
+  stages: Record<string, { n: number; ms_mean: number | null }>;
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/backfill/status", {
@@ -385,7 +503,12 @@ curl http://127.0.0.1:3000/admin/backfill/status -H "$AUTH"
     "completed_at": "2025-01-01T00:05:00Z",
     "created_at": "2025-01-01T00:00:00Z",
     "discovery_complete": true,
-    "recent_completions_limit": 1000
+    "recent_completions_limit": 1000,
+    "source": "crawl",
+    "replay": null,
+    "note": null,
+    "hooks": null,
+    "hook_stats": null
   }
 ]
 ```
@@ -417,21 +540,68 @@ A replay job looks like this:
   "completed_at": null,
   "created_at": "2025-01-01T00:00:00Z",
   "discovery_complete": true,
-  "recent_completions_limit": null
+  "recent_completions_limit": null,
+  "note": null,
+  "hooks": null,
+  "hook_stats": null
 }
 ```
 
 `source` is the source the job was created with; a job with accounts is always `crawl`. `auto` stays until the job's first request to the archive, then becomes `replay` or, for a Jetstream with no archive, `crawl`. `replay` is `null` for a crawl job. For a replay job, `after_seq` is where it started (`0`, or the last applied seq of a gap replay), `through_seq` and `tip_seq` are the running sweep's position and the tip it is working towards, `bytes` is what it has downloaded from the archive, and `blocks_failed` counts blocks that failed after retries. `through_seq` and `tip_seq` are `null` until the first plan answers.
 
-The `status` field tracks the overall job state (`running`, `pausing`, `paused`, `cancelling`, `cancelled`, `completed`, `failed`). The `stage` field tracks the current processing phase (`pending`, `discovering_repos`, `resolving_and_fetching`, `replaying`, `replaying_accounts`, `retrying_blocks`, `completed`, `failed`, `cancelled`). A replay job has no repo counters: `total_records` counts the records it has written. The `resolved_repos` counter tracks PDS resolution progress during the pipelined phase, while `processed_repos` tracks record fetching progress.
+The `status` field tracks the overall job state (`running`, `pausing`, `paused`, `cancelling`, `cancelled`, `completed`, `failed`). The `stage` field tracks the current processing phase (`pending`, `discovering_repos`, `resolving_and_fetching`, `replaying`, `replaying_accounts`, `retrying_blocks`, `completed`, `failed`, `cancelled`). A replay job has no `*_repos` counters: `total_records` counts the records it has written. The `resolved_repos` counter tracks PDS resolution progress during the pipelined phase, while `processed_repos` tracks record fetching progress.
 
-The three repo counters count work units. A unit is one repo under one collection: a network backfill discovers repos per collection, so a repo found under two collections is two units and counts twice. A unit for an account-targeted job covers every collection the job targets, so there one unit is one account. `total_repos` is the number discovered so far while a network backfill is still listing repos from the relay.
+The three `*_repos` counters count work units. A unit is one account under one collection: a network backfill discovers accounts per collection, so an account found under two collections is two units and counts twice. A unit for an account-targeted job covers every collection the job targets, so there one unit is one account. `total_repos` is the number discovered so far while a network backfill is still listing accounts from the relay.
 
-`scope` is `network` when repos are discovered through the relay and `dids` when the job targets specific accounts. `did` is set only when a job targets exactly one account.
+`scope` is `network` when accounts are discovered through the relay and `dids` when the job targets specific accounts. `did` is set only when a job targets exactly one account.
 
-`discovery_complete` is `false` while a network job is still listing repos from the relay. Discovery runs alongside resolving and fetching, and until it finishes `total_repos` counts the repos discovered so far. `recent_completions_limit` is set for jobs on the bounded queue (every job created after upgrading to the release that introduced it), which keep only that many completed repos for the `fetched` list. It is `null` for jobs created before that upgrade.
+`discovery_complete` is `false` while a network job is still listing accounts from the relay. Discovery runs alongside resolving and fetching. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue, and for replay jobs.
 
-A job HappyView paused itself, because it ran out of work with repos it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A job an operator paused has no `error`. Resuming clears it.
+A job HappyView paused itself, because it ran out of work with accounts it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A job an operator paused has no `error`. Resuming clears it.
+
+A record source can backfill some collections itself rather than crawl or replay them. Such a job's `source` is the name the record source gives its backfills, its counters are what the record source reports, and `note` may carry a sentence from the record source about what the job did or found. `note` is `null` for every other job.
+
+### Script stats
+
+`hooks` is what the job's records have cost in record scripts so far, while this process holds it: from the job's first record until an hour after its last, and `null` before and after. `hook_stats` is the same block kept with the job when it completed, failed or was cancelled. It's `null` until then, and for a job none of whose records reached a script decision. Neither is recorded while [metrics](/docs/reference/admin/metrics) are switched off.
+
+```json
+{
+  "done": 6,
+  "failed": 1,
+  "timeouts": 1,
+  "dead_lettered": 1,
+  "skipped": 2,
+  "outcomes": { "proceed": 4, "skip": 2 },
+  "rate_per_s": 0.57,
+  "avg_rate_per_s": 0.855,
+  "eta_s": 0.0,
+  "record_ms_p50": 171.074,
+  "script_ms_p50": 0.082,
+  "script_share": 0.00014,
+  "stages": {
+    "resolve": { "n": 6, "ms_mean": 2.36 },
+    "hook": { "n": 6, "ms_mean": 1254.153 },
+    "write": { "n": 4, "ms_mean": 0.504 }
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `done` | Records that reached a script decision, whether or not a script was set for them |
+| `failed` | Records whose script failed at least once, retries included |
+| `timeouts` | Records whose script ran out of time at least once |
+| `dead_lettered` | Records whose script was given up on. The record was still stored |
+| `skipped` | Records not stored: decisions of `skip` or `cid_mismatch` |
+| `outcomes` | Every record by what was decided: `proceed`, `replace`, `skip` or `cid_mismatch` |
+| `rate_per_s` | Records a second over about the last 30 seconds; the average until a second has passed |
+| `avg_rate_per_s` | Records a second since the job's first record |
+| `eta_s` | Seconds left, from the job's progress against its total. `null` for a crawl or a replay, which report no total |
+| `record_ms_p50` | A record's time: its lookup, CID check, script and its share of the write |
+| `script_ms_p50` | The script's own time: its code and the host calls it made |
+| `script_share` | Script time over record time |
+| `stages` | Each stage's records and mean, as on [`/admin/metrics/ingest`](/docs/reference/admin/metrics#ingest). A record source may add its own stages. A stage whose name ends in `_skipped` is a count, and its `ms_mean` is `null` |
 
 ## Backfill state of a collection
 
@@ -451,7 +621,7 @@ How a collection's backfill stands, as the record source describes it. Requires 
 }
 ```
 
-`executor` names what backfills this collection; `summary` is `null` when nothing has run, and its `state` is `running`, `complete`, `failed` or `null`.
+`executor` names what backfills this collection when a record source does it itself, and is `null` for a collection HappyView crawls or replays; `summary` is then `null` too. A record source that says nothing about the collection also answers `null`. In a summary, `records` and `state` are `null` when the record source doesn't know them, and `state` is otherwise `running`, `complete` or `failed`.
 
 ## List errors for a job
 
@@ -468,6 +638,48 @@ Paginated failure detail for a backfill job, with exact totals for each kind. Re
 | `limit`  | number | no       | Page size, 1 to 100 (default 50)                     |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/errors?kind=replay_block", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/errors?kind=replay_block", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/errors?kind=replay_block")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/errors?kind=replay_block", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -516,6 +728,77 @@ POST /admin/backfill/{id}/retry-failed
 Starts a new job for the failures of a finished job. Requires `backfill:create`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/retry-failed", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    kinds: [
+      "replay_block"
+    ]
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/retry-failed", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    kinds: [
+      "replay_block"
+    ]
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/retry-failed")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+        "kinds": [
+            "replay_block"
+        ]
+    }))
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "kinds": [
+    "replay_block"
+  ]
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/retry-failed", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -545,27 +828,69 @@ What the new job does depends on the source of the job it retries:
 }
 ```
 
-Returns `400` when there is nothing to retry: no failures of a retryable kind, or `kinds` names none that the job has. A replay job of specific accounts also answers `400` when its account list is gone, which happens after its details are cleared. Start a new backfill instead. Returns `404` if the job ID is not found.
+Returns `400` when there is nothing to retry: no failures of a retryable kind, or `kinds` names none that the job has. A record source's own job also answers `400`, because its failures are the record source's to retry. A replay job of specific accounts also answers `400` when its account list is gone, which happens after its details are cleared. Start a new backfill instead. Returns `404` if the job ID is not found.
 
-## List repos for a job
+## List accounts for a job
 
 ```
 GET /admin/backfill/{id}/repos
 ```
 
-Paginated per-repo detail for a backfill job. Requires `backfill:read`.
+Paginated per-account detail for a backfill job. Requires `backfill:read`.
 
 | Param    | Type   | Required | Description                                                                                                       |
 | -------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------------- |
-| `phase`  | string | no       | `fetched`: recently completed repos. `resolved`: queued repos whose PDS is known. Anything else: every queued repo |
+| `phase`  | string | no       | `fetched`: recently completed accounts. `resolved`: queued accounts whose PDS is known. Anything else: every queued account |
 | `cursor` | string | no       | Opaque cursor from a previous response with the same `phase`                                                      |
 | `limit`  | number | no       | Max results per page (default 50, max 100)                                                                        |
 
-A running backfill keeps at most `BACKFILL_DISCOVERY_WINDOW` repos queued and deletes each one when it finishes. `fetched` therefore lists the job's most recent completions, newest first, up to `recent_completions_limit` (1,000). The other phases list what is queued now, ordered by collection and then DID; queued repos have `status` `pending`. A repo queued under two collections appears once for each. `resolved` and the other queued phases share one cursor format. A `fetched` cursor sent to a queued phase, a queued-phase cursor sent to `fetched`, or a DID cursor kept from a job created before the bounded queue gets `400`.
+A running backfill keeps at most `BACKFILL_DISCOVERY_WINDOW` accounts queued and deletes each one when it finishes. `fetched` therefore lists the job's most recent completions, newest first, up to `recent_completions_limit` (1,000). The other phases list what is queued now, ordered by collection and then DID; queued accounts have `status` `pending`. An account queued under two collections appears once for each. `resolved` and the other queued phases share one cursor format. A `fetched` cursor sent to a queued phase, a queued-phase cursor sent to `fetched`, or a DID cursor kept from a job created before the bounded queue gets `400`.
 
-Jobs created before the bounded queue (`recent_completions_limit` is `null`) keep a row for every repo and list them all in DID order as before: `fetched` lists completed repos, `resolved` repos whose PDS is known, and anything else every repo. Their cursor is the last DID.
+Jobs created before the bounded queue (`recent_completions_limit` is `null`) keep a row for every account and list them all in DID order: `fetched` lists completed accounts, `resolved` accounts whose PDS is known, and anything else every account. Their cursor is the last DID.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/repos?phase=fetched&limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/repos?phase=fetched&limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/repos?phase=fetched&limit=10")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/repos?phase=fetched&limit=10", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -594,9 +919,51 @@ curl "http://127.0.0.1:3000/admin/backfill/$JOB_ID/repos?phase=fetched&limit=10"
 GET /admin/backfill/{id}/pds-summary
 ```
 
-Aggregated PDS breakdown for a backfill job. Requires `backfill:read`. No pagination — returns all PDS endpoints in one response, sorted by repo count descending. For jobs on the bounded queue the counts are kept per PDS as the job runs, and `total_repos` counts work units resolved to that PDS, like the other counters: a repo queued under two collections counts twice.
+Aggregated PDS breakdown for a backfill job. Requires `backfill:read`. It isn't paginated: it returns all PDS endpoints in one response, sorted by account count descending. For jobs on the bounded queue the counts are kept per PDS as the job runs, and `total_repos` counts work units resolved to that PDS, like the other counters: an account queued under two collections counts twice.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pds-summary", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pds-summary", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pds-summary")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/pds-summary", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -634,6 +1001,9 @@ Events are sent with `event: event` and a JSON `data` payload. Each event has a 
 | `job_counters`     | Updated progress counters                         |
 | `job_stage_changed`| The job moved to a new processing stage           |
 | `job_completed`    | The job finished (completed, failed, or cancelled) |
+| `job_note`         | The record source set the job's `note`            |
+| `replay_progress`  | A replay's `through_seq`, `tip_seq`, `bytes` and `blocks_failed` moved |
+| `hook_stats`       | The job's [script stats](#script-stats): at most once a second while records arrive, and once more as the job ends |
 | `job_snapshot`     | The job's current status, stage, counters, error counts and `discovery_complete`, sent on connect and after the stream falls behind |
 
 ## Flush job details
@@ -642,11 +1012,52 @@ Events are sent with `event: event` and a JSON `data` payload. Each event has a 
 DELETE /admin/backfill/{id}/details
 ```
 
-Delete the per-repo detail of one backfill job: its recent completions, its PDS summary, any repos left queued and, for jobs created before the bounded queue, its repo rows. Requires `backfill:create`.
+Delete the per-account detail of one backfill job: its recent completions, its PDS summary, any accounts left queued and, for jobs created before the bounded queue, its rows for every account. Requires `backfill:create`.
 
-A job on the bounded queue can be flushed only once it is `completed`, `cancelled` or `failed`, since its queue is the work it still has to do. Flushing one that is running, pausing, paused or cancelling returns `409`. A job created before the bounded queue can be flushed in any state, as before.
+A job on the bounded queue can be flushed only once it is `completed`, `cancelled` or `failed`, since its queue is the work it still has to do. Flushing one that is running, pausing, paused or cancelling returns `409`. A job created before the bounded queue can be flushed in any state.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/details", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/details", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/details")
+    .bearer_auth(token)
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/details", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -664,9 +1075,50 @@ curl -X DELETE "http://127.0.0.1:3000/admin/backfill/$JOB_ID/details" -H "$AUTH"
 DELETE /admin/backfill/details
 ```
 
-Delete the per-repo detail and leftover queue of every completed, cancelled and failed backfill job. Requires `backfill:create`.
+Delete the per-account detail and leftover queue of every completed, cancelled and failed backfill job. Requires `backfill:create`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/backfill/details", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/backfill/details", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:3000/admin/backfill/details")
+    .bearer_auth(token)
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/backfill/details", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh

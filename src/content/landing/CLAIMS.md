@@ -54,32 +54,9 @@ rather than "the next request".
 | Named permissions, four templates (alternate tile) | Generated table in `../glossary.mdx` |
 | atproto OAuth sign-in for the dashboard (alternate tile) | `src/auth/`; dashboard login |
 | SQLite or Postgres; migrations on startup; Postgres for replicas (alternate tile) | `getting-started/deployment/docker.md` (Compose-file table) |
-| Binary for macOS, Linux, Windows | `getting-started/deployment/binary.md`; release v3.0.0-alpha.42 has macOS (arm64, x86_64), Linux (arm64, x86_64; gnu and musl) and Windows (x86_64) archives |
+| Binary for macOS and Linux | `guides/self-hosting/binary`; alpha publishes macOS and Linux builds and no Windows build (commit 51998786) |
 | Docker image | `getting-started/deployment/docker.md` (`ghcr.io/gamesgamesgamesgamesgames/happyview`; prereleases published under their full version). Not checked against the registry: listing the image's tags needs `read:packages` |
 | HappyProto instance at `<slug>.hpy.at`, Lua preinstalled | HappyProto provisioner; upgrade guide draft |
 | `hpy happyview deploy` | `happyproto/cli` v1.0.0-beta.3 `crates/hpy/src/cli.rs:208-236`. **Not in hpy 1.0.0-alpha.15** (`unrecognized subcommand 'deploy'`) |
 | Three plan sizes, from 512 MB / 5 GB | HappyProto plans: Small 512 MB / 5 GB, Medium 1 GB / 10 GB, Large 2 GB / 20 GB. **Depends on provisioner#33** (the shrink) |
 | In beta, by invite | Owner-confirmed dates: invites at the very end of October or early November |
-
-## Before this ships
-
-- **Hrefs** follow happyview-76's routes: "Get started" →
-  `/docs/getting-started/installation`, self-host → `/docs/guides/self-hosting/docker`.
-  The tiles' other `/docs/getting-started/*` pages are guesses at P2's pages.
-- **Installing hpy and `hpy happyview create`** aren't in alpha's docs; the new
-  docs site (happyproto/happyview-docs) covers both. Point "Start a project"
-  there.
-- **"In beta now, by invite"** is true once invites go out (Monday).
-- **Plan sizes** wait on provisioner#33.
-- **`hpy happyview deploy`** is in the beta channel (1.0.0-beta.3), not in
-  alpha.15; the copy says "hpy 1.0 beta".
-
-## Found while checking (not fixed here)
-
-- **A query's lexicon constraints weren't enforced on its parameters.**
-  `com.example.hello` declares `name` with `maxLength: 64`; on alpha.42 a
-  65-character `name` answers `200`, over HTTP and through `test.query`. Fixed
-  in happyview#276 (HAP-289), which refuses such calls with `400
-  InvalidRequest`. Once it merges, `guides/testing.md`'s "Lexicon validation
-  … all apply" is true. The landing copy doesn't claim request validation
-  either way.

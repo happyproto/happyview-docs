@@ -190,7 +190,7 @@ To run a job script without queuing anything, fire it from a test file with `job
 
 Open your local dashboard and go to **Data > Jobs**. The table lists every job with its status, and you can filter by status. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines your job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
 
-You can also read jobs with the admin API:
+You can also read jobs with the admin API. Here `$AUTH` holds `Authorization: Bearer <key>`, with an [admin API key](/docs/getting-started/authentication#use-the-admin-api-with-an-api-key):
 
 ```sh
 # List jobs, optionally by status
@@ -223,7 +223,7 @@ A job still has the 64 MiB memory limit that every script has. See [Limits](/doc
 
 The worker checks for pending jobs every 5 seconds and takes the oldest first. By default one job runs at a time. Set `JOB_WORKER_CONCURRENCY` to run more at once, up to 32.
 
-## Not supported yet
+## Not supported
 
 These are not available in this version of HappyView:
 

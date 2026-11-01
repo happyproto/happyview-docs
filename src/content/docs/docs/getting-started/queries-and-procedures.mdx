@@ -103,10 +103,6 @@ export default function handle(input: Params, ctx: QueryCtx): Output {
 
 A query can be called anonymously, so a script can't assume a caller. To read records, a script uses the `happyview.db` library; [Plugins and libraries](/docs/getting-started/plugins-and-libraries) adds it and shows a query built on it.
 
-:::caution[Check parameters in your script]
-HappyView converts each parameter to its declared type, but doesn't enforce the rest of the lexicon, such as `maxLength` or required parameters. Check what your script relies on. [happyview#276](https://github.com/gamesgamesgamesgamesgames/happyview/pull/276) proposes enforcing them.
-:::
-
 ## A procedure
 
 A procedure changes something, and always runs as a signed-in user. A call with no user gets a `401`. How your app's users sign in is in [Authentication](/docs/getting-started/authentication).
@@ -202,6 +198,15 @@ export default function handle(
 The script needs the `happyview.record` library: `hpy happyview add happyview.record`, then restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; writing to repositories you've been granted is [Linked repos](/docs/guides/linked-repos).
 
 To try a procedure before your app can sign users in, call it from a test, which can act as any user: see [Testing](/docs/getting-started/testing#act-as-a-user).
+
+## Lexicon checks
+
+HappyView checks each call against its lexicon before a script runs, or before the default behaviour without one:
+
+- A call whose parameters or input break the lexicon, such as a missing required parameter or a value past `maxLength`, gets `400 {"error":"InvalidRequest"}` with a message naming the first problem. The script doesn't run.
+- A parameter the lexicon declares as an array, sent once, arrives as a one-item array.
+- A missing parameter with a `default` arrives as that default.
+- `knownValues` isn't enforced, and parameters the lexicon doesn't declare pass through untouched.
 
 ## Errors
 

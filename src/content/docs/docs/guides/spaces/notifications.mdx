@@ -19,7 +19,7 @@ Registrations cover the whole space and expire after 24 hours. Registering again
 
 ## Registering for notifications
 
-Requires an OAuth session or a space credential. With a credential, the request's audience is the space authority's DID.
+Requires read access to the whole space, through a member's OAuth session or a space credential. With a credential, the request's audience is the space authority's DID.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -331,7 +331,7 @@ The following forms are deprecated. They are still served in v3 alpha; removal i
 }
 ```
 
-HappyView POSTs a JSON payload to the endpoint for each record created, updated, or deleted in the space, without authentication:
+HappyView POSTs a JSON payload to the endpoint for each record created, updated, or deleted in the space:
 
 | Field        | Type          | Description |
 | ------------ | ------------- | ----------- |

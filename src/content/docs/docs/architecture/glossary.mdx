@@ -86,11 +86,16 @@ with the publisher's reason.
 
 ## Building an app
 
+### Instance
+
+One running HappyView server, self-hosted or on HappyProto. Its role on the
+atproto network is an AppView.
+
 ### Project
 
-An app kept as files instead of built in the dashboard: its lexicons and
-scripts under `src/`, its interpreters and libraries in `happyview.toml`, and
-the exact plugin versions in `happyview.lock`. Run a project locally with
+The directory you deploy to an [instance](#instance): its lexicons and scripts
+under `src/`, its interpreters and libraries in `happyview.toml`, and the exact
+plugin versions in `happyview.lock`. Run a project locally with
 `hpy happyview dev`, check it with `check`, test it with `test`, and deploy it
 to an instance with `hpy happyview deploy`. Deploying needs the
 `project:deploy` permission. HappyView also runs a project directly when
@@ -109,15 +114,24 @@ HappyProto's command-line tool.
 
 ## Access
 
+### Operator
+
+A person who signs in to an instance's dashboard or admin API to run it. The
+dashboard's **Users** page lists operators.
+
+### User
+
+A person signed in to an app with their atproto account.
+
 ### Permission
 
-One thing a dashboard user or API key may do, such as `lexicons:publish` or
-`scripts:manage`. A user holds any mix of them, often starting from a
+One thing an [operator](#operator) or API key may do, such as `lexicons:publish`
+or `scripts:manage`. An operator holds any mix of them, often starting from a
 [template](#template). The full list is under [Permissions](#permissions).
 
 ### Template
 
-A starting set of [permissions](#permission) for a new user: **Viewer**,
+A starting set of [permissions](#permission) for a new operator: **Viewer**,
 **Maintainer**, **Manager** or **Full Access**. Each includes everything in the
 one before it.
 
@@ -182,7 +196,7 @@ HappyView yourself, it doesn't apply to you.
 
 {/* BEGIN generated: permissions (generate-permissions.mjs) */}
 
-HappyView has **53 permissions**. A user holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (11), **Maintainer** (15), **Manager** (42) and **Full Access** (all 53). The operator with superadmin holds every permission and can't be restricted.
+HappyView has **53 permissions**. An operator holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (11), **Maintainer** (15), **Manager** (42) and **Full Access** (all 53). The operator with superadmin holds every permission and can't be restricted.
 
 | Permission | What it allows | Lowest template that grants it |
 |---|---|---|

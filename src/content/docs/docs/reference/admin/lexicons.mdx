@@ -61,6 +61,7 @@ interface LexiconResult {
   id: string;
   revision: number;
   backfill_job_id: string | null;
+  issues: { path: string; message: string; severity: "error" | "warning" }[];
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/lexicons", {
@@ -219,13 +220,15 @@ curl -X POST http://127.0.0.1:3000/admin/lexicons \
 | `lexicon_json`      | object  | yes      | Raw lexicon JSON (must have `lexicon: 1` and a valid NSID `id`)       |
 | `backfill`          | boolean | no       | Whether the first upload triggers a historical backfill (default `true`) |
 | `target_collection` | string  | no       | For query/procedure lexicons, the record collection they operate on   |
+| `action`            | string  | no       | For procedure lexicons, what the procedure does to its collection: `create`, `update`, `delete` or `upsert`. Left out, it's `upsert`, which decides by whether the input has a `uri`. Anything else is `400` |
 | `token_cost`        | integer | no       | Token cost for query/procedure endpoints (overrides instance default) |
 | `indexed`           | boolean | no       | For record lexicons, whether HappyView ingests the collection. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept. An unindexed lexicon starts no backfill |
 
-The `id` must be a valid [NSID](https://atproto.com/specs/nsid) — it is the
+The `id` must be a valid [NSID](https://atproto.com/specs/nsid). It is the
 lexicon's primary key, the XRPC method it is served at, and, for record
 lexicons, the collection HappyView filters Jetstream on. An `id` that is empty
-or malformed is rejected with `400 Bad Request`.
+or malformed is rejected with `400 Bad Request`, and an `id` a project file
+defines with `409 Conflict`.
 
 **Response**: `201 Created` (new) or `200 OK` (upsert)
 
@@ -233,15 +236,65 @@ or malformed is rejected with `400 Bad Request`.
 {
   "id": "xyz.statusphere.status",
   "revision": 1,
-  "backfill_job_id": "9f1c8e2a-7b40-4d1e-9f3a-2c5b8d6e1a04"
+  "backfill_job_id": "9f1c8e2a-7b40-4d1e-9f3a-2c5b8d6e1a04",
+  "issues": []
 }
 ```
 
 `backfill_job_id` is the id of the [backfill job](/docs/reference/admin/backfill) this upload
-started, or `null` if it started none — because `backfill` was `false`, because
-this was an upsert rather than a first upload, because the lexicon is not a
-record type, or because the caller lacks `backfill:create`. Poll it via
+started, or `null` if it started none: because `backfill` was `false`, because
+this was an upsert rather than a first upload, because the lexicon is not an
+indexed record type, or because the caller lacks `backfill:create`. Poll it via
 `GET /admin/backfill/status`.
+
+`issues` lists any warnings about the document, and is empty when there are none.
+
+### Validation
+
+The document is checked against the lexicon spec before anything is stored. A
+document that can't work is refused with `400 Bad Request` and one entry per
+problem:
+
+```json
+{
+  "error": "the lexicon is not valid: defs.main.key: unknown record key 'uuid': must be tid, nsid, any, or literal:<value> (and 2 more)",
+  "issues": [
+    {
+      "path": "defs.main.key",
+      "message": "unknown record key 'uuid': must be tid, nsid, any, or literal:<value>",
+      "severity": "error"
+    },
+    {
+      "path": "defs.main.record.properties.a.ref",
+      "message": "'#missing' names no def in this lexicon ('missing' is not defined)",
+      "severity": "error"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `path` | string | Dotted path into the document, with array entries as `required[0]`. Empty for a problem with the document as a whole, such as its size |
+| `message` | string | What's wrong |
+| `severity` | string | `error` or `warning` |
+
+Only an `error` refuses the upload. A `warning` is a document that works but
+reads oddly, such as an `array` with no `items`, and it's reported beside the
+errors. An upload whose only issues are warnings succeeds and carries them in
+`issues` on its response.
+
+A `subscription` lexicon is valid and gets a warning: it's stored, and no
+endpoint is generated for it, because HappyView doesn't serve subscriptions.
+
+The check covers the `lexicon` version and the `id` NSID; that `defs` is a
+non-empty object; that every def names a known type; that `record`, `query`,
+`procedure` and `subscription` appear only as `main`; that a record says how its
+rkey is chosen (`tid`, `nsid`, `any` or `literal:<value>`) and carries an object
+schema; that a `ref` or `union` member naming a def in this document resolves
+(a ref into another lexicon is checked only for shape); that an object's
+`required` and `nullable` name properties it has; and that the document is at
+most 256 KiB.
 
 ## List lexicons
 
@@ -258,6 +311,10 @@ interface Lexicon {
   revision: number;
   lexicon_type: string;
   backfill: boolean;
+  indexed: boolean;
+  action: string | null;
+  target_collection: string | null;
+  source: string;
   // "project" when a file in the instance's project defines this lexicon,
   // otherwise "manual" or "network". `source` carries the same value.
   layer: "project" | "manual" | "network";
@@ -266,6 +323,12 @@ interface Lexicon {
   // A dashboard or network row sits under this project file. It is kept and
   // answers again if the file is removed.
   shadows_stored: boolean;
+  declared: boolean;
+  authority_did: string | null;
+  last_fetched_at: string | null;
+  token_cost: number | null;
+  // Omitted unless this is a record lexicon.
+  record_schema?: Record<string, unknown>;
   // null for a project lexicon, which has no stored row.
   created_at: string | null;
   updated_at: string | null;
@@ -328,11 +391,40 @@ curl http://127.0.0.1:3000/admin/lexicons -H "$AUTH"
     "lexicon_type": "record",
     "backfill": true,
     "indexed": true,
+    "action": null,
+    "target_collection": null,
+    "source": "manual",
+    "layer": "manual",
+    "path": null,
+    "shadows_stored": false,
+    "declared": false,
+    "authority_did": null,
+    "last_fetched_at": null,
+    "token_cost": null,
     "created_at": "2025-01-01T00:00:00Z",
     "updated_at": "2025-01-01T00:00:00Z"
   }
 ]
 ```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | The lexicon's NSID |
+| `revision` | number | Increments on each update |
+| `lexicon_type` | string | `record`, `query`, `procedure`, `space` or `definitions`, or `unknown` for a document that doesn't parse |
+| `backfill` | boolean | Whether the first upload starts a backfill |
+| `indexed` | boolean | Whether HappyView ingests the collection. `true` for every lexicon that isn't an unindexed record lexicon |
+| `action` | string \| null | The procedure's stored action. `null` means `upsert` |
+| `target_collection` | string \| null | The record collection a query or procedure operates on |
+| `source`, `layer` | string | The layer answering for this id. Both carry the same value; read `layer` |
+| `path` | string \| null | The project-relative file, for a project lexicon only |
+| `shadows_stored` | boolean | A stored row sits under this project file and answers again when the file goes |
+| `declared` | boolean | Listed under `[network_lexicons] include` in `happyview.toml`, so a delete is refused |
+| `authority_did` | string \| null | The authority a network lexicon was fetched from |
+| `last_fetched_at` | string \| null | When a network lexicon was last fetched |
+| `token_cost` | number \| null | The token cost, if set |
+| `created_at`, `updated_at` | string \| null | `null` for a project lexicon, which has no row |
+| `record_schema` | object | For a record lexicon, the `properties` of its record. Omitted otherwise |
 
 ## Get a lexicon
 
@@ -393,9 +485,7 @@ curl http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status -H "$AUTH"
 </TabItem>
 </Tabs>
 
-**Response**: `200 OK` with full lexicon details including raw JSON.
-
-The response carries the same `indexed` boolean as the list (`true` for every lexicon that is not an unindexed record type).
+**Response**: `200 OK` with the fields of a list entry, without `record_schema`, plus `lexicon_json`, the raw document.
 
 ## Delete a lexicon
 
@@ -461,6 +551,100 @@ curl -X DELETE http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status -H "$
 
 **Response**: `204 No Content`
 
+Deleting a lexicon stops live indexing and leaves the records already indexed under its collection in place. To delete those too, add `delete_records=true`:
+
+```
+DELETE /admin/lexicons/{id}?delete_records=true
+```
+
+This also needs `records:delete-collection` and `records:delete`, like [deleting a collection](/docs/reference/admin/records#delete-all-records-in-a-collection). The response is then `202 Accepted`:
+
+```json
+{
+  "job_id": "0f9f1c8e-7b40-4d1e-9f3a-2c5b8d6e1a04",
+  "collection": "xyz.statusphere.status"
+}
+```
+
+The records are deleted by a `happyview.delete-collection` [job](/docs/reference/admin/jobs). The lexicon is removed before the job is enqueued, so live indexing can't put records back while it runs. Records a record script kept after the source deleted them are included.
+
+`delete_records=true` returns `400 Bad Request` for anything but a record lexicon, because a query or procedure lexicon operates on another lexicon's collection, and for a collection served from a shared record store. The lexicon is left in place when the request is refused.
+
+Deleting a lexicon listed under `[network_lexicons] include` in `happyview.toml` returns `409 Conflict`.
+
+## Count a collection's records
+
+```
+GET /admin/lexicons/{id}/record-count
+```
+
+Requires `lexicons:read` and `records:read`. Counts the records indexed under a record lexicon's collection. It's a separate route because counting a collection costs far more than reading a lexicon. Returns `404 Not Found` for an unknown lexicon, and `400 Bad Request` for one that isn't a record lexicon.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "collection": "xyz.statusphere.status",
+  "count": 1204,
+  "deletable": true,
+  "not_deletable_reason": null
+}
+```
+
+`deletable` says whether `delete_records=true` would be accepted, and `not_deletable_reason` carries the refusal when it wouldn't.
+
 ## Lexicons a project file defines
 
 When the instance runs a project, a lexicon defined by a file under `src/` answers ahead of any stored row with the same id. Uploading, deleting, adding as a network lexicon or removing as one is refused with `409 Conflict`:
@@ -471,7 +655,7 @@ When the instance runs a project, a lexicon defined by a file under `src/` answe
 
 A stored row the file shadows is kept as it is and answers again when the file is removed.
 
-## Network Lexicons
+## Network lexicons
 
 Network lexicons are fetched from the atproto network via DNS TXT resolution and kept updated via the Jetstream subscription. See [Lexicons - Network lexicons](/docs/reference/lexicons#network-lexicons) for background.
 
@@ -489,6 +673,7 @@ interface NetworkLexiconResult {
   nsid: string;
   authority_did: string;
   revision: number;
+  backfill_job_id: string | null;
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/network-lexicons", {
@@ -572,6 +757,7 @@ curl -X POST http://127.0.0.1:3000/admin/network-lexicons \
 | Field               | Type   | Required | Description                                                         |
 | ------------------- | ------ | -------- | ------------------------------------------------------------------- |
 | `nsid`              | string | yes      | The NSID of the lexicon to watch                                    |
+| `backfill`          | boolean | no      | Whether the first add starts a backfill of a record lexicon (default `false`). Needs `backfill:create` |
 | `target_collection` | string | no       | For query/procedure lexicons, the record collection they operate on |
 | `indexed`           | boolean | no     | Whether HappyView ingests the record collection. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept |
 
@@ -583,7 +769,8 @@ HappyView resolves the NSID authority via DNS TXT, fetches the lexicon from the 
 {
   "nsid": "xyz.statusphere.status",
   "authority_did": "did:plc:authority",
-  "revision": 1
+  "revision": 1,
+  "backfill_job_id": null
 }
 ```
 
@@ -622,9 +809,10 @@ interface NetworkLexicon {
   nsid: string;
   authority_did: string;
   target_collection: string | null;
-  last_fetched_at: string;
+  last_fetched_at: string | null;
   created_at: string;
   declared: boolean;
+  indexed: boolean;
 }
 
 const response = await fetch("http://127.0.0.1:3000/admin/network-lexicons", {
@@ -683,7 +871,9 @@ curl http://127.0.0.1:3000/admin/network-lexicons -H "$AUTH"
     "authority_did": "did:plc:authority",
     "target_collection": null,
     "last_fetched_at": "2025-01-01T00:00:00Z",
-    "created_at": "2025-01-01T00:00:00Z"
+    "created_at": "2025-01-01T00:00:00Z",
+    "declared": false,
+    "indexed": true
   }
 ]
 ```
@@ -755,4 +945,4 @@ Removes the network lexicon tracking and also deletes the lexicon from the `happ
 
 A network lexicon listed under `[network_lexicons] include` in the project's `happyview.toml` reports `declared: true`, and removing it returns `409 Conflict`; remove it from the file instead.
 
-**Response**: `204 No Content`
+**Response**: `204 No Content`. `delete_records=true` also deletes the collection's records, on the same terms as [deleting a lexicon](#delete-a-lexicon), and answers `202 Accepted` with `job_id` and `collection`.

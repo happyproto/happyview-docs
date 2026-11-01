@@ -671,6 +671,48 @@ GET /admin/editor/declarations?language={language_id}
 The declarations an interpreter renders for editors, the same files [`happyview types`](/docs/guides/type-generation) writes into `.happyview/types/<language_id>/`, but rendered from everything this instance holds: its installed libraries, and every lexicon it serves, whether from a project, the dashboard or the network. The dashboard's script editor completes from them. Requires `scripts:read`.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/editor/declarations?language=lua", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/editor/declarations?language=lua", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/editor/declarations?language=lua")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/editor/declarations?language=lua", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -706,7 +748,7 @@ When the instance runs a project, a script defined by a file under `src/` answer
 POST /admin/scripts/{id}/codemod
 ```
 
-Rewrites a Lua script's body onto the v3 `handle(input, ctx)` contract — the rewrite [Migrating Scripts to v3](/docs/guides/migrating-scripts) describes. Only `script_type: "lua"` is supported. Previewing needs `scripts:read`; `apply: true` needs `scripts:manage` as well, since it stores the rewritten body. Omit the request body entirely, or send `{}`, to preview.
+Rewrites a Lua script's body onto the v3 `handle(input, ctx)` contract, the rewrite [Migrating scripts to v3](/docs/guides/migrating-scripts) describes. Only `script_type: "lua"` is supported. Previewing needs `scripts:read`; `apply: true` needs `scripts:manage` as well, since it stores the rewritten body. Omit the request body entirely, or send `{}`, to preview.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -843,7 +885,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere
 | ------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `source`           | string  | The rewritten script body.                                                                 |
 | `notes`            | array   | Constructs the codemod could not rewrite mechanically, each left under a `-- codemod:` comment in `source`. |
-| `notes[].line`     | number  | Line number in the **original** body the construct sits on — not the rewritten `source` above. |
+| `notes[].line`     | number  | Line number in the **original** body the construct sits on, not the rewritten `source` above. |
 | `notes[].message`  | string  | What changed and what to finish by hand.                                                   |
 | `changed`          | boolean | `false` when the rewrite equals the stored body, so there is nothing to apply; `source` then equals the stored body. Not a statement that the script is on the v3 contract: one applied with markers left in place reports `false` too. |
 
@@ -851,7 +893,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere
 
 `source` previews the rewrite of text the server doesn't hold, such as an editor's unsaved changes. No stored script is needed, so it works before a script is first saved: the `{id}` in the path then only tells the codemod which kind of script it is rewriting. Nothing is stored, `changed` compares against `source` rather than the stored body, and sending it with `apply: true` returns `400 Bad Request`.
 
-A non-Lua `script_type` returns `400 Bad Request`. A body that doesn't parse as Lua also returns `400 Bad Request` rather than a result — this is different from `needs_migration`'s `"unparseable"`, which is a value on the *script list/get* response, not this endpoint.
+A non-Lua `script_type` returns `400 Bad Request`. A body that doesn't parse as Lua also returns `400 Bad Request` rather than a result. That differs from `needs_migration`'s `"unparseable"`, which is a value on the *script list/get* response, not this endpoint.
 
 ### A script whose language has no interpreter
 
@@ -863,7 +905,7 @@ A script's language is run by an interpreter plugin, and which languages an inst
 }
 ```
 
-**Response**: `400 Bad Request`. Nothing is stored. Nothing on the instance could check the body or run it, so storing it would mean keeping a script nothing has validated — the refusal happens at the edit rather than on the script's first trigger. Installing the interpreter is the whole fix; the same request then succeeds unchanged.
+**Response**: `400 Bad Request`. Nothing is stored. Nothing on the instance could check the body or run it, so storing it would mean keeping a script nothing has validated. The refusal happens at the edit rather than on the script's first trigger. Installing the interpreter is the whole fix; the same request then succeeds unchanged.
 
 The check runs after the [unmigrated-body refusal](#saving-an-unmigrated-script), so a Lua body with removed globals still gets `removed_globals` and the offer of the codemod.
 
@@ -871,7 +913,7 @@ The check runs after the [unmigrated-body refusal](#saving-an-unmigrated-script)
 
 | Trigger | What happens |
 | ------- | ------------ |
-| `xrpc.query:*`, `xrpc.procedure:*` | `503 Service Unavailable` with `error: "ServerMisconfigured"` and a `message` naming the language. A caller is refused rather than given an answer the script never shaped — in a procedure's case, rather than having its raw input written |
+| `xrpc.query:*`, `xrpc.procedure:*` | `503 Service Unavailable` with `error: "ServerMisconfigured"` and a `message` naming the language. A caller is refused rather than given an answer the script never shaped, or, for a procedure, having its raw input written |
 | `record.index:*`, `record.create:*`, `record.update:*`, `record.delete:*` | Fail-open: the event is indexed as if no script had run, and a dead-letter row records the reason. Ingest is not held up by a missing plugin |
 | `labeler.apply:*` | Fail-open: the label is persisted unchanged, with a dead-letter row recording the reason |
 | `job.run:*` | The job fails, with the same sentence in its `error` column. A job that silently never ran would tell an operator nothing |

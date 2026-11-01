@@ -3,13 +3,16 @@ title: The script contract
 description: The handle(input, ctx) function every script defines, in Lua, JavaScript and TypeScript, and what input and ctx carry for each script type.
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
 Every script defines one function, `handle(input, ctx)`. HappyView calls it each time the script's trigger fires. `input` is the trigger's payload. `ctx` is what the runtime knows about this invocation. What `handle` returns decides what happens next.
 
 Code at file scope runs while the script loads, before `handle` is called, so neither argument exists there. Put imports, constants and helper functions at file scope, and read `input` and `ctx` inside `handle` or in functions it calls.
 
 ## The function in each language
 
-### Lua
+<Tabs syncKey="lang">
+  <TabItem label="Lua">
 
 A global function named `handle`. Load modules with `require` at the top of the file.
 
@@ -39,7 +42,8 @@ function handle(input, ctx)
 end
 ```
 
-### JavaScript
+  </TabItem>
+  <TabItem label="JavaScript">
 
 An ES module whose default export is the handler. Load modules with `import`.
 
@@ -73,7 +77,8 @@ import { records } from "happyview.db";
 
 A named import also lets you reach a function whose name is a reserved word, such as `import { delete as remove } from "happyview.http"`.
 
-### TypeScript
+  </TabItem>
+  <TabItem label="TypeScript">
 
 The same as JavaScript, with types. Types are erased before the script runs and are never checked, so declare the shapes you read.
 
@@ -96,6 +101,9 @@ export default async function handle(input: Input, ctx: { caller_did?: string })
   return { posts, profile };
 }
 ```
+
+  </TabItem>
+</Tabs>
 
 ## `input` by script type
 
@@ -141,10 +149,15 @@ A field that doesn't apply is absent rather than set to an empty value. In JavaS
 
 | Script type | What `handle` returns |
 | --- | --- |
-| Query, procedure | The response body, serialized as JSON |
+| Query, procedure | The response body, serialized as JSON, unless it's one of the two forms below |
 | Record event | Nothing to skip indexing. An object to store in place of the record. Anything else, such as `true`, to store the record as it arrived |
 | Label | Nothing to drop the label. An object whose fields are merged over the label. Anything else, such as `true`, to keep the label as it arrived |
 | Job | The job's result |
+
+A query or procedure can answer in two other ways:
+
+- **A declared error.** An object whose `error` is a name the method's lexicon lists under `errors` is sent as JSON with status `400`. An `error` the lexicon doesn't list is an ordinary `200` body.
+- **Bytes.** When the method's lexicon declares an output encoding other than JSON, return a blob ref naming a blob stored on the instance, or an object with `$bytes` holding base64. `mimeType` names the type, and it's required when the lexicon declares `*/*`. Any other return value fails the run.
 
 "Nothing" is `nil` in Lua and `undefined` or `null` in JavaScript and TypeScript. A function that ends without a `return` returns nothing, which for a record script means the record is not indexed. If a record script only has side effects, end it with `return input.record or true` (Lua) or `return input.record ?? true` (JavaScript and TypeScript).
 
@@ -165,7 +178,7 @@ An uncaught error fails the invocation. For a query or procedure the client gets
 
 `errorType` is one of `syntax`, `runtime`, `timeout`, `memory` or `missing_handle`. The status is `408` for `timeout` and `500` for the rest. `line` is the script line that raised the error. For TypeScript it is the line in your TypeScript source.
 
-A message beginning `AUTH_ERROR:` is answered as `401`. Because `message` reaches the client, never put a secret or a caller's data in an error. For an expected condition, such as a missing record, return a structured body like `{ error: "not found" }` instead.
+A message containing `AUTH_ERROR:` is answered as `401`, and a library's refusal of the caller's cursor as `400` with `InvalidRequest`. Because `message` reaches the client, never put a secret or a caller's data in an error. For an expected condition, such as a missing record, return an error the lexicon declares instead: `{ error: "NotFound", message: "no such record" }`.
 
 `missing_handle` means the script defines no handler: no global `handle` function in Lua, or no default export in JavaScript and TypeScript ("script must export a default function").
 
@@ -175,19 +188,7 @@ Record and label scripts are retried on failure and then dead-lettered. A failed
 
 ## Built-in modules
 
-These come with every interpreter and need nothing installed. A published plugin can't take a name under `internal.`.
-
-| Module | Functions |
-| --- | --- |
-| `internal.logging` | `debug`, `info`, `warn`, `error`, each `(message[, fields])` |
-| `internal.time` | `now()` in Unix milliseconds, `to_iso8601(ms)`, `from_iso8601(text)` |
-| `internal.tids` | `create()`, `to_tid(ms)`, `from_tid(tid)` |
-| `internal.json` | `encode(value)`, `decode(text)`, and in Lua only `to_array(table)` |
-| `internal.async` | Lua only: `all(f1, f2, ...)` |
-
-`info`, `warn` and `error` log lines are recorded in the event log with the trigger and caller. `debug` goes to the process log only. In JavaScript and TypeScript, `console.log`, `info`, `debug`, `warn` and `error` write through `internal.logging` at the matching level, with `console.log` at `info`.
-
-`internal.json.to_array` exists only in Lua because a Lua table can't say on its own whether an empty table is an empty array or an empty object. JavaScript has no such ambiguity, and runs calls at once with `Promise.all` instead of `internal.async`.
+Every interpreter comes with the `internal.*` modules, which need nothing installed: `internal.logging`, `internal.time`, `internal.tids`, `internal.json` and, in Lua, `internal.async`. A published plugin can't take a name under `internal.`. [Built-in modules](/docs/reference/scripts/built-in-modules) lists their functions.
 
 ## Sandbox
 

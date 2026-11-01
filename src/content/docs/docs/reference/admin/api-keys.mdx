@@ -1,10 +1,10 @@
 ---
-title: "API Keys"
+title: "API keys"
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage API keys for programmatic access. See the [API Keys guide](/docs/guides/api-keys) for usage details.
+Manage API keys for programmatic access. See the [API keys guide](/docs/guides/api-keys) for usage details.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -149,7 +149,7 @@ curl -X POST http://127.0.0.1:3000/admin/api-keys \
 | Field         | Type     | Required | Description                                                                           |
 | ------------- | -------- | -------- | ------------------------------------------------------------------------------------- |
 | `name`        | string   | yes      | A label to identify this key's usage                                                  |
-| `permissions` | string[] | yes      | Permissions to grant the key (must be a subset of the creating user's own permissions) |
+| `permissions` | string[] | yes      | Permissions to grant the key. A permission you don't hold yourself returns `403 Forbidden` |
 
 **Response**: `201 Created`
 
@@ -163,7 +163,7 @@ curl -X POST http://127.0.0.1:3000/admin/api-keys \
 }
 ```
 
-The `key` field contains the full API key. It is only returned in this response — store it securely. The key's effective permissions are the **intersection** of the permissions specified here and the creating user's permissions at the time of each request.
+The `key` field contains the full API key. It is only returned in this response, so store it securely. The key's effective permissions are the **intersection** of the permissions specified here and the creating operator's permissions at the time of each request.
 
 ## List API keys
 
@@ -240,7 +240,7 @@ curl http://127.0.0.1:3000/admin/api-keys -H "$AUTH"
 ]
 ```
 
-Only returns keys belonging to the authenticated user. The full key is never included — only the prefix.
+Only returns keys belonging to the caller. The full key is never included, only the prefix.
 
 ## Revoke an API key
 
@@ -304,4 +304,4 @@ curl -X DELETE http://127.0.0.1:3000/admin/api-keys/550e8400-e29b-41d4-a716-4466
 
 Sets `revoked_at` on the key. The key remains in the database for audit purposes but can no longer authenticate.
 
-**Response**: `204 No Content`
+**Response**: `204 No Content`. Returns `404 Not Found` if the caller has no unrevoked key with that id.

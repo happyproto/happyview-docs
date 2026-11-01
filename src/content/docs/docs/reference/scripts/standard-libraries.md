@@ -7,42 +7,19 @@ The Lua interpreter (`happyview-lua`) keeps these Lua 5.4 standard libraries and
 
 ## string
 
-- [`byte`](https://lua.org/manual/5.4/manual.html#pdf-string.byte)
-- [`char`](https://lua.org/manual/5.4/manual.html#pdf-string.char)
-- [`find`](https://lua.org/manual/5.4/manual.html#pdf-string.find)
-- [`format`](https://lua.org/manual/5.4/manual.html#pdf-string.format)
-- [`gmatch`](https://lua.org/manual/5.4/manual.html#pdf-string.gmatch)
-- [`gsub`](https://lua.org/manual/5.4/manual.html#pdf-string.gsub)
-- [`len`](https://lua.org/manual/5.4/manual.html#pdf-string.len)
-- [`lower`](https://lua.org/manual/5.4/manual.html#pdf-string.lower)
-- [`match`](https://lua.org/manual/5.4/manual.html#pdf-string.match)
-- [`rep`](https://lua.org/manual/5.4/manual.html#pdf-string.rep)
-- [`reverse`](https://lua.org/manual/5.4/manual.html#pdf-string.reverse)
-- [`sub`](https://lua.org/manual/5.4/manual.html#pdf-string.sub)
-- [`upper`](https://lua.org/manual/5.4/manual.html#pdf-string.upper)
+The whole [`string`](https://lua.org/manual/5.4/manual.html#6.4) library.
 
 ## table
 
-- [`concat`](https://lua.org/manual/5.4/manual.html#pdf-table.concat)
-- [`insert`](https://lua.org/manual/5.4/manual.html#pdf-table.insert)
-- [`remove`](https://lua.org/manual/5.4/manual.html#pdf-table.remove)
-- [`sort`](https://lua.org/manual/5.4/manual.html#pdf-table.sort)
+The whole [`table`](https://lua.org/manual/5.4/manual.html#6.6) library.
 
 ## math
 
-- [`abs`](https://lua.org/manual/5.4/manual.html#pdf-math.abs)
-- [`ceil`](https://lua.org/manual/5.4/manual.html#pdf-math.ceil)
-- [`floor`](https://lua.org/manual/5.4/manual.html#pdf-math.floor)
-- [`max`](https://lua.org/manual/5.4/manual.html#pdf-math.max)
-- [`min`](https://lua.org/manual/5.4/manual.html#pdf-math.min)
-- [`random`](https://lua.org/manual/5.4/manual.html#pdf-math.random)
-- [`sqrt`](https://lua.org/manual/5.4/manual.html#pdf-math.sqrt)
-- [`huge`](https://lua.org/manual/5.4/manual.html#pdf-math.huge)
-- [`pi`](https://lua.org/manual/5.4/manual.html#pdf-math.pi)
+The whole [`math`](https://lua.org/manual/5.4/manual.html#6.7) library.
 
 ## os (safe subset)
 
-Only the following safe functions are available from the `os` module:
+Only these three functions are available from the `os` module:
 
 - [`time`](https://lua.org/manual/5.4/manual.html#pdf-os.time)
 - [`date`](https://lua.org/manual/5.4/manual.html#pdf-os.date)
@@ -77,11 +54,15 @@ The whole [`utf8`](https://lua.org/manual/5.4/manual.html#6.5) library.
 - [`rawget`](https://lua.org/manual/5.4/manual.html#pdf-rawget)
 - [`rawset`](https://lua.org/manual/5.4/manual.html#pdf-rawset)
 - [`rawequal`](https://lua.org/manual/5.4/manual.html#pdf-rawequal)
+- [`rawlen`](https://lua.org/manual/5.4/manual.html#pdf-rawlen)
+- [`warn`](https://lua.org/manual/5.4/manual.html#pdf-warn)
+- [`_G`](https://lua.org/manual/5.4/manual.html#pdf-_G)
+- [`_VERSION`](https://lua.org/manual/5.4/manual.html#pdf-_VERSION)
 
 ## Removed modules
 
-The following standard Lua modules are **removed** and unavailable in the sandbox:
+These parts of standard Lua are **removed** and unavailable in the sandbox:
 
 `io`, `debug`, `package`, `dofile`, `loadfile`, `load`, `collectgarbage`
 
-Lua's own `require` is removed too, but HappyView installs its own in its place: it loads installed library plugins and the `internal.*` built-ins — see [Built-in Modules](/docs/reference/scripts/built-in-modules).
+Lua's own `require` is removed too, and HappyView installs its own in its place: it loads installed library plugins and the `internal.*` built-ins. See [Built-in modules](/docs/reference/scripts/built-in-modules).

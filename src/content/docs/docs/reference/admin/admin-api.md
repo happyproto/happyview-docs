@@ -8,15 +8,15 @@ The admin API lets you manage lexicons, monitor records, run backfill jobs, and 
 
 The admin API supports three authentication methods:
 
-1. **API keys** — read/write tokens starting with `hv_`, passed as `Authorization: Bearer hv_...`. See the [API Keys guide](/docs/guides/api-keys) for details.
-2. **Cookie-based session auth** — signed session cookies set during the dashboard OAuth login flow. The [web dashboard](/docs/guides/dashboard) uses this method.
-3. **App sessions granted `dev.happyview.adminFull`** — an API client's [DPoP session](/docs/reference/oauth), when the user approved the permission set `dev.happyview.adminFull` at sign-in. The app asks for it with the scope `include:dev.happyview.adminFull`. The session then acts with the user's own permissions.
+1. **API keys**: read/write tokens starting with `hv_`, passed as `Authorization: Bearer hv_...`. See the [API keys guide](/docs/guides/api-keys) for details.
+2. **Cookie-based session auth**: signed session cookies set during the dashboard OAuth login flow. The [web dashboard](/docs/guides/dashboard) uses this method.
+3. **App sessions granted `dev.happyview.adminFull`**: an API client's [DPoP session](/docs/reference/oauth), when the user approved the permission set `dev.happyview.adminFull` at sign-in. The app asks for it with the scope `include:dev.happyview.adminFull`. The session then acts with the user's own permissions.
 
 HappyView decides whether a session was granted the set by what the user's authorization server says, never by the scope the app registered. On the session's first admin request it refreshes the session itself, after checking that the user's PDS names the session's authorization server, and reads the granted scope from the token response. It reads it again once that access token expires, so revoking the grant at the PDS ends admin access within one token lifetime. Any other API client session is refused with `403 Forbidden`, because those sessions belong to apps built on the instance, and an admin signing in to one must not hand it the instance.
 
 hpy, the HappyView CLI, signs in this way through a client every instance has built in: `hvc_hpy`, which `GET /config` publishes as `cli_client_key`. An operator who wants another app to manage the instance registers it with `include:dev.happyview.adminFull` among its scopes.
 
-In all cases the resolved DID is checked against the `happyview_users` table, and the user's permissions are loaded to authorize the request.
+In all cases the resolved DID is checked against the `happyview_users` table, and the operator's permissions are loaded to authorize the request.
 
 An atproto service-auth token is refused with `403 Forbidden`, whatever method it names: sign in with an app granted `dev.happyview.adminFull`, or use an API key.
 
@@ -24,7 +24,7 @@ A hosting platform's key (`PLATFORM_API_KEY_HASH`) reaches only [Platform](/docs
 
 **Auto-bootstrap**: If the `happyview_users` table is empty and `SUPERADMIN_DID` isn't set, the first authenticated request makes the caller an operator with the superadmin privilege and every permission.
 
-Non-user DIDs receive a `403 Forbidden` response. Users without the required permission for a specific endpoint also receive `403 Forbidden`.
+A DID that isn't an operator receives `403 Forbidden`, and so does an operator without the permission an endpoint requires.
 
 ## Errors
 
@@ -65,33 +65,34 @@ AUTH="Authorization: Bearer $TOKEN"
 | Group | Description |
 | ----- | ----------- |
 | [Lexicons](/docs/reference/admin/lexicons) | Upload, list, get, and delete lexicons and network lexicons |
-| [Lexicon Publishing](/docs/reference/admin/lexicon-publishing) | Publish lexicons to the network and manage publishing rules |
+| [Lexicon publishing](/docs/reference/admin/lexicon-publishing) | Publish lexicons to the network and manage publishing rules |
 | [Stats](/docs/reference/admin/stats) | Record counts by collection, operator and client counts, Jetstream status |
 | [Backfill](/docs/reference/admin/backfill) | Create and monitor historical backfill jobs |
 | [Jobs](/docs/reference/admin/jobs) | List, inspect, cancel, pause and resume background jobs, and read their logs |
-| [Event Logs](/docs/reference/admin/events) | Query, count and purge the audit trail of system events |
-| [API Keys](/docs/reference/admin/api-keys) | Create, list, and revoke API keys |
+| [Event logs](/docs/reference/admin/events) | Query, count and purge the audit trail of system events |
+| [Metrics](/docs/reference/admin/metrics) | Script run metrics and the record ingest pipeline |
+| [API keys](/docs/reference/admin/api-keys) | Create, list, and revoke API keys |
 | [Users](/docs/reference/admin/users) | Create, list, update, and delete operators |
 | [Labelers](/docs/reference/admin/labelers) | Manage external labeler subscriptions |
 | [Records](/docs/reference/admin/records) | List, delete and reconcile indexed records |
 | [Project](/docs/reference/admin/project) | Deploy a project and read what's deployed |
-| [Linked Repos](/docs/reference/admin/linked-repos) | Grant, invite and revoke access to repositories an instance can write to |
+| [Linked repos](/docs/reference/admin/linked-repos) | Grant, invite and revoke access to repositories an instance can write to |
 | [Spaces](/docs/reference/admin/spaces) | Browse spaces and their records for moderation |
-| [Instance Settings](/docs/reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
-| [XRPC Proxy](/docs/reference/admin/xrpc-proxy) | Decide whether and where unknown XRPC methods are proxied |
+| [Instance settings](/docs/reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
+| [XRPC proxy](/docs/reference/admin/xrpc-proxy) | Decide whether and where unknown XRPC methods are proxied |
 | [Telemetry](/docs/reference/admin/telemetry) | Telemetry consent, previews and sending |
 | [Database](/docs/reference/admin/database) | Database status, SQLite vacuum and record compression |
 | [Domains](/docs/reference/admin/domains) | Manage domains and their OAuth client identities |
-| [OAuth Keys](/docs/reference/admin/oauth-keys) | Rotate and revoke the instance's OAuth client-assertion signing key |
+| [OAuth keys](/docs/reference/admin/oauth-keys) | Rotate and revoke the instance's OAuth client-assertion signing key |
 | [Scripts](/docs/reference/admin/scripts) | Create, list, update, delete and migrate scripts |
-| [Script Variables](/docs/reference/admin/script-variables) | Encrypted key/value pairs for scripts' `ctx.env` |
-| [API Clients](/docs/reference/admin/api-clients) | Register and manage third-party XRPC clients |
+| [Script variables](/docs/reference/admin/script-variables) | Key/value pairs for scripts' `ctx.env` |
+| [API clients](/docs/reference/admin/api-clients) | Register and manage third-party XRPC clients, their secrets and their keys |
 | [Plugins](/docs/reference/admin/plugins) | Install, configure, and manage plugins |
-| [Dead Letters](/docs/reference/admin/dead-letters) | List, inspect, dismiss, retry, and reindex dead-lettered events |
-| [Service Identity](/docs/reference/admin/service-identity) | Get and update service identity configuration |
-| [Service Entries](/docs/reference/admin/service-entries) | Manage service entries and their XRPC bindings |
-| [Verification Methods](/docs/reference/admin/verification-methods) | Create, list, and delete DID verification methods |
-| [Feature Flags](/docs/reference/admin/feature-flags) | List feature flag status |
+| [Dead letters](/docs/reference/admin/dead-letters) | List, inspect, dismiss, retry, and reindex dead-lettered events |
+| [Service identity](/docs/reference/admin/service-identity) | Get and update service identity configuration |
+| [Service entries](/docs/reference/admin/service-entries) | Manage service entries and their XRPC bindings |
+| [Verification methods](/docs/reference/admin/verification-methods) | Create, list, and delete DID verification methods |
+| [Feature flags](/docs/reference/admin/feature-flags) | List feature flag status |
 | [Permissions](/docs/reference/admin/permissions) | List available permission definitions |
 | [Identity](/docs/reference/admin/identity) | Resolve a handle or DID |
 | [Platform](/docs/reference/admin/platform) | For a hosting platform: set the operator with superadmin |
@@ -100,15 +101,16 @@ AUTH="Authorization: Bearer $TOKEN"
 
 Each admin API endpoint requires a specific permission. See the [Permissions guide](/docs/guides/permissions) for the full list of permissions and templates.
 
-| Endpoint                                 | Required Permission        |
+| Endpoint                                 | Required permission        |
 | ---------------------------------------- | -------------------------- |
 | `POST /admin/lexicons`                   | `lexicons:create` (plus `backfill:create` to start a backfill) |
 | `GET /admin/lexicons`                    | `lexicons:read`            |
 | `GET /admin/lexicons/{id}`               | `lexicons:read`            |
-| `DELETE /admin/lexicons/{id}`            | `lexicons:delete`          |
+| `DELETE /admin/lexicons/{id}`            | `lexicons:delete` (plus `records:delete-collection` and `records:delete` with `delete_records=true`) |
+| `GET /admin/lexicons/{id}/record-count`  | `lexicons:read` and `records:read` |
 | `POST /admin/network-lexicons`           | `lexicons:create` (plus `backfill:create` to start a backfill) |
 | `GET /admin/network-lexicons`            | `lexicons:read`            |
-| `DELETE /admin/network-lexicons/{nsid}`  | `lexicons:delete`          |
+| `DELETE /admin/network-lexicons/{nsid}`  | `lexicons:delete` (plus `records:delete-collection` and `records:delete` with `delete_records=true`) |
 | `GET /admin/lexicon-publishing`          | `lexicons:read`            |
 | `GET /admin/lexicon-publishing/dns`      | `lexicons:read`            |
 | `GET /admin/lexicon-publishing/dns/{nsid}` | `lexicons:read`          |
@@ -136,6 +138,10 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/events`                      | `events:read`              |
 | `GET /admin/events/count`                | `events:read`              |
 | `POST /admin/events/purge`               | `events:purge`             |
+| `GET /admin/metrics/scripts`             | `metrics:read`             |
+| `GET /admin/metrics/scripts/{trigger}`   | `metrics:read`             |
+| `GET /admin/metrics/ingest`              | `metrics:read`             |
+| `GET /admin/metrics/live`                | `metrics:read`             |
 | `GET /admin/jobs`                        | `jobs:read`                |
 | `GET /admin/jobs/{id}`                   | `jobs:read`                |
 | `GET /admin/jobs/{id}/logs`              | `jobs:read`                |
@@ -225,6 +231,9 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/api-clients/{id}`            | `api-clients:view`         |
 | `PUT /admin/api-clients/{id}`            | `api-clients:edit`         |
 | `DELETE /admin/api-clients/{id}`         | `api-clients:delete`       |
+| `GET /admin/api-clients/{id}/secrets`    | `api-clients:view`         |
+| `POST /admin/api-clients/{id}/secrets`   | `api-clients:edit`         |
+| `DELETE /admin/api-clients/{id}/secrets/{secret_id}` | `api-clients:edit` |
 | `POST /admin/api-clients/{id}/auth-key`  | `api-clients:edit`         |
 | `GET /admin/api-clients/{id}/auth-key`   | `api-clients:view`         |
 | `GET /admin/api-clients/{id}/auth-keys`  | `api-clients:view`         |

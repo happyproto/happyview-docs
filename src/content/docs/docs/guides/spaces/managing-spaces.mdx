@@ -225,7 +225,7 @@ The `config` object supports:
 | Field               | Type    | Default | Description |
 | ------------------- | ------- | ------- | ----------- |
 | `membership_public` | boolean | `false` | A setting stored with the space |
-| `records_public`    | boolean | `false` | Deprecated. Stored with the space but not enforced. Use a `public` `readPolicy` for a space anyone may read. Still accepted in v3 alpha; removal is not yet scheduled. |
+| `records_public`    | boolean | `false` | Deprecated. Use a `public` `readPolicy` for a space anyone may read. Still accepted in v3 alpha; removal is not yet scheduled. |
 
 The field names are snake_case, unlike the rest of the request.
 
@@ -445,7 +445,6 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20' 
 
 | Field    | Type    | Required | Default        | Description                  |
 | -------- | ------- | -------- | -------------- | ---------------------------- |
-| `did`    | string  | No       | authenticated user | Filter by DID              |
 | `spaceType` | string (NSID) | No | | Lists only spaces of this type. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 alpha; removal is not yet scheduled. |
 | `limit`  | integer | No       | 50             | Max spaces to return (1-100) |
 | `cursor` | string  | No       |                | Pagination cursor            |

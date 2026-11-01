@@ -1,0 +1,519 @@
+---
+title: Metrics
+description: "Admin API endpoints for script run metrics and the record ingest pipeline."
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All four endpoints need `metrics:read`. The dashboard's **Script performance** page reads them.
+
+Metrics are kept in memory by the process that runs the scripts, for the last hour by the minute and the last day by the half hour. Each minute that closes is written to the database once, so the `7d` and `30d` windows survive a restart. Test files run by `happyview test` are not recorded.
+
+Recording is on by default. Turn it off with the `script_metrics_enabled` [instance setting](/docs/reference/admin/settings), or `SCRIPT_METRICS_ENABLED` when no setting is stored. While it's off nothing is recorded, what's already held stays readable until it leaves its window, and the active-runs gauge in [`/admin/metrics/live`](#live) keeps counting. Every response carries the state as `enabled`.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+# All examples assume $TOKEN is an API key (hv_...)
+AUTH="Authorization: Bearer $TOKEN"
+```
+
+</TabItem>
+</Tabs>
+
+
+## Windows
+
+| Window | Read from | Covers |
+| --- | --- | --- |
+| `1h`, `24h` | The memory of the instance that answered | That instance's runs only. Behind a load balancer, two requests can return different numbers |
+| `7d`, `30d` | The database | Every instance's rows, plus the minutes the answering instance hasn't written yet |
+
+A `7d` or `30d` response adds two fields:
+
+| Field | Meaning |
+| --- | --- |
+| `retention_days` | How long the database keeps metrics. A window longer than that is answered with what's still stored, so a `30d` window at 7 days' retention reads as 7 days of data |
+| `instances` | How many instances' runs the window counts |
+
+Stored metrics follow the event log's retention: `event_log_retention_days` (default `30`), where `0` keeps them indefinitely. Minute rows more than two days old are folded into hour rows, which answer the same counts and percentiles.
+
+Each stored row records the instance that wrote it, named by `HAPPYVIEW_INSTANCE_ID`, else the hostname, else a random id for that boot. Give each replica a stable, distinct `HAPPYVIEW_INSTANCE_ID`. A name that changes on every deploy still counts, but the replica can't read its own history back after a restart, so its last hour and day start empty.
+
+## What a run measures
+
+Durations are in milliseconds. A mean is over the runs that reached that stage. Percentiles are accurate to about 1%, and `max` is exact.
+
+| Field | Meaning |
+| --- | --- |
+| `wall_ms` | The whole run: building the script's input, instantiating the interpreter, running the script, and settling the library calls it left running |
+| `guest_ms` | Time inside the script's own code: the call into the interpreter less the time spent in host imports |
+| `prepare_ms_mean` | Building the script's input, including reading script variables, and attaching its prepared artifact |
+| `instantiate_ms_mean` | Instantiating the interpreter or compiled module: `link_ms_mean` plus `allocate_ms_mean` |
+| `link_ms_mean` | Building the linker the instance's imports are resolved through |
+| `allocate_ms_mean` | The rest of instantiation: finding the module, building the store and the instance, and running the module's initializer |
+| `teardown_ms_mean` | Dropping the store and instance once the run is over |
+| `host_ms_mean` | Time the script spent waiting on the host: database reads, library calls, HTTP requests |
+| `settle_ms_mean` | Waiting for library calls the script started and never awaited |
+| `host_imports` | The host imports the script called, each with its `calls` and `ms_mean`, by total time spent |
+| `memory_peak_bytes` | The interpreter's linear memory at the end of the run, which is its high-water mark, as `max` and `mean` |
+| `instructions_mean` | Instructions per run, over the runs that reported a count. A compiled script module always does, and an interpreted script does when its interpreter counts them. `null` when no run in the window reported one |
+| `module_cache` | How often the interpreter's compiled module came from memory (`hits`) rather than disk or a compile (`misses`) |
+
+A run ends in one of these outcomes:
+
+| Outcome | Meaning |
+| --- | --- |
+| `ok` | The script returned |
+| `syntax`, `runtime`, `missing_handle` | The script failed, as its interpreter reported |
+| `timeout` | The run exceeded its instruction limit or wall clock |
+| `memory` | The run exceeded its memory limit |
+| `trap` | The interpreter stopped without reporting why |
+| `no_interpreter` | Nothing installed runs the script's language |
+| `error` | The host could not run the script for another reason |
+
+## List scripts
+
+```
+GET /admin/metrics/scripts
+```
+
+One row per script that ran inside the window, busiest first. A script is keyed by its trigger, its kind and its layer (`project` for a project file, `dashboard` for a script saved in the dashboard), so one trigger served by both layers in the window has two rows.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `window` | string | no | `1h` (default), `24h`, `7d` or `30d`. Anything else is `400` |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/scripts?window=24h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/scripts?window=24h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/metrics/scripts?window=24h")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/scripts?window=24h", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/scripts?window=24h" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "window": "1h",
+  "enabled": true,
+  "overflow": 0,
+  "scripts": [
+    {
+      "trigger": "xrpc.query:xyz.statusphere.listStatuses",
+      "kind": "xrpc_query",
+      "layer": "dashboard",
+      "runs": 1,
+      "outcomes": { "ok": 1 },
+      "wall_ms": { "p50": 164.064, "p95": 164.064, "p99": 164.064, "max": 164.064, "mean": 164.064 },
+      "guest_ms": { "p50": 0.332, "p95": 0.332, "p99": 0.332, "max": 0.332, "mean": 0.332 },
+      "prepare_ms_mean": 162.625,
+      "instantiate_ms_mean": 0.551,
+      "link_ms_mean": 0.402,
+      "allocate_ms_mean": 0.149,
+      "teardown_ms_mean": 0.063,
+      "host_ms_mean": 0.465,
+      "settle_ms_mean": 0.002,
+      "host_imports": [
+        { "name": "host_script_log", "calls": 1, "ms_mean": 0.465 }
+      ],
+      "memory_peak_bytes": { "max": 1638400, "mean": 1638400.0 },
+      "instructions_mean": null,
+      "module_cache": { "hits": 1, "misses": 0 }
+    }
+  ]
+}
+```
+
+`overflow` counts scripts that weren't recorded because 1,024 were already held. Scripts with nothing left inside the last day make room for new ones.
+
+## Get one script
+
+```
+GET /admin/metrics/scripts/{trigger}
+```
+
+One script's totals for the window and a series of points across it, merged over the layers it ran from. The trigger contains `:`, which you can send as `%3A`.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `window` | string | no | `1h` (default), `24h`, `7d` or `30d` |
+| `step` | string | no | `1m` or `30m` with `1h` or `24h`; `1h` or `1d` with `7d` or `30d`. Defaults: `1m` for `1h`, `30m` for `24h`, `1h` for `7d`, `1d` for `30d` |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/scripts/xrpc.query%3Axyz.statusphere.listStatuses?window=1h" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`, with the fields of a row in the list, plus `layers`, `window`, `step`, `enabled` and `points`. There is one point per step across the window, oldest first, and the newest is the step still open. Days are UTC days. A step with no runs has `runs: 0` and `null` latencies. This example leaves out the fields a list row also has, and shows two of the points:
+
+```json
+{
+  "trigger": "xrpc.query:xyz.statusphere.listStatuses",
+  "kind": "xrpc_query",
+  "layers": ["dashboard"],
+  "window": "1h",
+  "step": "1m",
+  "enabled": true,
+  "runs": 2,
+  "outcomes": { "ok": 1, "runtime": 1 },
+  "points": [
+    {
+      "start": "2026-10-30T20:30:00+00:00",
+      "runs": 0,
+      "outcomes": {},
+      "wall_ms": { "p50": null, "p95": null, "max": null },
+      "guest_ms": { "p50": null, "p95": null, "max": null },
+      "host_ms_mean": null,
+      "instantiate_ms_mean": null,
+      "link_ms_mean": null,
+      "allocate_ms_mean": null,
+      "teardown_ms_mean": null
+    },
+    {
+      "start": "2026-10-30T21:29:00+00:00",
+      "runs": 2,
+      "outcomes": { "ok": 1, "runtime": 1 },
+      "wall_ms": { "p50": 1.555, "p95": 1.555, "max": 164.064 },
+      "guest_ms": { "p50": 0.087, "p95": 0.087, "max": 0.332 },
+      "host_ms_mean": 0.2325,
+      "instantiate_ms_mean": 0.591,
+      "link_ms_mean": 0.433,
+      "allocate_ms_mean": 0.1575,
+      "teardown_ms_mean": 0.0495
+    }
+  ]
+}
+```
+
+| Status | Condition |
+| --- | --- |
+| `400` | An unknown `window` or `step`, `step=1m` with `window=24h`, or a step that doesn't go with the window |
+| `404` | The script has not run inside the window |
+
+## Ingest
+
+```
+GET /admin/metrics/ingest
+```
+
+What each record of a collection costs on its way through ingest, around and inside its record script, so you can tell whether a slow backfill is the script or the platform. One row per collection and action that saw records inside the window, busiest first. Every source is counted: the live stream, backfills, replays and dead-letter retries.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `window` | string | no | `1h` (default), `24h`, `7d` or `30d` |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/ingest?window=24h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/ingest?window=24h", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/metrics/ingest?window=24h")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/ingest?window=24h", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/ingest?window=24h" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "window": "1h",
+  "enabled": true,
+  "overflow": 0,
+  "scripts_table_reads": 12,
+  "collections": [
+    {
+      "collection": "xyz.statusphere.status",
+      "action": "create",
+      "records": 2,
+      "records_per_s": 0.048,
+      "record_ms": { "p50": 1.722, "p95": 1.722, "p99": 1.722, "max": 2.333, "mean": 2.0275 },
+      "stages": {
+        "resolve": { "n": 2, "ms_mean": 0.2155 },
+        "cid_check": { "n": 2, "ms_mean": 0.0095 },
+        "hook": { "n": 2, "ms_mean": 1.7955 },
+        "hook.link": { "n": 2, "ms_mean": 0.393 },
+        "hook.allocate": { "n": 2, "ms_mean": 0.1135 },
+        "hook.teardown": { "n": 2, "ms_mean": 0.026 },
+        "delta": { "n": 2, "ms_mean": 0.001 }
+      },
+      "outcomes": { "skip": 2 },
+      "failed": 0,
+      "timeouts": 0,
+      "dead_lettered": 0,
+      "script_ms_mean": 0.0715,
+      "script_share": 0.035,
+      "platform_share": 0.965
+    }
+  ]
+}
+```
+
+| Stage | Meaning |
+| --- | --- |
+| `resolve` | Looking up the record's script. A batch looks each collection's script up once, so this stays near zero |
+| `cid_check` | Checking that the body hashes to its claimed CID |
+| `hook` | Running the record script, its retries and their backoff included. Only for records a script ran for |
+| `hook.link`, `hook.allocate`, `hook.teardown` | Parts of `hook`, not more of it: building and dropping the script runs' instances, as in [What a run measures](#what-a-run-measures) |
+| `write` | Writing the record to the instance database. A batch writes in one transaction, shared evenly over its records |
+| `delta` | For a collection an external storage holds, the time ingest waited on it |
+
+| Field | Meaning |
+| --- | --- |
+| `records_per_s` | Over the part of the window that saw records |
+| `record_ms` | A record's own time: its stages up to its decision plus its share of the write, not the time it waited for the rest of its batch |
+| `outcomes` | What was decided: `proceed`, `replace`, `skip` or `cid_mismatch` |
+| `failed`, `timeouts`, `dead_lettered` | Records whose script failed at least once, timed out at least once, and was given up on |
+| `script_ms_mean` | The script's own time (its code and the host calls it made), over the records a script ran for |
+| `script_share` | Script time over record time, across every record |
+| `platform_share` | The rest of record time: the lookup, the CID check, the write, and whatever in the `hook` stage isn't the script's own code |
+| `scripts_table_reads` | Since the process started, how often a record script's lookup read the scripts table rather than answering from the project or its batch's earlier lookup |
+
+## Live
+
+```
+GET /admin/metrics/live
+```
+
+What is running now: script runs in progress by kind, background jobs waiting and running, backfill jobs this process is tracking, and the plugin runtime's module cache since the process started. It's cheap enough to poll every few seconds, and takes no parameters.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/live", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/metrics/live", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/metrics/live")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/live", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/live" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "enabled": true,
+  "active_runs": {
+    "xrpc_query": 0,
+    "xrpc_procedure": 0,
+    "record_event": 0,
+    "label": 0,
+    "job": 0
+  },
+  "jobs": { "pending": 0, "running": 0 },
+  "backfill_jobs": [
+    { "job_id": "883232fb-1817-47bf-ba4d-91dcd8b0657f", "idle_s": 0, "hooks": { "done": 1200000, "rate_per_s": 410.2 } }
+  ],
+  "module_cache": { "hits": 3, "misses": 1, "compiles": 1 }
+}
+```
+
+`backfill_jobs` lists every backfill job this process holds [script stats](/docs/reference/admin/backfill#script-stats) for that hasn't finished, most recently active first. `idle_s` is the seconds since its last record or report, and the example's `hooks` is cut short. A paused job stays listed until an hour after its last record.
+
+`module_cache` counts every module lookup the runtime made, libraries included. `compiles` is how many modules it has compiled; a miss that loaded a module from disk doesn't add to it.

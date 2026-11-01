@@ -11,7 +11,7 @@ This API is experimental and will change. See the [Permissioned Spaces overview]
 Invites let space creators distribute membership tokens without knowing recipients' DIDs in advance.
 
 :::note[HappyView Extension]
-Invites are a HappyView-specific feature, not part of the atproto spaces spec. They may be replaced by a different mechanism in the future.
+Invites are a HappyView-specific feature, not part of the atproto spaces spec.
 :::
 
 ## Creating an invite
@@ -150,7 +150,7 @@ curl -X POST 'https://happyview.example.com/xrpc/dev.happyview.space.createInvit
 ```
 
 :::caution
-The `token` is only returned once. It is stored as a SHA-256 hash — HappyView cannot recover the plaintext.
+The `token` is only returned once. It is stored as a SHA-256 hash, so HappyView cannot recover the plaintext.
 :::
 
 ## Accepting an invite
@@ -356,7 +356,7 @@ curl -X POST 'https://happyview.example.com/xrpc/dev.happyview.space.revokeInvit
 </TabItem>
 </Tabs>
 
-Revoking an invite prevents future redemptions but does not remove members who already redeemed it.
+Only the space's creator or an operator with superadmin can revoke an invite. Revoking prevents future redemptions but does not remove members who already redeemed it.
 
 ## Listing invites
 
@@ -472,4 +472,4 @@ curl 'https://happyview.example.com/xrpc/dev.happyview.space.listInvites?space=a
 }
 ```
 
-The token itself is never returned in list responses — only the invite metadata.
+List responses carry the invite metadata and never the token.

@@ -347,7 +347,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.simplespace.listMembers?spa
 </TabItem>
 </Tabs>
 
-Only the space's creator or an operator with superadmin can list its members. Other accounts receive `403 Forbidden` and unauthenticated callers `401 Unauthorized`, whatever the space's `membership_public` setting.
+Only the space's creator or an operator with superadmin can list its members. Other accounts receive `403 Forbidden` and unauthenticated callers `401 Unauthorized`.
 
 The response returns the **resolved** member list, with delegation chains traversed and flattened:
 

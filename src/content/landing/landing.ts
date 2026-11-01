@@ -88,12 +88,12 @@ export const capabilities: Tile[] = [
 	},
 	{
 		title: 'Plugins declare their capabilities',
-		blurb: 'HappyView checks what each WebAssembly plugin imports against what it declares, and shows you before you install.',
+		blurb: 'HappyView checks what each WebAssembly plugin imports against what it declares. The dashboard shows it before install.',
 		href: '/docs/getting-started/plugins-and-libraries',
 	},
 	{
 		title: 'Tests run in process',
-		blurb: '`hpy happyview test` fires queries, procedures, record events and jobs, with nothing on the live network.',
+		blurb: '`hpy happyview test` fires queries, procedures, record events and jobs at a test PDS and its own database.',
 		href: '/docs/getting-started/testing',
 	},
 ]
@@ -106,7 +106,7 @@ export const alternates: Tile[] = [
 	},
 	{
 		title: 'SQLite or Postgres',
-		blurb: 'Start on one SQLite file and move to Postgres when you need replicas. Migrations run on startup on either.',
+		blurb: 'Start on one SQLite file, or run Postgres when you need replicas. Migrations run on startup on either.',
 		href: '/docs/guides/self-hosting/docker',
 	},
 ]
@@ -118,7 +118,7 @@ export const hosting = {
 		title: 'Self-host',
 		points: [
 			'MIT licensed. The source, issues and releases are on GitHub.',
-			'A single binary for macOS, Linux and Windows, or a Docker image.',
+			'A single binary for macOS and Linux, or a Docker image.',
 			'SQLite or Postgres.',
 			'You run the server, TLS, upgrades and backups, and install the interpreters you need.',
 		],

@@ -3,7 +3,7 @@ title: "How HappyView fits atproto"
 description: "The atproto pieces HappyView works with, one sentence each, and the path a record takes from a user's repository to your app."
 ---
 
-HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting Started uses. You don't need more than this to build with HappyView.
+HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting started uses. You don't need more than this to build with HappyView.
 
 ## The pieces
 
@@ -17,7 +17,7 @@ HappyView is an AppView: it reads records from the atproto network, keeps the on
 - **XRPC**: atproto's HTTP API style. An endpoint is called at `/xrpc/<NSID>`: a **query** with `GET`, a **procedure**, which changes something, with `POST`.
 - **Jetstream**: A live feed of record changes across the network, filtered by collection. HappyView listens to it for the collections it indexes.
 - **AppView**: A service that indexes records from many repositories and answers queries about them. A HappyView instance is one.
-- **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app's users sign in to HappyView with it.
+- **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app uses it to call your instance as a signed-in user.
 
 ## How a record reaches your app
 
@@ -38,9 +38,9 @@ flowchart TD
 3. Your app calls a **query** on your instance, and gets answers from the instance's index.
 4. Your app calls a **procedure** to change something. The instance writes to the user's PDS as that user, and indexes the result straight away.
 
-Your project decides each step: which collections are indexed, what each query returns, and what a procedure writes. That is what the rest of Getting Started builds.
+Your project decides each step: which collections are indexed, what each query returns, and what a procedure writes. That is what the rest of Getting started builds.
 
 ## Next steps
 
 - [Installation](/docs/getting-started/installation): install `hpy` and create a project.
-- [Glossary](/docs/architecture/glossary): every term HappyView uses.
+- [Glossary](/docs/architecture/glossary): the words HappyView v3 uses.

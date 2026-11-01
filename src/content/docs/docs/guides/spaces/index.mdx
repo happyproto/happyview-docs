@@ -8,7 +8,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 Permissioned Spaces are experimental and the API will change. This implementation follows [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data). HappyView uses the `com.atproto.space.*` and `com.atproto.simplespace.*` namespaces. The `dev.happyview.space.*` endpoints are deprecated aliases. They are still served in v3 alpha; removal is not yet scheduled.
 :::
 
-Spaces are containers for permissioned data in atproto. Unlike regular public records that live in a user's repo, space records are gated by membership — only members can read or write data within a space.
+Spaces are containers for permissioned data in atproto. Unlike regular public records that live in a user's repo, space records are gated by membership: only members can read or write data within a space.
 
 ## Concepts
 
@@ -28,7 +28,7 @@ at://<space-did>/space/<type-nsid>/<skey>/<author-did>/<collection>/<rkey>
 
 ## Feature flag
 
-In HappyView, spaces are gated behind the `feature.spaces_enabled` instance setting. Enable it in the dashboard under **Settings** or via the admin API:
+In HappyView, spaces are gated behind the `feature.spaces_enabled` instance setting. Enable it in the dashboard under **System > Experiments** or via the admin API:
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -193,7 +193,7 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **Invite system**: `createInvite`, `acceptInvite`, `revokeInvite`, `listInvites` (under `dev.happyview.space.*`)
 - **`isDelegation` on members**: allows spaces to be members of other spaces
 - **`displayName`, `description` on spaces**: human-readable metadata
-- **`config` object**: `membership_public`, a setting stored with the space, plus arbitrary extra fields. `records_public` is deprecated and not enforced.
+- **`config` object**: `membership_public`, a setting stored with the space, plus arbitrary extra fields. `records_public` is deprecated.
 - **`read_self` access**: limits a member's reads to their own records
 
 ## Next steps

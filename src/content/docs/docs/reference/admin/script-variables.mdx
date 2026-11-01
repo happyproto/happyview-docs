@@ -4,7 +4,7 @@ title: Script variables
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Script variables are encrypted key/value pairs available to scripts as `ctx.env`. Use them for secrets like API tokens.
+Script variables are key/value pairs available to scripts as `ctx.env`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -53,7 +53,20 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/script-variables
 ```
 
-Requires `script-variables:read`. Returns a list of variable keys (values are not returned).
+Requires `script-variables:read`. Returns the variables ordered by key. Values are never returned, only a masked `preview`.
+
+**Response**: `200 OK`
+
+```json
+[
+  {
+    "key": "API_TOKEN",
+    "preview": "****",
+    "created_at": "2026-03-01T00:00:00Z",
+    "updated_at": "2026-03-01T00:00:00Z"
+  }
+]
+```
 
 ## Upsert a script variable
 
@@ -127,7 +140,7 @@ curl -X POST http://127.0.0.1:3000/admin/script-variables \
 </TabItem>
 </Tabs>
 
-The value is encrypted at rest using `TOKEN_ENCRYPTION_KEY`.
+**Response**: `204 No Content`
 
 ## Delete a script variable
 
@@ -136,3 +149,5 @@ DELETE /admin/script-variables/{key}
 ```
 
 Requires `script-variables:delete`.
+
+**Response**: `204 No Content`. Returns `404 Not Found` for an unknown key.

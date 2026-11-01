@@ -1,0 +1,177 @@
+---
+title: Meilisearch sync
+description: A record script that keeps a Meilisearch index in step with a collection, in Lua, JavaScript and TypeScript.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Push records to a Meilisearch search index whenever they are created, updated, or deleted on the network.
+
+**Trigger:** `record.index:<nsid>`. **Needs:** `happyview-http`. **Script variables:** `MEILISEARCH_URL`, `MEILISEARCH_API_KEY`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+local json = require("internal.json")
+local http = require("happyview.http")
+
+function handle(input, ctx)
+  -- Meilisearch ids may contain only letters, digits, `-` and `_`
+  local id = (input.did .. "_" .. input.collection .. "_" .. input.rkey):gsub("[^%w%-_]", "_")
+
+  local headers = {
+    ["Authorization"] = "Bearer " .. ctx.env.MEILISEARCH_API_KEY,
+    ["Content-Type"] = "application/json",
+  }
+
+  local res
+  if input.action == "delete" then
+    res = http.delete(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents/" .. id, {
+      headers = headers,
+    })
+  else
+    res = http.post(ctx.env.MEILISEARCH_URL .. "/indexes/records/documents", {
+      headers = headers,
+      body = json.encode(json.to_array({
+        {
+          id = id,
+          uri = input.uri,
+          collection = input.collection,
+          did = input.did,
+          record = input.record,
+        },
+      })),
+    })
+  end
+
+  if res.status >= 400 then
+    error("meilisearch answered " .. res.status)
+  end
+
+  -- `record` is absent on delete; `true` lets the delete proceed.
+  return input.record or true
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import http from "happyview.http";
+
+export default async function handle(input, ctx) {
+  // Meilisearch ids may contain only letters, digits, `-` and `_`
+  const id = `${input.did}_${input.collection}_${input.rkey}`.replace(/[^A-Za-z0-9_-]/g, "_");
+
+  const headers = {
+    Authorization: `Bearer ${ctx.env.MEILISEARCH_API_KEY}`,
+    "Content-Type": "application/json",
+  };
+
+  const res = input.action === "delete"
+    ? await http.delete(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents/${id}`, { headers })
+    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents`, {
+        headers,
+        body: JSON.stringify([
+          {
+            id,
+            uri: input.uri,
+            collection: input.collection,
+            did: input.did,
+            record: input.record,
+          },
+        ]),
+      });
+
+  if (res.status >= 400) {
+    throw new Error(`meilisearch answered ${res.status}`);
+  }
+
+  // `record` is absent on delete; `true` lets the delete proceed.
+  return input.record ?? true;
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import http from "happyview.http";
+
+interface RecordEvent {
+  action: "create" | "update" | "delete";
+  uri: string;
+  did: string;
+  collection: string;
+  rkey: string;
+  record?: Record<string, unknown>;
+}
+
+interface Context {
+  env: Record<string, string>;
+}
+
+export default async function handle(input: RecordEvent, ctx: Context) {
+  // Meilisearch ids may contain only letters, digits, `-` and `_`
+  const id = `${input.did}_${input.collection}_${input.rkey}`.replace(/[^A-Za-z0-9_-]/g, "_");
+
+  const headers = {
+    Authorization: `Bearer ${ctx.env.MEILISEARCH_API_KEY}`,
+    "Content-Type": "application/json",
+  };
+
+  const res = input.action === "delete"
+    ? await http.delete(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents/${id}`, { headers })
+    : await http.post(`${ctx.env.MEILISEARCH_URL}/indexes/records/documents`, {
+        headers,
+        body: JSON.stringify([
+          {
+            id,
+            uri: input.uri,
+            collection: input.collection,
+            did: input.did,
+            record: input.record,
+          },
+        ]),
+      });
+
+  if (res.status >= 400) {
+    throw new Error(`meilisearch answered ${res.status}`);
+  }
+
+  // `record` is absent on delete; `true` lets the delete proceed.
+  return input.record ?? true;
+}
+```
+
+</TabItem>
+</Tabs>
+
+## How it works
+
+1. On **create** or **update**: sends a `POST` request to Meilisearch's document API with the record data wrapped in an array. Meilisearch upserts by `id`, so a document for the same record is replaced.
+2. On **delete**: sends a `DELETE` request to remove the document from the index by its `id`.
+
+A Meilisearch document id may contain only letters, digits, `-` and `_`, so an AT URI cannot be one. The script builds the id from the DID, collection and rkey, replaces every other character with `_`, and stores the AT URI in a `uri` field.
+
+`input` is the [record event](/docs/reference/scripts/contract#input-by-script-type). Meilisearch expects an array of documents, which Lua's `json.to_array` guarantees ([JSON](/docs/reference/scripts/json)). `happyview.http` returns a 4xx or 5xx answer as an ordinary result, so the script checks `status` and raises for it. A failed record script is [retried and then dead-lettered](/docs/reference/scripts/types-and-triggers#failures-and-retries).
+
+## Configuration
+
+Set these as [script variables](/docs/reference/admin/script-variables) from the dashboard or the [admin API](/docs/reference/admin/admin-api):
+
+| Variable | Value |
+| --- | --- |
+| `MEILISEARCH_URL` | Your Meilisearch URL, such as `http://meilisearch:7700` |
+| `MEILISEARCH_API_KEY` | A Meilisearch API key with write permissions |
+
+A script reads them as `ctx.env.MEILISEARCH_URL` and `ctx.env.MEILISEARCH_API_KEY`.
+
+## Use case
+
+This record script keeps an external search index in step with your indexed records as events arrive, with no polling or scheduled jobs.
+
+Meilisearch can be self-hosted, so you can run it on the same network as your instance.
+
+Combine this with a [query script](/docs/reference/scripts/types-and-triggers#xrpc-scripts) that searches Meilisearch instead of the local database for full-text search beyond the substring match of `happyview.db`'s `search`.

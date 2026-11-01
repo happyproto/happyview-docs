@@ -1,0 +1,106 @@
+---
+title: List or fetch
+description: A query script that answers one record when given a URI and a paginated list otherwise, in Lua, JavaScript and TypeScript.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This query handles both single-record lookups (when a `uri` param is provided) and paginated listing.
+
+**Trigger:** `xrpc.query:<nsid>`. **Needs:** `happyview-db`.
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+local db = require("happyview.db")
+
+function handle(input, ctx)
+  if input.uri then
+    local row = db.get(input.uri)
+    if not row then
+      return { error = "RecordNotFound", message = "no record at that uri" }
+    end
+    return { record = row }
+  end
+
+  return db.records(ctx.collection)
+    :did(input.did)
+    :limit(tonumber(input.limit) or 20)
+    :cursor(input.cursor)
+    :run()
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import db from "happyview.db";
+
+export default async function handle(input, ctx) {
+  if (input.uri) {
+    const row = await db.get(input.uri);
+    if (!row) {
+      return { error: "RecordNotFound", message: "no record at that uri" };
+    }
+    return { record: row };
+  }
+
+  return db.records(ctx.collection)
+    .did(input.did)
+    .limit(Number(input.limit) || 20)
+    .cursor(input.cursor)
+    .run();
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import db from "happyview.db";
+
+interface Input {
+  uri?: string;
+  did?: string;
+  limit?: string | number;
+  cursor?: string;
+}
+
+export default async function handle(input: Input, ctx: { collection: string }) {
+  if (input.uri) {
+    const row = await db.get(input.uri);
+    if (!row) {
+      return { error: "RecordNotFound", message: "no record at that uri" };
+    }
+    return { record: row };
+  }
+
+  return db.records(ctx.collection)
+    .did(input.did)
+    .limit(Number(input.limit) || 20)
+    .cursor(input.cursor)
+    .run();
+}
+```
+
+</TabItem>
+</Tabs>
+
+## How it works
+
+1. If a `uri` query parameter is provided, fetch that single record with `db.get` and return it. If it doesn't exist, return a structured error (raising one would answer 500). The response is a 400 only when the lexicon declares `RecordNotFound` under `defs.main.errors`, as in `"errors": [{ "name": "RecordNotFound" }]`; otherwise it is a 200.
+2. Otherwise, list records from the target collection with a `db.records` chain, with optional filtering by `did` and cursor-based pagination. The `cursor` is an opaque string from a previous response, so pass it through directly. A `limit` the lexicon declares as an `integer` arrives as a number already; the conversion covers a lexicon that leaves it untyped, where it arrives as a string.
+
+## Usage
+
+```
+GET /xrpc/xyz.statusphere.listRecords?limit=10
+GET /xrpc/xyz.statusphere.listRecords?did=did:plc:abc
+GET /xrpc/xyz.statusphere.listRecords?uri=at://did:plc:abc/xyz.statusphere.record/abc123
+```
+
+## Use case
+
+Use this when one endpoint needs to handle both listing and single-record fetches.

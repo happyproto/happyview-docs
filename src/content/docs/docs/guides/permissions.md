@@ -2,11 +2,11 @@
 title: "Permissions"
 ---
 
-HappyView uses a granular permission system to control access to the admin API. Each user has a set of permissions that determine which endpoints they can access. Permissions can be assigned individually, via templates, or both.
+HappyView uses a granular permission system to control access to the admin API. Each operator has a set of permissions that determine which endpoints they can access. Permissions can be assigned individually, via templates, or both.
 
 ## Permission list
 
-HappyView defines 51 permissions organized by category:
+HappyView defines 53 permissions organized by category:
 
 ### Lexicons
 
@@ -32,11 +32,11 @@ HappyView defines 51 permissions organized by category:
 | `scripts:read`   | View trigger-keyed scripts                        |
 | `scripts:manage` | Create, update, and delete trigger-keyed scripts  |
 
-### Script Variables
+### Script variables
 
 | Permission                | Description                                        |
 | ------------------------- | -------------------------------------------------- |
-| `script-variables:create` | Add or update environment variables for Lua scripts |
+| `script-variables:create` | Add or update environment variables for scripts     |
 | `script-variables:read`   | View script environment variable keys and values   |
 | `script-variables:delete` | Remove script environment variables                |
 
@@ -44,12 +44,12 @@ HappyView defines 51 permissions organized by category:
 
 | Permission     | Description                            |
 | -------------- | -------------------------------------- |
-| `users:create` | Add new dashboard users                |
-| `users:read`   | View the user list and their permissions |
-| `users:update` | Modify user permissions                |
-| `users:delete` | Remove dashboard users                 |
+| `users:create` | Add new operators                      |
+| `users:read`   | View the operator list and their permissions |
+| `users:update` | Modify operator permissions            |
+| `users:delete` | Remove operators                       |
 
-### API Keys
+### API keys
 
 | Permission        | Description                              |
 | ----------------- | ---------------------------------------- |
@@ -86,7 +86,7 @@ HappyView defines 51 permissions organized by category:
 | `plugins:create`  | Install and configure new plugins            |
 | `plugins:delete`  | Uninstall plugins                            |
 
-### API Clients
+### API clients
 
 | Permission           | Description                              |
 | -------------------- | ---------------------------------------- |
@@ -95,11 +95,11 @@ HappyView defines 51 permissions organized by category:
 | `api-clients:edit`   | Modify API client settings and credentials |
 | `api-clients:delete` | Remove registered API clients            |
 
-### Dead Letters
+### Dead letters
 
 | Permission            | Description                            |
 | --------------------- | -------------------------------------- |
-| `dead-letters:read`   | View failed hook executions            |
+| `dead-letters:read`   | View failed script runs                |
 | `dead-letters:manage` | Retry, re-index, or dismiss dead letters |
 
 ### Spaces
@@ -123,7 +123,7 @@ HappyView defines 51 permissions organized by category:
 | `jobs:create`  | Queue new background jobs                   |
 | `jobs:manage`  | Cancel, pause, and resume background jobs   |
 
-### Linked Repos
+### Linked repos
 
 | Permission            | Description                                                  |
 | --------------------- | ------------------------------------------------------------ |
@@ -156,7 +156,7 @@ Templates are predefined sets of permissions that simplify adding an operator. P
 
 ### Viewer template
 
-Read-only access. Can browse lexicons, records, scripts, stats, events, dead letters, and user lists but cannot modify anything.
+Read-only access. Can browse lexicons, records, scripts, stats, events, dead letters, and the operator list but cannot modify anything.
 
 Includes: `lexicons:read`, `records:read`, `scripts:read`, `script-variables:read`, `users:read`, `api-keys:read`, `backfill:read`, `stats:read`, `events:read`, `metrics:read`, `dead-letters:read`
 
@@ -164,7 +164,7 @@ Includes: `lexicons:read`, `records:read`, `scripts:read`, `script-variables:rea
 
 Everything in the **Viewer** template, plus the ability to run backfill jobs, manage API keys, and manage dead letters.
 
-This template used to be called Operator. `POST /admin/users` still accepts `"template": "operator"` and grants the same permissions.
+`POST /admin/users` accepts `"template": "operator"` as another name for this template.
 
 Adds: `backfill:create`, `api-keys:create`, `api-keys:delete`, `dead-letters:manage`
 
@@ -193,15 +193,15 @@ Usually one operator holds superadmin. A transfer, from the dashboard or the tra
 
 HappyView prevents privilege escalation:
 
-- When creating a user or API key, you can only grant permissions that you yourself have. Attempting to grant a permission you lack returns `403 Forbidden`.
-- When updating a user's permissions, the same rule applies — you cannot grant permissions beyond your own.
+- When creating an operator or API key, you can only grant permissions that you yourself have. Attempting to grant a permission you lack returns `403 Forbidden`.
+- When updating an operator's permissions, the same rule applies: you cannot grant permissions beyond your own.
 
 ## Self-modification guards
 
-Users cannot modify their own account in destructive ways:
+Operators cannot modify their own account in destructive ways:
 
 - You cannot delete yourself
-- You cannot revoke your own permissions
+- You cannot change your own permissions
 
 These guards prevent accidental lockout.
 
@@ -210,28 +210,28 @@ These guards prevent accidental lockout.
 API keys have their own set of permissions, specified at creation time. The effective permissions of an API key are the **intersection** of:
 
 1. The permissions assigned to the key
-2. The permissions of the user who owns the key
+2. The permissions of the operator who owns the key
 
-This means if a user's permissions are later reduced, any API keys they created are also effectively reduced — even though the key's own permission list doesn't change.
+If an operator's permissions are later reduced, any API keys they created are reduced with them, even though the key's own permission list doesn't change.
 
-For example, if a user with `lexicons:create` and `lexicons:read` creates a key with both permissions, and the user later loses `lexicons:create`, the key can only use `lexicons:read`.
+For example, if an operator with `lexicons:create` and `lexicons:read` creates a key with both permissions and later loses `lexicons:create`, the key can only use `lexicons:read`.
 
 ## Managing permissions
 
 ### Via the dashboard
 
-Go to **Access > Users** to view and manage user permissions. Click on a user to see their current permissions and modify them. You can also assign templates when creating new users.
+Go to **Access > Users** to view and manage operators' permissions. Click on an operator to see their current permissions and modify them. You can also assign templates when adding an operator.
 
 ### Via the API
 
-- `POST /admin/users` — create a user with a template or explicit permissions
-- `PATCH /admin/users/{id}/permissions` — grant or revoke individual permissions
-- `POST /admin/users/transfer-super` — pass superadmin to another operator (superadmin only)
+- `POST /admin/users`: create an operator with a template or explicit permissions
+- `PATCH /admin/users/{id}/permissions`: grant or revoke individual permissions
+- `POST /admin/users/transfer-super`: pass superadmin to another operator (superadmin only)
 
-See the [Admin API — Users](/docs/reference/admin/users) for full details.
+See the [Admin API: Users](/docs/reference/admin/users) for full details.
 
 ## Next steps
 
-- [Admin API reference](/docs/reference/admin/admin-api) — endpoint documentation with required permissions
-- [API Keys](/docs/guides/api-keys) — creating scoped API keys
-- [Event Logs](/docs/guides/event-logs) — permission-denied events are logged for auditing
+- [Admin API reference](/docs/reference/admin/admin-api): endpoint documentation with required permissions
+- [API Keys](/docs/guides/api-keys): creating scoped API keys
+- [Event Logs](/docs/guides/event-logs): permission-denied events are logged for auditing

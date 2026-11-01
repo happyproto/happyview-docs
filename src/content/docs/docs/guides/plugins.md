@@ -1,12 +1,12 @@
 ---
-title: "Plugins"
+title: Plugins
 ---
 
-HappyView uses plugins, which are WebAssembly modules, to extend its functionality. Auth plugins let users link accounts from platforms like Steam, Xbox, and itch.io; library plugins expose functions to scripts.
+HappyView uses plugins, which are WebAssembly modules, to extend its functionality. Interpreters run scripts in one language, libraries give scripts their `happyview.*` modules, and auth plugins let users link accounts from platforms like Steam, Xbox and itch.io.
 
-Official plugins for Steam, Xbox, itch.io, and other platforms are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
+The official plugins are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
-## Installing Plugins
+## Installing plugins
 
 ### From the registry
 
@@ -62,7 +62,7 @@ Turning the registry off doesn't cut a plugin installed from the registry off fr
 
 A plugin installed from a URL, by the dashboard or `PLUGIN_URLS`, is matched to the official publisher's registry project with the plugin's id at each registry refresh. A matched plugin follows that project's channel from then on: the prerelease channel its version was published on (`alpha` for `1.1.0-alpha.2`) when the project has one, and `latest` otherwise. Until its first update installs it from the registry by CID, it is offered only versions newer than the one installed. One no project matches is marked **Unresolved**, keeps working as a URL install, and is offered no updates; it is matched again at every refresh, so it attaches if its project is published later. To get updates sooner, remove it and add it from the registry.
 
-### Via Environment Variables
+### Via environment variables
 
 Set `PLUGIN_URLS` to load plugins at startup:
 
@@ -74,7 +74,7 @@ Format: `id|url` or `id|url|sha256:hash` (comma-separated for multiple).
 
 A `PLUGIN_URLS` plugin is registered from its environment URL at every boot. It is matched to its registry project like any URL install, but an update installed through the registry lasts only until the next restart, which loads the environment URL again. Install plugins that are in the registry through the registry instead, and keep `PLUGIN_URLS` for plugins you host yourself.
 
-### Default Plugins
+### Default plugins
 
 Set `HAPPYVIEW_DEFAULT_PLUGINS` to give a new instance plugins it starts with, such as an interpreter:
 
@@ -82,9 +82,9 @@ Set `HAPPYVIEW_DEFAULT_PLUGINS` to give a new instance plugins it starts with, s
 HAPPYVIEW_DEFAULT_PLUGINS=https://example.com/plugins/lua/manifest.json
 ```
 
-Each comma-separated source is installed once, as if an admin added it from that URL and accepted every capability its manifest declares; listing it is the operator's consent. The sources applied are recorded in the instance settings under `default_plugins.applied`, so a default plugin the owner uninstalls stays uninstalled, and one the owner had already installed under the same id is left as it is. A source that can't be fetched or installed is logged as a warning and tried again at the next boot. The installs run in the background after boot, each given up on after two minutes, so they never hold up the server.
+Each comma-separated source is installed once, as if an operator added it from that URL and accepted every capability its manifest declares; listing it is the operator's consent. The sources applied are recorded in the instance settings under `default_plugins.applied`, so a default plugin an operator uninstalls stays uninstalled, and one already installed under the same id is left as it is. A source that can't be fetched or installed is logged as a warning and tried again at the next boot. The installs run in the background after boot, each given up on after two minutes, so they never hold up the server.
 
-### Via File System
+### Via file system
 
 Place plugins in the `./plugins/` directory:
 
@@ -95,11 +95,11 @@ plugins/
     plugin.wasm
 ```
 
-## Plugin Configuration
+## Plugin configuration
 
 Plugins may require secrets (API keys, client credentials, etc.) to function. There are two ways to configure these:
 
-### Dashboard Configuration
+### Dashboard configuration
 
 Click the settings icon next to a plugin to enter secrets. These are encrypted using AES-256-GCM and stored in the database.
 
@@ -111,9 +111,9 @@ Generate one with:
 openssl rand -base64 32
 ```
 
-### Environment Variables
+### Environment variables
 
-Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_` — the plugin `auth-steam` reads `PLUGIN_AUTH_STEAM_API_KEY`:
+Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_`. The plugin `auth-steam` reads `PLUGIN_AUTH_STEAM_API_KEY`:
 
 ```bash
 PLUGIN_STEAM_API_KEY=your-api-key
@@ -121,20 +121,20 @@ PLUGIN_XBOX_CLIENT_ID=your-client-id
 PLUGIN_XBOX_CLIENT_SECRET=your-client-secret
 ```
 
-These are only necessary if you can't configure variables via the dashboard. Dashboard-configured secrets take precedence over environment variables.
+These are only necessary if you can't configure secrets in the dashboard. Dashboard-configured secrets take precedence over environment variables.
 
 ## Security
 
-- **Sandboxed execution**: Plugins run in isolated WASM environments
-- **Limited host access**: Plugins can only call approved host functions (HTTP requests, KV storage, secrets, logging)
+- **Sandboxed execution**: Plugins run in isolated WebAssembly environments
+- **Limited host access**: A plugin reaches only the host functions its declared [capabilities](/docs/reference/plugin-sdk#capabilities) cover, and you accept those at install
 - **Encrypted storage**: OAuth tokens and secrets are encrypted at rest using AES-256-GCM
 - **Scoped storage**: Plugin KV storage is isolated per-plugin and per-user
 - **No filesystem access**: Plugins cannot access the host filesystem
 
 ## Next steps
 
-- [Developing Plugins](/docs/guides/developing-plugins) — create your own plugins with the plugin API
-- [Official plugins repository](https://github.com/happyproto/plugins) — the source of the plugins for Steam, Xbox, itch.io, and more
-- [Plugins admin API](/docs/reference/admin/plugins) — install, update and switch plugins by registry project
-- [API Keys](/docs/guides/api-keys) — authenticate programmatic access to admin endpoints
-- [Permissions](/docs/guides/permissions) — configure user access to plugin management
+- [Developing plugins](/docs/guides/developing-plugins): create your own plugins
+- [Official plugins repository](https://github.com/happyproto/plugins): the source of the official plugins
+- [Plugins admin API](/docs/reference/admin/plugins): install, update and switch plugins by registry project
+- [API keys](/docs/guides/api-keys): authenticate programmatic access to admin endpoints
+- [Permissions](/docs/guides/permissions): configure operator access to plugin management

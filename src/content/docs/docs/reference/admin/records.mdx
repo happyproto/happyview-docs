@@ -7,6 +7,36 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 Browse and manage indexed records. All endpoints require the appropriate `records:*` permission.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const TOKEN = "hv_..."; // your API key
+const headers = { Authorization: `Bearer ${TOKEN}` };
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let token = "hv_..."; // your API key
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+token := "hv_..." // your API key
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -32,6 +62,48 @@ Paginated list of records in a collection, ordered by `indexed_at` descending.
 | `cursor`     | string | no       | Pagination cursor from a previous response|
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limit=10", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limit=10")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limit=10", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -69,9 +141,51 @@ curl "http://127.0.0.1:3000/admin/records?collection=xyz.statusphere.status&limi
 GET /admin/records/collections
 ```
 
-Returns the list of collection NSIDs from registered record-type lexicons. This is a fast lookup (no record counting).
+Returns the collection NSIDs of the instance's record lexicons, without counting records. `shared` names the ones served from a shared record store, whose records this instance can't delete.
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/records/collections", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/records/collections", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/records/collections")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/records/collections", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -88,7 +202,8 @@ curl http://127.0.0.1:3000/admin/records/collections -H "$AUTH"
   "collections": [
     "xyz.statusphere.status",
     "app.bsky.feed.post"
-  ]
+  ],
+  "shared": []
 }
 ```
 
@@ -105,6 +220,47 @@ Delete a single record by AT URI.
 | `uri` | string | yes      | AT URI of the record to delete       |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+await fetch("http://127.0.0.1:3000/admin/records?uri=at://did:plc:abc/xyz.statusphere.status/3k...", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+await fetch("http://127.0.0.1:3000/admin/records?uri=at://did:plc:abc/xyz.statusphere.status/3k...", {
+  method: "DELETE",
+  headers,
+});
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:3000/admin/records?uri=at://did:plc:abc/xyz.statusphere.status/3k...")
+    .bearer_auth(token)
+    .send()
+    .await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/records?uri=at://did:plc:abc/xyz.statusphere.status/3k...", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -131,6 +287,50 @@ Delete all indexed records for a given collection. Requires both `records:delete
 | `collection` | string | yes      | Collection NSID to delete from       |
 
 <Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/records/collection?collection=xyz.statusphere.status", {
+  method: "DELETE",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/records/collection?collection=xyz.statusphere.status", {
+  method: "DELETE",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:3000/admin/records/collection?collection=xyz.statusphere.status")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/records/collection?collection=xyz.statusphere.status", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+```
+
+</TabItem>
 <TabItem label="cURL">
 
 ```sh
@@ -148,7 +348,9 @@ curl -X DELETE "http://127.0.0.1:3000/admin/records/collection?collection=xyz.st
 }
 ```
 
-The delete runs as a `happyview.delete-collection` [job](/docs/reference/admin/jobs), in batches, so a large collection doesn't hold the database. Records arriving from the network while it runs are deleted too, until a batch comes back short.
+The delete runs as a `happyview.delete-collection` [job](/docs/reference/admin/jobs), in batches, so a large collection doesn't hold the database. Follow, pause or cancel it through the jobs API. Records arriving from the network while it runs are deleted too, until a batch comes back short.
+
+Returns `400 Bad Request` when `collection` is empty, and for a collection served from a shared record store: the delete would reach only this instance's own rows, and the shared records would stay. `GET /admin/records/collections` names those collections in `shared`. To delete a lexicon and its records together, see [Delete a lexicon](/docs/reference/admin/lexicons#delete-a-lexicon).
 
 ## Reconcile a collection
 
@@ -156,14 +358,14 @@ The delete runs as a `happyview.delete-collection` [job](/docs/reference/admin/j
 POST /admin/records/collection/reconcile
 ```
 
-Compares an indexed collection with what each account's PDS holds now, and finds records the index still has but the PDS no longer does. A dry run reports them; an apply deletes them. It runs as a `happyview.reconcile-collection` [job](/docs/reference/admin/jobs), whose result is the report.
+Compares an indexed collection with what each account's PDS holds now, and finds records the index still has but the PDS no longer does. Use it when records were deleted on the network while HappyView wasn't tracking the collection. A dry run reports them; an apply deletes them. It runs as a `happyview.reconcile-collection` [job](/docs/reference/admin/jobs), whose result is the report.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `collection` | string | yes | Collection NSID to reconcile |
 | `dry_run` | boolean | no | Default `true`: report only. `false` deletes what it finds |
-| `dids` | string[] | no | Only these accounts |
-| `pds_requests_per_second` | number | no | Requests per second to each PDS, `1` to `20` |
+| `dids` | string[] | no | Only these accounts. Default: every account holding records of the collection |
+| `pds_requests_per_second` | integer | no | Pace of PDS requests, `1` to `20`. Default `5` |
 | `allow_suspicious` | string[] | no | Accounts to reconcile even though their PDS lists suspiciously few records, which the job otherwise skips |
 
 **Permission:** `records:read` for a dry run, `records:delete` to apply.
@@ -177,3 +379,49 @@ Compares an indexed collection with what each account's PDS holds now, and finds
 ```
 
 **Errors:** `400` when `collection` is empty, isn't indexed, isn't a record lexicon, is `com.atproto.lexicon.schema`, or is served from a shared external record store, and when the rate is out of range.
+
+### How accounts are checked
+
+For each account, the job reads the records it stores, resolves the account's PDS from its DID document, lists the collection with `com.atproto.repo.listRecords`, and confirms each stored record the listing lacks with `com.atproto.repo.getRecord`. Only a `400` or `404` naming `RecordNotFound` counts as missing. A bare `404` leaves the record alone, because a proxy or a PDS that doesn't route the method answers that too.
+
+An account is skipped, and nothing of it is deleted, when:
+
+| Reason | When |
+| --- | --- |
+| `pds_unresolved` | Its PDS can't be resolved |
+| `listing_failed` | A listing page fails, or is empty while still offering a cursor |
+| `rate_limited` | The PDS is still rate limiting after five tries |
+| `repo_unavailable` | The PDS says the repo is missing, deactivated or taken down |
+| `suspicious_listing` | The listing is empty while records are stored, or lacks at least 10 stored records and more than half of them. Name the account in `allow_suspicious` to act on it anyway |
+| `store_read_failed` | HappyView couldn't read its own records for the account |
+
+In an apply, the collection's `record.delete` script runs for each missing record and can keep it. A record is also kept if that script fails or times out, since the job is inferring the delete rather than hearing it from the network. A record is deleted only while it still has the CID and rev it was read with, so one recreated at the same key during the run stays. Every delete goes to the event log as `record.deleted`, with `detail.origin` set to `happyview.reconcile-collection`, whatever the event-logging setting. A record whose stored CID differs from its PDS's is reported and left alone.
+
+Pausing or cancelling stops the job before its next record or listing page. A stopped job has no result, so what it did so far stays in its `progress` under `report`. A resumed job starts again from the first account, which is safe: what it already deleted is no longer stored.
+
+### The report
+
+```json
+{
+  "collection": "xyz.statusphere.status",
+  "dry_run": true,
+  "dids_checked": 412,
+  "dids_skipped": [
+    { "did": "did:plc:abc", "reason": "repo_unavailable", "detail": "listRecords answered 400 Bad Request: ..." }
+  ],
+  "missing": [
+    { "uri": "at://did:plc:def/xyz.statusphere.status/3k...", "cid": "bafyrei...", "outcome": "missing" }
+  ],
+  "missing_total": 1,
+  "unconfirmed_total": 0,
+  "deleted": 0,
+  "kept_by_hook": 0,
+  "hook_failed": 0,
+  "changed_since_check": 0,
+  "failed": 0,
+  "stale_cid": [],
+  "stale_cid_total": 0
+}
+```
+
+Each `missing` entry's `outcome` is `missing` in a dry run. In an apply it's `deleted`, `kept_by_hook`, `hook_failed`, `changed_since_check` (changed or removed since it was read) or `failed`, counted by the fields of the same names. `unconfirmed_total` counts records the listing lacked but `getRecord` didn't confirm gone. `missing` lists the first 1,000 and `stale_cid` the first 100; the totals count them all. `stopped` appears only on a report from a job that was paused or cancelled.

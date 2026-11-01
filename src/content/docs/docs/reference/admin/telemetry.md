@@ -34,15 +34,12 @@ GET /admin/settings/telemetry
 | `mode` | `off` sends nothing; `manual` sends a report only when an operator asks; `auto` sends one a day |
 | `contact` | An optional way to reach the operator, sent with each report |
 | `lexicon_names` | Whether reports include the NSIDs of the instance's collections |
-| `lexicon_structure`, `lexicon_documents` | Further opt-ins for what reports include about lexicons |
+| `lexicon_structure` | Whether reports include the structure of the instance's lexicons |
+| `lexicon_documents` | Whether reports include the lexicon documents themselves, up to a size budget |
 | `instance_id` | A random id, created the first time reporting is turned on |
 | `collector_url` | Where reports go; `TELEMETRY_COLLECTOR_URL` |
 | `prompted` | Whether an operator has answered the dashboard's telemetry question |
 | `managed` | Whether a hosting platform manages telemetry |
-
-:::caution[Pending HAP-276]
-`lexicon_structure` and `lexicon_documents` are saved, but reports don't include anything for them yet.
-:::
 
 ## Change telemetry settings
 

@@ -139,7 +139,7 @@ Restore a session by DID:
 const session = await client.restore("did:plc:abc123");
 ```
 
-The `did` parameter is required in the node client (unlike the browser client, there's no "last active" session concept on the server).
+The `did` parameter is required in the node client, because a server has no "last active" session. `restore` throws `InvalidStateError` when `did` is missing or has no stored session.
 
 A second `refresh` parameter is accepted for API compatibility with upstream (`restore(did, refresh?)`). HappyView manages token refresh server-side, so this parameter is accepted but ignored.
 
@@ -188,7 +188,7 @@ This is equivalent to calling `client.revoke(session.did)`.
 
 ## Confidential vs public clients
 
-Clients created with a `clientSecret` are confidential — they can hold secrets safely on the server. Clients without a secret are public. Use `client.isConfidential` to check:
+Clients created with a `clientSecret` are confidential: they can hold secrets safely on the server. Clients without a secret are public. Use `client.isConfidential` to check:
 
 ```typescript
 const client = new HappyViewNodeClient({
@@ -219,7 +219,7 @@ const client = new HappyViewNodeClient({
 ```
 
 - `onSessionUpdate(did)` fires after a new session is registered (from `callback()`).
-- `onSessionDelete(did)` fires after a session is revoked (from `revoke()` or `session.signOut()`).
+- `onSessionDelete(did, cause?)` fires after a session is cleared (from `revoke()`, `forgetSession()` or `session.signOut()`).
 
 ## Error handling
 
@@ -271,7 +271,7 @@ Or from the session itself:
 await session.signOut();
 ```
 
-The stored session is always cleared, even if the server refuses the revocation. `404`, `401`, and `403` count as a completed logout — the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
+The stored session is always cleared, even if the server refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
 
 To clear a session locally without contacting the server:
 
@@ -303,7 +303,7 @@ const doc = await client.didResolver.resolve(did);
 
 Your app must serve an OAuth client metadata JSON document at the URL you pass as `clientId`. The PDS fetches this during authorization.
 
-For a confidential Node.js server:
+For a server app, which authenticates to the PDS as a public atproto client whether or not it has a HappyView `clientSecret`:
 
 ```typescript
 app.get("/oauth-client-metadata.json", (req, res) => {

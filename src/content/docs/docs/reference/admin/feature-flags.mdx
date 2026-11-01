@@ -4,6 +4,8 @@ title: Feature flags
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
+Read which feature flags are on. Requires `settings:manage`.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
@@ -132,4 +134,4 @@ curl http://127.0.0.1:3000/admin/feature-flags -H "$AUTH"
 | `description` | string  | What the flag controls                       |
 | `enabled`     | boolean | Whether the flag is currently enabled        |
 
-To toggle a flag, use `PUT /admin/settings/{key}` with the value `"true"` or `"false"`. See [Instance Settings](/docs/reference/admin/settings) for details.
+To toggle a flag, use `PUT /admin/settings/{key}` with the value `"true"` or `"false"`. See [Instance settings](/docs/reference/admin/settings) for details.

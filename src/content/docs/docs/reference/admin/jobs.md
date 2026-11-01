@@ -2,7 +2,7 @@
 title: "Jobs"
 ---
 
-Admin API endpoints for managing background jobs. For a conceptual overview, see [Background Jobs](/docs/getting-started/background-jobs).
+Admin API endpoints for managing background jobs. For a conceptual overview, see [Background jobs](/docs/getting-started/background-jobs).
 
 ## List jobs
 
@@ -67,7 +67,7 @@ Returns a single job by ID.
 POST /admin/jobs/{id}/cancel
 ```
 
-Request cancellation of a job. If the job is `pending` or `paused`, it's immediately set to `cancelled`. If the job is `running`, it's set to `cancelling` — the worker will stop the job when the script next calls `ctx.job.should_stop()`.
+Request cancellation of a job. If the job is `pending` or `paused`, it's immediately set to `cancelled`. If the job is `running`, it's set to `cancelling`, and the worker stops the job when the script next calls `ctx.job.should_stop()`.
 
 **Permission:** `jobs:manage`
 
@@ -93,7 +93,7 @@ Request cancellation of a job. If the job is `pending` or `paused`, it's immedia
 POST /admin/jobs/{id}/pause
 ```
 
-Request pause of a running job. Sets the status to `pausing` — the worker will pause the job when the script next calls `ctx.job.should_stop()`.
+Request pause of a running job. Sets the status to `pausing`, and the worker pauses the job when the script next calls `ctx.job.should_stop()`.
 
 **Permission:** `jobs:manage`
 
@@ -145,7 +145,7 @@ Resume a paused job. Sets the status back to `pending` so the worker picks it up
 GET /admin/jobs/{id}/logs
 ```
 
-Returns the lines a job's script logged with `internal.logging`, oldest first.
+Returns the lines a job's script logged with `internal.logging`, oldest first. Lines are deleted on the event log's retention (`event_log_retention_days`).
 
 **Query parameters:**
 

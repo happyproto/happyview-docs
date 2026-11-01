@@ -8,32 +8,32 @@ HappyView can sign records with an ECDSA (secp256k1) keypair so their origin can
 
 1. HappyView loads or generates a secp256k1 keypair on startup
 2. `atproto.sign(record)` encodes the record to DAG-CBOR, computes its CID, and signs the CID with the private key
-3. The signature is added to the record's `signatures` array as an inline object
+3. `sign` returns the inline signature object, for the script to add to the record's `signatures` array
 4. `atproto.verify_signature(record, sig, repo_did)` recomputes the CID and verifies the signature
 
-The repo DID is included in the signed data — a signature for one user's record can't be replayed against another's. Any modification to the record invalidates the signature.
+The repo DID is included in the signed data, so a signature for one user's record can't be replayed against another's. Any modification to the record invalidates the signature.
 
 ## Setup
 
-Attestation signing is enabled by default — HappyView generates a keypair on first startup and persists it to the `happyview_instance_settings` database table. No configuration is required.
+Attestation signing is enabled by default. HappyView generates a keypair on first startup and persists it to the `happyview_instance_settings` database table. No configuration is required.
 
 To use an explicit key instead, set the `ATTESTATION_PRIVATE_KEY` environment variable:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ATTESTATION_PRIVATE_KEY` | no | auto-generated | Hex-encoded 32-byte secp256k1 private key |
-| `ATTESTATION_KEY_ID` | no | `did:web:{host}#attestation` | Key identifier included in signatures. Derived from `PUBLIC_URL` by default |
-| `ATTESTATION_SIG_TYPE` | no | app-specific NSID | The `$type` value used in signature objects |
+| `ATTESTATION_KEY_ID` | no | `did:web:localhost#attestation` | Key identifier included in signatures. Read only when `ATTESTATION_PRIVATE_KEY` is set |
+| `ATTESTATION_SIG_TYPE` | no | `games.gamesgamesgamesgames.attestation` | The `$type` value used in signature objects. Read only when `ATTESTATION_PRIVATE_KEY` is set |
 
-The key ID defaults to a `did:web` derived from your `PUBLIC_URL`. For example, `PUBLIC_URL=https://happyview.example.com` produces a key ID of `did:web:happyview.example.com#attestation`.
+A generated key takes the default `$type`, and a key ID derived from your `PUBLIC_URL`. For example, `PUBLIC_URL=https://happyview.example.com` produces a key ID of `did:web:happyview.example.com#attestation`. Set `ATTESTATION_KEY_ID` whenever you set `ATTESTATION_PRIVATE_KEY`, or verifiers get a `localhost` key ID.
 
 ### Priority order
 
 HappyView checks for signing configuration in this order:
 
-1. **Environment variables** — if `ATTESTATION_PRIVATE_KEY` is set, it's used
-2. **Database** — if previously generated keys exist in `happyview_instance_settings`, they're loaded
-3. **Auto-generation** — a new key is generated and persisted to the database
+1. **Environment variables:** if `ATTESTATION_PRIVATE_KEY` is set, it's used
+2. **Database:** if previously generated keys exist in `happyview_instance_settings`, they're loaded
+3. **Auto-generation:** a new key is generated and persisted to the database
 
 If key loading fails for any reason, signing is disabled and both `sign` and `verify_signature` raise `NO_SIGNER`.
 
@@ -91,14 +91,14 @@ function handle(input, ctx)
 
   local ok, valid = pcall(atproto.verify_signature, record, sig, row.did)
   if not ok then
-    -- Couldn't check — that is not the same as "the signature is bad".
+    -- Couldn't check, which is not the same as "the signature is bad".
     return { record = record, verified = nil, error = tostring(valid) }
   end
   return { record = record, verified = valid }
 end
 ```
 
-`verify_signature` returns `false` only when it checked the signature and it didn't match. It **raises** `UNVERIFIABLE` when it couldn't check — signature bytes that aren't valid base64, a missing field, a record that won't encode. Keep those apart: a script that treats "couldn't check" as `false` will report a fault in its own verification path as a forged record, which is a serious thing to tell a user about their own data.
+`verify_signature` returns `false` only when it checked the signature and it didn't match. It **raises** `UNVERIFIABLE` when it couldn't check: signature bytes that aren't valid base64, a missing field, or a record that won't encode. Keep those apart: a script that treats "couldn't check" as `false` will report a fault in its own verification path as a forged record, which is a serious thing to tell a user about their own data.
 
 ### Checking availability
 
@@ -107,7 +107,7 @@ Both functions raise `NO_SIGNER` when no signer is configured. A script that sho
 ```lua
 local ok, sig = pcall(atproto.sign, body)
 if ok then
-  body.signature = sig
+  body.signatures = { sig }
 end
 ```
 
@@ -127,16 +127,16 @@ Signatures are stored as objects in the record's `signatures` array:
 privileged capability:
 
 - **It signs exactly what you give it.** A signature only proves *"this HappyView
-  instance signed this content"* — it does **not** prove the content is authentic,
+  instance signed this content"*. It does **not** prove the content is authentic,
   is present in anyone's repo, or was authored by any particular DID. Only sign
   content you have already verified.
-- **It's available to any script with a caller**, including a record-event script
-  triggered by an arbitrary firehose record, where the caller is the record's
-  repo DID. Don't sign untrusted input (a firehose record, a request parameter)
+- **It's available to any script with a caller**, including a record script
+  triggered by an arbitrary network record, where the caller is the record's
+  repo DID. Don't sign untrusted input (a network record, a request parameter)
   unless you intend the instance to vouch for it.
 - **Installing `happyview.atproto` grants `attest:sign`, and creating scripts requires
   the `scripts:manage` permission.** The signing key is therefore only reachable by
-  operators you have trusted with that permission — grant it accordingly, and review
+  operators you have trusted with that permission, so grant it accordingly, and review
   scripts that call `sign`.
 
 If you need signatures scoped to a specific verified subject, have the script
@@ -145,6 +145,6 @@ source) before calling `sign`.
 
 ## Next steps
 
-- [Libraries](/docs/reference/scripts/libraries) — `happyview.atproto` and where its full surface is documented
-- [Signed Record](/docs/guides/recipes/signed-record) — save a record with an attestation signature
-- [Verify Signed Record](/docs/guides/recipes/signed-record-verify) — fetch a record and verify its signature
+- [Libraries](/docs/reference/scripts/libraries): `happyview.atproto` and where its full surface is documented
+- [Signed record](/docs/guides/recipes/signed-record): save a record with an attestation signature
+- [Verify a signed record](/docs/guides/recipes/signed-record-verify): fetch a record and verify its signature

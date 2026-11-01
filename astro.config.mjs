@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import { unified } from '@astrojs/markdown-remark';
 import react from '@astrojs/react';
@@ -80,6 +81,8 @@ export default defineConfig({
         }),
       ],
     }),
+    // The OAuth callback is a redirect step, not a page to find.
+    sitemap({ filter: (page) => !page.endsWith('/oauth/callback/') }),
     react(),
     redirectsFile(),
   ],
