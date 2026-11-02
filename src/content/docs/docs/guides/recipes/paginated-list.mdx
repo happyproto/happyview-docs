@@ -5,7 +5,7 @@ description: A query script that lists a collection's records with cursor pagina
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-List records from the lexicon's target collection, with cursor pagination and an optional DID filter.
+List a collection's records, with cursor pagination and an optional DID filter.
 
 **Trigger:** `xrpc.query:<nsid>`. **Needs:** `happyview-db`.
 
@@ -19,7 +19,7 @@ function handle(input, ctx)
   local limit = tonumber(input.limit) or 20
   if limit > 100 then limit = 100 end
 
-  return db.records(ctx.collection)
+  return db.records("xyz.statusphere.status")
     :did(input.did)
     :limit(limit)
     :cursor(input.cursor)
@@ -36,7 +36,7 @@ import db from "happyview.db";
 export default function handle(input, ctx) {
   const limit = Math.min(Number(input.limit) || 20, 100);
 
-  return db.records(ctx.collection)
+  return db.records("xyz.statusphere.status")
     .did(input.did)
     .limit(limit)
     .cursor(input.cursor)
@@ -56,10 +56,10 @@ interface Input {
   cursor?: string;
 }
 
-export default function handle(input: Input, ctx: { collection: string }) {
+export default function handle(input: Input) {
   const limit = Math.min(Number(input.limit) || 20, 100);
 
-  return db.records(ctx.collection)
+  return db.records("xyz.statusphere.status")
     .did(input.did)
     .limit(limit)
     .cursor(input.cursor)
@@ -73,7 +73,7 @@ export default function handle(input: Input, ctx: { collection: string }) {
 ## How it works
 
 1. Read `limit` from the query string, defaulting to 20 and capping at 100. Query parameters can arrive as strings, so the script converts it to a number.
-2. Build a `db.records` chain on the target collection. A step given no value is skipped, so a request without `did` or `cursor` needs no branching. In JavaScript the argument list ends at the first `undefined`, which has the same effect.
+2. Build a `db.records` chain on the `xyz.statusphere.status` collection. A step given no value is skipped, so a request without `did` or `cursor` needs no branching. In JavaScript the argument list ends at the first `undefined`, which has the same effect.
 3. `run()` returns `{ records, cursor }`. Each record is an envelope, and `cursor` is present when there are more records. In JavaScript and TypeScript, `run()` returns a promise; `handle` returns it and HappyView awaits it.
 
 ## Usage

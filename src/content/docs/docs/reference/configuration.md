@@ -202,11 +202,11 @@ A project's `happyview.toml`. Every table is optional, and an unknown key anywhe
 | `[jetstream] protocol` | `auto`, `v2` or `v1` | none | Supplies `JETSTREAM_PROTOCOL`. |
 | `[jetstream] compression` | boolean | none | Supplies `JETSTREAM_COMPRESSION`. |
 | `[lexicons."<NSID>"] backfill` | boolean | `false` | Backfill this record lexicon's collection once. |
-| `[lexicons."<NSID>"] target_collection` | NSID | none | The collection a query or procedure works on. |
-| `[lexicons."<NSID>"] action` | `create`, `update`, `delete` or `upsert` | `upsert` | What a procedure without a script does. |
 | `[lexicons."<NSID>"] indexed` | boolean | `true` | `false` stops indexing the collection, keeping what's indexed. |
 | `[lexicons."<NSID>"] token_cost` | integer | the cost set for the lexicon's type | How much of an API client's rate-limit budget one call to this endpoint uses. |
 | `[scripts."<trigger>"] description` | string | none | Shown with the script in the dashboard. |
 | `[scripts."<trigger>"] outbound_xrpcs` | list of strings | the methods found in the script's source | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
+
+Since the release that removes them, `[lexicons."<NSID>"]` takes no `target_collection` or `action`. A file that still sets either fails to load with ``happyview.toml:2: unknown field `target_collection` ``. A query or procedure names its collection in its script; see [Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script).
 
 A deploy ignores `[happyview]`, `[instance]`, `[interpreters]`, `[libraries]`, `[dev]` and `[jetstream]`; see [Deploying](/docs/getting-started/deploying).

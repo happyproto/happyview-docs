@@ -63,7 +63,7 @@ The same v2 name meant different things in different script types, so the rewrit
 | --- | --- | --- |
 | Procedure | `input` | `input`, now `handle`'s first parameter |
 | Procedure | `params` | `ctx.params` |
-| Query, procedure | `collection` | `ctx.collection` |
+| Query, procedure | `collection`, `ctx.collection` | The NSID the v2 lexicon's `target_collection` named, as a string literal; see [The collection a query or procedure names](#the-collection-a-query-or-procedure-names) |
 | Query | `params` | `input` |
 | Record event | `event` | `input` |
 | Record event | `record`, `action`, `uri`, `did`, `collection`, `rkey` | `input.record`, `input.action`, and so on |
@@ -116,6 +116,14 @@ Where a rename alone would change behavior, the codemod inlines a small shim, ca
 
 Replace them with direct library calls when you can.
 
+### The collection a query or procedure names
+
+v3 gives a query or procedure no collection: `target_collection` is gone from lexicons, and `ctx.collection` is set only for record events. A v2 query or procedure that read its `collection` global, or `ctx.collection`, gets the NSID written in as a literal, so `db.records(collection)` becomes `db.records("xyz.statusphere.status")`.
+
+The NSID comes from the v2 lexicon. The migration that removes `target_collection` copies each lexicon's value into a table before it drops the column, and database mode, the admin API and the dashboard's **Migrate** look the script's trigger NSID up there. In `--file` or `--stdin` mode, pass it with `--collection NSID`. When the codemod doesn't know the collection, because the v2 lexicon named none or no `--collection` was given, it leaves a marker on the read: `-- codemod: v3 supplies no collection to a query or procedure -- write the NSID of the collection this script reads or writes`.
+
+[Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script) covers the rest of the change.
+
 ## Run the codemod
 
 The codemod only rewrites source, so it works before any interpreter is installed. It only touches Lua scripts.
@@ -159,6 +167,10 @@ It has two modes:
 happyview-codemod --file path/to/script.lua --kind procedure
 cat script.lua | happyview-codemod --stdin --kind query
 
+# A query or procedure that reads its collection takes the NSID the v2
+# lexicon's target_collection named
+happyview-codemod --file path/to/script.lua --kind query --collection xyz.statusphere.status
+
 # Stored scripts in a database: all of them, or one by id. A dry run by default.
 happyview-codemod --database-url "$DATABASE_URL"
 happyview-codemod --database-url "$DATABASE_URL" --script "xrpc.procedure:com.example.create"
@@ -186,6 +198,7 @@ A marker is a `-- codemod:` comment above a line the codemod couldn't rewrite. I
 - A `db.query`, `db.search` or `db.backlinks` call with options the chain can't express.
 - Reading `input` or a context value at file scope, such as `local BASE = env.API_URL`. File scope runs before `handle` gets its arguments, so move the read into `handle`.
 - A local variable that already uses a name the rewrite needs, such as `db` or `time`.
+- A query or procedure that reads `collection` or `ctx.collection` when the codemod doesn't know its collection. See [The collection a query or procedure names](#the-collection-a-query-or-procedure-names).
 - `TID` conversions other than `TID()`, which `internal.tids` can't reproduce exactly.
 
 ## Before and after

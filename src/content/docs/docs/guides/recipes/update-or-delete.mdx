@@ -38,7 +38,7 @@ function handle(input, ctx)
   end
 
   -- Create new
-  return record.create(ctx.collection, input)
+  return record.create("xyz.statusphere.record", input)
 end
 ```
 
@@ -70,7 +70,7 @@ export default async function handle(input, ctx) {
   }
 
   // Create new
-  return record.create(ctx.collection, input);
+  return record.create("xyz.statusphere.record", input);
 }
 ```
 
@@ -87,7 +87,7 @@ interface Input {
   delete?: boolean;
 }
 
-export default async function handle(input: Input, ctx: { collection: string }) {
+export default async function handle(input: Input) {
   if (input.delete && input.uri) {
     await record.delete(input.uri);
     return { success: true };
@@ -108,7 +108,7 @@ export default async function handle(input: Input, ctx: { collection: string }) 
   }
 
   // Create new
-  return record.create(ctx.collection, input);
+  return record.create("xyz.statusphere.record", input);
 }
 ```
 

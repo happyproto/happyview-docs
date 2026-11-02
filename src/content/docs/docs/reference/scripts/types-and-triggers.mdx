@@ -53,7 +53,7 @@ No other trigger falls back. XRPC, label and job triggers must match exactly.
 
 ## XRPC scripts
 
-A query or procedure script handles the request and its return value is the response body. Without a script, HappyView uses its default query and procedure behavior.
+A query or procedure script handles the request and its return value is the response body. Without a script, a query answers only a lookup by `uri`, and every other call answers `501`; see [Queries and procedures need a script](/docs/reference/lexicons#queries-and-procedures-need-a-script).
 
 An XRPC script fails closed and runs once. An error becomes an error response to the caller. See [errors](/docs/reference/scripts/contract#errors).
 
