@@ -20,15 +20,15 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 | `playwright` | No | [Browser tests](#browser-tests) |
 | `portability` | No | [Portability](#portability) |
 | `test-<package>` | Yes, except `test-nsid` | [SDK packages](#sdk-packages) |
-| `audit` | No | `cargo audit` |
+| `audit` | No | `cargo audit`, after `cargo install cargo-audit` |
 | `Spaces interop` workflow | No | [Interop tests](#interop-tests) |
 | `DCO` | Yes | [Sign off every commit](/docs/contributing/develop#sign-off-every-commit) |
 
-Some checks that aren't required to merge still gate a release: on `alpha`, `e2e-tests-sqlite`, `lua-differential`, `playwright` and `portability` do. [The release gate](/docs/contributing/release#the-release-gate) lists the gate for each branch.
+Some checks that aren't required to merge still gate a release. [The release gate](/docs/contributing/release#the-release-gate) lists the gate for each branch.
 
 CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
-On `alpha`, a draft pull request skips the build, test and lint jobs, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
+On `alpha`, a draft pull request skips every job except `audit` and the SDK package tests, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
 
 ## Missing prerequisites fail
 
@@ -166,7 +166,7 @@ TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test c
 
 ## Interop tests
 
-The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them, against the PDS images pinned in `interop/images.env`, on a pull request or a push to `main`, `beta` or `alpha` that changes the spaces code, the interop tests or their Compose files. It also tests each new upstream PDS image on its own, so a failure there can come from the upstream change rather than yours. Each PDS has its own Compose file and ignored test targets:
+The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them against the PDS images pinned in `interop/images.env`. It runs on a pull request or a push to `main`, `beta` or `alpha` that changes the spaces code, the interop tests or their Compose files; the full path list is in the workflow's `on` block. It also tests each new upstream PDS image on its own, so a failure there can come from the upstream change rather than yours. Each PDS has its own Compose file and ignored test targets:
 
 | PDS | Compose file | Test target |
 | --- | --- | --- |
@@ -180,6 +180,8 @@ docker compose --env-file interop/images.env -f docker-compose.zds.yml up -d --w
 cargo test --test spaces_zds_interop -- --ignored --nocapture
 docker compose -f docker-compose.zds.yml down -v
 ```
+
+`spaces_migration_e2e` also needs `TEST_DATABASE_URL`, as in the [end-to-end tests](#end-to-end-tests).
 
 ## Lua differential test
 
