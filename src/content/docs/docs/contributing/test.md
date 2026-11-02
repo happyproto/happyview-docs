@@ -3,7 +3,7 @@ title: "Test"
 description: "Run HappyView's test suites and CI checks locally, from unit tests to the browser tests."
 ---
 
-This page lists the checks CI runs on a HappyView pull request and the commands that run each one locally. Run them from the root of a checkout set up as in [Develop](/docs/contributing/develop). This page covers testing HappyView itself; to test an app built on HappyView, see [Testing](/docs/getting-started/testing).
+This page lists the checks CI runs on a HappyView pull request and the local commands that correspond to each one. Run them from the root of a checkout set up as in [Develop](/docs/contributing/develop). This page covers testing HappyView itself; to test an app built on HappyView, see [Testing](/docs/getting-started/testing).
 
 ## Checks and their local commands
 
@@ -21,9 +21,10 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 | `portability` | No | [Portability](#portability) |
 | `test-<package>` | Yes, except `test-nsid` | [SDK packages](#sdk-packages) |
 | `audit` | No | `cargo audit` |
+| `Spaces interop` workflow | No | [Interop tests](#interop-tests) |
 | `DCO` | Yes | [Sign off every commit](/docs/contributing/develop#sign-off-every-commit) |
 
-Some checks that aren't required to merge still gate a release. On `alpha`, a push cuts a version only when `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability` have passed. See [Release](/docs/contributing/release) for the gate on `beta` and `main`.
+Some checks that aren't required to merge, such as `playwright` and `portability`, still gate a release. [How a version is chosen](/docs/contributing/release#how-a-version-is-chosen) lists the gate.
 
 CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
@@ -49,7 +50,7 @@ bash scripts/stamp-version.test.sh
 
 | Script | Fails when |
 | --- | --- |
-| `check-no-native-lua.sh` | A default build links a Lua interpreter. Scripts run in an interpreter plugin, and the native runtime exists only behind the `lua-reference` feature |
+| `check-no-native-lua.sh` | A default build links a Lua interpreter. Scripts run in an interpreter plugin, and the native Lua runtime exists only behind the `lua-reference` feature |
 | `check-no-openssl.sh` | Anything in the dependency graph pulls in OpenSSL or `native-tls`. TLS comes from rustls |
 | `stamp-version.test.sh` | `scripts/stamp-version.sh`, which writes a release's version into the manifest, stops behaving as its test expects |
 
@@ -120,7 +121,7 @@ TEST_DATABASE_URL="sqlite://$dir/e2e.db?mode=rwc" cargo test --tests -- --test-t
 
 ### When a run fails without naming the cause
 
-A few targets read a plugin fixture directly rather than through the prerequisite check, so an unbuilt fixture can fail many tests without saying why. `external_storage` is one: without `test_library`, eleven of its tests panic. Build the fixtures first:
+A few targets read a plugin fixture directly rather than through the prerequisite check, so an unbuilt fixture can fail many tests without saying why. `external_storage` is one: without `test_library`, many of its tests panic. Build the fixtures first:
 
 ```sh
 bash scripts/build-plugin-fixtures.sh
@@ -165,17 +166,17 @@ TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test c
 
 ## Interop tests
 
-The atproto spaces interop tests run HappyView against other PDS implementations. Each has its own Compose file and an ignored test target:
+The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them on a pull request or push that changes the spaces code, the interop tests or their Compose files, against the PDS images pinned in `interop/images.env`. Each PDS has its own Compose file and ignored test targets:
 
 | PDS | Compose file | Test target |
 | --- | --- | --- |
 | The Bluesky reference PDS with permissioned data | `docker-compose.spaces-alpha.yml` | `spaces_reference_interop` |
 | atproto-pds | `docker-compose.atproto-pds.yml` | `spaces_atproto_pds_interop` |
-| pds.js | `docker-compose.pdsjs.yml` | `spaces_pdsjs_interop` |
+| pds.js | `docker-compose.pdsjs.yml` | `spaces_pdsjs_interop` and `spaces_migration_e2e` |
 | ZDS | `docker-compose.zds.yml` | `spaces_zds_interop` |
 
 ```sh
-docker compose -f docker-compose.zds.yml up -d --wait
+docker compose --env-file interop/images.env -f docker-compose.zds.yml up -d --wait
 cargo test --test spaces_zds_interop -- --ignored --nocapture
 docker compose -f docker-compose.zds.yml down -v
 ```

@@ -21,4 +21,4 @@ Security fixes are released on the stable line, `main`, and on `beta`. See [Rele
 
 ## Dependency advisories
 
-CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. On `alpha`, the check doesn't block a merge or a release.
+On `alpha`, CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. A failing audit doesn't stop a release, because the `release` job doesn't require it.

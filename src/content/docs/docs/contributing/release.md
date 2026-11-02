@@ -3,7 +3,7 @@ title: "Release"
 description: "How CI turns a merge into a HappyView release: version numbers, binaries, container images and the SDK packages."
 ---
 
-HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files and passes the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. The only manual step is the optional [native build a maintainer dispatches](#build-native-binaries-by-hand). The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
+HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha`, or a manual CI run with `server` selected, that changes the server or its build files and passes the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. Maintainers act only to [build native binaries by hand](#build-native-binaries-by-hand) or to rerun a failed dispatch. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
 
 Each branch runs the workflow files it carries. Everything below the release lines describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
 
@@ -19,13 +19,13 @@ Each release branch is a release line.
 
 Every build is also tagged with its commit's short SHA. A prerelease never moves `<major>.<minor>`, `<major>` or `latest`.
 
-`main` is updated from `beta` when a release is cut. After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`, so the two don't diverge.
+`main` is updated from `beta` (see [Choose the base branch](/docs/contributing/develop#choose-the-base-branch)). After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`, so the two don't diverge.
 
 ## How a version is chosen
 
 [semantic-release](https://semantic-release.gitbook.io/) reads the commit messages since the branch's last release and picks the next version: `fix:` gives a patch, `feat:` a minor version, and a breaking change a major one. A push whose commits warrant no release cuts nothing. This is why commits follow [Conventional Commits](/docs/contributing/develop#use-conventional-commits).
 
-The `release` job in `.github/workflows/ci.yml` runs semantic-release once these jobs have passed: `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability`. It doesn't run when any job it waits on was cancelled, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
+The `release` job in `.github/workflows/ci.yml` runs semantic-release once these jobs have passed: `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability`. It also waits on the rest of the CI jobs, such as `coverage`, `audit` and the SDK tests, whose failures don't stop it. If any job it waits on was cancelled, it doesn't run, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
 
 semantic-release creates the tag (`v<version>`) and the GitHub release. semantic-release records which branch each tag was released on in a git note, and the job fetches the notes before it runs.
 
@@ -77,4 +77,4 @@ The three packages that depend on `@happyview/oauth-client` wait for its release
 
 ## Pull request builds
 
-Pull request builds aren't releases, and they publish nothing on a release channel. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and on `alpha` it skips a draft. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
+Pull request builds aren't releases, and they publish nothing on a release channel. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and for a pull request into `alpha` it also skips a draft. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.

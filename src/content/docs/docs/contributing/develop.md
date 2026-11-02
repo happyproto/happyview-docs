@@ -19,7 +19,7 @@ GitHub opens a new pull request against `main` by default, so set the **base** t
 
 You need:
 
-- [rustup](https://rustup.rs). `rust-toolchain.toml` pins Rust 1.97.1 with `clippy` and `rustfmt`, and rustup installs that version on the first build.
+- [rustup](https://rustup.rs). `rust-toolchain.toml` pins Rust 1.97.1 with `clippy` and `rustfmt`, and rustup uses that version inside the checkout; see rustup's [toolchain file](https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file) documentation.
 - Node.js 24 and npm, for the dashboard in `web/`.
 - [Bun](https://bun.sh), for the JavaScript SDK packages in `packages/`.
 - Docker with Compose, for the development stack and the test databases.
@@ -45,7 +45,7 @@ You need:
    git config core.hooksPath .githooks
    ```
 
-Git then runs a subset of CI's `lint` checks before each commit and push:
+Git then runs a subset of CI's checks before each commit and push:
 
 | Git event | Runs |
 | --- | --- |
@@ -89,7 +89,9 @@ The Prettier step restages the files it formats. It leaves alone any file that i
 | `web` | 3001 | The Next.js dashboard dev server |
 | `tunnel` | none | `cloudflared`, which gives the stack a public HTTPS URL |
 
-Use port 3080. Opening 3000 or 3001 directly splits the session cookie across two origins and bypasses Caddy's routing.
+Use port 3080. Opening 3000 or 3001 directly splits the session cookie across two origins and bypasses Caddy's routing. Port 3000 does serve a dashboard, but not this stack's: the `happyview` service sets no `STATIC_DIR`, so it serves `web/out`, which holds whatever your last local `npm run build` left there, or nothing.
+
+[Configuration](/docs/reference/configuration) lists every variable `.env` can set.
 
 The stack uses SQLite. To use Postgres, uncomment three blocks in `docker-compose.yml`: the `postgres` service, its `pgdata` volume, and the `depends_on` block on the `happyview` service. Then set these in `.env`:
 
@@ -99,6 +101,8 @@ POSTGRES_USER=happyview
 POSTGRES_PASSWORD=happyview
 POSTGRES_DB=happyview
 ```
+
+[Database setup](/docs/guides/database/database-setup) covers the differences between the two backends.
 
 To run the server with `cargo run` and no containers, see [From source](/docs/guides/self-hosting/from-source).
 
@@ -137,7 +141,7 @@ CLOUDFLARE_TUNNEL_TOKEN=<token from the Cloudflare dashboard>
 TUNNEL_HOSTNAME=happyview-dev.example.com
 ```
 
-The token starts the tunnel, and `TUNNEL_HOSTNAME` is the value written to the shared URL file. With the token alone, nothing is written, so the server waits the full 30 seconds and falls back to `PUBLIC_URL` in `.env`.
+The token starts the tunnel, and `TUNNEL_HOSTNAME` is the value written to the shared URL file. With the token alone, nothing is written, so the instance waits the full 30 seconds and falls back to `PUBLIC_URL` in `.env`.
 
 #### Locally managed tunnel
 
@@ -162,7 +166,7 @@ Then set `TUNNEL_HOSTNAME=happyview-dev.example.com` in `.env` and leave `CLOUDF
 Git ignores everything in `.cloudflared/` except its `.gitignore`. The credentials file can run only that one tunnel, but treat it as a secret.
 
 :::caution[One tunnel per person]
-Two machines running the same tunnel both become its connectors, and Cloudflare splits requests between them. Everyone who works on HappyView needs their own tunnel and hostname. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free certificate covers `*.example.com` but not `alice.dev.example.com`.
+Two machines running the same tunnel both become its connectors, and Cloudflare splits requests between them. Everyone who works on HappyView needs their own tunnel and hostname, so don't share credentials files or tokens. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free certificate covers `*.example.com` but not `alice.dev.example.com`.
 :::
 
 #### Without a tunnel
@@ -173,7 +177,7 @@ Start only the three local services:
 docker compose up happyview web caddy
 ```
 
-The server still waits 30 seconds for a tunnel URL, then uses `PUBLIC_URL` from `.env`. To skip the wait, comment out the `TUNNEL_URL_FILE` line on the `happyview` service in `docker-compose.yml`.
+The instance still waits 30 seconds for a tunnel URL, then uses `PUBLIC_URL` from `.env`. To skip the wait, comment out the `TUNNEL_URL_FILE` line on the `happyview` service in `docker-compose.yml`.
 
 :::caution[Use 127.0.0.1, not localhost]
 Without a tunnel, the instance is an atproto OAuth loopback client, which is registered with `127.0.0.1`. With `PUBLIC_URL=http://localhost:3000`, OAuth sign-in fails because the redirect URI doesn't match the loopback client ID.
@@ -181,7 +185,7 @@ Without a tunnel, the instance is an atproto OAuth loopback client, which is reg
 
 ### The other Compose files
 
-Each Compose file declares its own project name, so the stacks can run at the same time without sharing containers, networks or volumes.
+Each of these Compose files declares its own project name, so the stacks can run at the same time without sharing containers, networks or volumes.
 
 | File | Project name | What it runs |
 | --- | --- | --- |
@@ -191,7 +195,9 @@ Each Compose file declares its own project name, so the stacks can run at the sa
 | `docker-compose.prod.sqlite.yml` | `happyview-prod-sqlite` | Production on SQLite; see [Docker](/docs/guides/self-hosting/docker) |
 | `docker-compose.prod.postgres.yml` | `happyview-prod-postgres` | Production on Postgres; see [Docker](/docs/guides/self-hosting/docker) |
 
-The repository has further Compose files for the interop suites against other PDS implementations.
+A container named `happyview-postgres-1`, with no project prefix, comes from a stack started before the files had their own names, and can be removed.
+
+The other Compose files are `docker-compose.e2e.ci.yml`, which CI layers over the end-to-end stack, and the four interop stacks listed in [Interop tests](/docs/contributing/test#interop-tests).
 
 ## Commit
 
@@ -223,7 +229,7 @@ Release versions are computed from commit messages (see [Release](/docs/contribu
 
 ## Open a pull request
 
-The pull request template asks what the change does, why, and how to test it. Its checklist covers the base branch, sign-off, `cargo fmt` and `cargo clippy`, tests and docs.
+The pull request template asks what the change does, why, and how to test it. Its checklist covers the base branch, sign-off, `cargo fmt` and `cargo clippy`, tests and docs. The template names `beta` as the base; for a v3 change, the right base is `alpha`.
 
 Into `alpha`, open the pull request as a draft while you iterate. CI skips its costly jobs on a draft, and the `e2e-tests` check fails on purpose with "This pull request is a draft". When the work is done and passes locally, mark the pull request ready for review, which runs the full suite on the same commit. A pull request into `beta` runs the full suite on every push.
 
