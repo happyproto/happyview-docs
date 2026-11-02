@@ -6,7 +6,7 @@ description: "Every command, flag, environment variable and exit code of hpy and
 Two command-line tools work with HappyView:
 
 - **`hpy`**, HappyProto's CLI, creates projects, runs them locally, tests them and deploys them. Its `happyview` commands download and run the `happyview` binary a project names.
-- **`happyview`** is HappyView itself, the program that serves an instance. You run it directly when you self-host an instance.
+- **`happyview`** is HappyView itself, the program that serves an instance. A self-hosted instance runs it directly.
 
 ## hpy
 
@@ -51,7 +51,7 @@ Scaffold a new project in a new directory. Prompts for what the flags don't give
 hpy happyview dev [--locked] [--network real|local] [--reset] [--subnet <cidr>] [--yes]
 ```
 
-Run the project with its pinned HappyView at `http://127.0.0.1:3000`; a saved file is live on the next request. See [Running locally](/docs/getting-started/running-locally).
+Run the project with its pinned HappyView at `http://127.0.0.1:3000`, rebuilding when a project file changes. See [Running locally](/docs/getting-started/running-locally).
 
 | Flag | Default | What it does |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ Run the project with its pinned HappyView at `http://127.0.0.1:3000`; a saved fi
 | `--subnet <cidr>` | derived from the project's path | With `--network local`: the private IPv4 network to create it on, a /16 to /28. Kept until another is given. |
 | `-y`, `--yes` | off | Don't ask before starting the local network. |
 
-A compiled module is rebuilt when a file in its own directory changes. A path dependency outside that directory isn't watched: save a file in the module to rebuild it.
+A compiled module is rebuilt when a file in its own directory changes. A path dependency outside that directory is not watched; saving a file inside the module rebuilds it.
 
 ### hpy happyview add
 
@@ -255,7 +255,7 @@ Exits `0` when the project builds, `1` when it doesn't, and `2` when the check c
 happyview dev <root>
 ```
 
-Serve the project at `<root>` locally, rebuilding on save. `hpy happyview dev` runs this for you. It fills in what neither the environment nor `happyview.toml` sets:
+Serve the project at `<root>` locally, rebuilding on save. `hpy happyview dev` runs this command. It fills in what neither the environment nor `happyview.toml` sets:
 
 | Variable | Default under `dev` |
 | --- | --- |

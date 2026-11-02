@@ -36,11 +36,11 @@ flowchart TD
 ```
 
 1. A user writes a record to their PDS, through your app or any other.
-2. Jetstream carries the change, and your instance keeps it if it indexes that collection. Records written before your instance started indexing come in by **backfill**, fetched from each PDS.
+2. Jetstream carries the change, and your instance keeps it if it indexes that collection. Records written before your instance started indexing come in by **backfill**, which crawls each PDS or replays the Jetstream archive ([Backfill](/docs/guides/backfill)).
 3. Your app calls a **query** on your instance, and gets answers from the instance's index.
-4. Your app calls a **procedure** to change something. The instance writes to the user's PDS as that user, and indexes the result straight away.
+4. Your app calls a **procedure** to change something. The instance writes to the user's PDS as that user, and indexes the result without waiting for Jetstream to deliver it.
 
-A project configures each step: which collections are indexed, what each query returns and what each procedure writes. The rest of Getting started covers each in turn.
+A project configures steps 2 to 4: which collections are indexed, what each query returns and what each procedure writes.
 
 ## Next steps
 

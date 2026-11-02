@@ -13,7 +13,7 @@ This page installs `hpy` and creates a project. HappyView itself is not installe
 
 ## Before you start
 
-- **macOS or Linux.** On Windows, use WSL and follow the Linux steps inside it: running a project locally isn't supported on Windows itself yet.
+- **macOS or Linux.** On Windows, use WSL and follow the Linux steps inside it: running a project locally is not supported on Windows itself.
 - **An atproto account to develop with**, such as a Bluesky account. Use a test account rather than a personal one, because a project running locally writes to that account's real PDS ([Running locally](/docs/getting-started/running-locally#network)). [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days.
 
 ## Install hpy
@@ -37,7 +37,7 @@ curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
 </TabItem>
 </Tabs>
 
-The install script puts `hpy` in `~/.cargo/bin`; open a new terminal if it isn't on your `PATH` yet. Check that it worked:
+The install script puts `hpy` in `~/.cargo/bin`; open a new terminal if it isn't on your `PATH` yet. Verify the installation:
 
 ```sh
 hpy --version
@@ -55,16 +55,16 @@ hpy happyview create --name my-app
 
 | Prompt | What to answer |
 | --- | --- |
-| **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account will be able to do everything on your local instance. If you've signed in with `hpy registry login`, that account's DID is offered. To find an account's DID, look its handle up at [pdsls.dev](https://pdsls.dev). |
+| **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account holds the superadmin privilege on the local instance. If you've signed in with `hpy registry login`, that account's DID is offered. To find an account's DID, look its handle up at [pdsls.dev](https://pdsls.dev). |
 | **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected to start with. |
 | **Libraries** | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`. |
 | **App name** | Your app's name, shown in the dashboard. It defaults to the directory's name. |
 
-It creates `my-app/` and downloads nothing yet.
+`create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
 
-An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both. The starter project needs only Lua.
+An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both. The generated project uses only Lua.
 
-## What you get
+## Generated files
 
 ```text
 my-app/
@@ -85,10 +85,10 @@ my-app/
 - `happyview.lock` pins the exact plugin versions, so every machine runs the same ones.
 - `.env.example` lists script variables for `hpy happyview dev`. Copy it to `.env` and each `KEY=value` line is available to scripts as `ctx.env.KEY`. A deployed instance takes script variables from its own settings or environment instead.
 - `.gitignore` keeps `.env` and the local instance's `.happyview/` directory out of git.
-- `.luarc.json` points your editor at HappyView's types. A project with JavaScript or TypeScript gets a `tsconfig.json` instead or as well.
+- `.luarc.json` points an editor at HappyView's Lua types. A project with JavaScript or TypeScript also gets a `tsconfig.json`, which does the same for those languages.
 - `src/lexicons/com/example/hello.json` is a query lexicon, and `hello.lua` beside it is the script that answers it. The script is in the first language you picked.
 
-[Project structure](/docs/getting-started/project-structure) explains every file.
+[Project structure](/docs/getting-started/project-structure) describes each file.
 
 ## Next steps
 

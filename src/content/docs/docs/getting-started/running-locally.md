@@ -5,7 +5,9 @@ prerequisites:
   - /docs/getting-started/installation
 ---
 
-`hpy happyview dev` runs a project as a local HappyView instance. Run it from the project's directory:
+`hpy happyview dev [options]` runs a project as a local HappyView instance. It runs from the project's root directory, the one that holds `happyview.toml`.
+
+## Example
 
 ```sh
 cd my-app
@@ -29,7 +31,7 @@ curl 'http://127.0.0.1:3000/xrpc/com.example.hello?name=Ada'
 {"message":"Hello, Ada!"}
 ```
 
-## First run
+## Downloads
 
 On the first run, `hpy` downloads the HappyView version the project names into `~/.cache/hpy/` and verifies it against its published checksum. It also fetches the interpreters and libraries listed in `happyview.lock`. Later runs reuse the downloads.
 
@@ -45,16 +47,16 @@ By default the local instance is on the real atproto network. It reads records f
 Develop with a test account, not a personal one. [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days. `dev` prints the same warning when it starts.
 :::
 
-`hpy happyview dev --network local` runs the project against an atproto network on the local machine instead, so no write reaches a real account. It requires Docker with Compose v2 and Deno 2.8 or later, on macOS or Linux. The instance is then at `https://happyview.atmosbox.internal`. `--reset` discards that network's accounts, records and database, and starts it again.
+`hpy happyview dev --network local` runs the project against an atproto network on the local machine instead. Writes stay on that network. It requires Docker with Compose v2 and Deno 2.8 or later, on macOS or Linux. The instance is then at `https://happyview.atmosbox.internal`. `--reset` discards that network's accounts, records and database, and starts it again.
 
 ## Reloading
 
-`dev` watches the project and applies changes without a restart:
+`dev` watches the project and applies changes as follows:
 
 | Changed | Effect |
 | --- | --- |
 | A file under `src/` | The project is rebuilt on save. |
-| `happyview.toml` | Reloaded on save. A few settings, such as the port, print `restart required to apply` instead. |
+| `happyview.toml` | Reloaded on save. A setting read only at startup, such as the port, the database URL or `PUBLIC_URL`, prints `restart required to apply` instead. |
 | `.env` | Read on every script run. |
 | Plugins added with `hpy happyview add` | Take effect when `dev` is restarted. |
 
@@ -62,7 +64,7 @@ A successful rebuild prints `built in <n> ms:` and what changed. A failed one pr
 
 ## Dashboard
 
-The dashboard is at the `dashboard:` address `dev` prints. Sign in with the account whose DID was given to `create` as the superadmin; sign-in goes through that account's PDS.
+The dashboard is at the `dashboard:` address `dev` prints. Sign in with the project's superadmin account, the DID given at [`create`](/docs/getting-started/installation#create-a-project). Sign-in goes through that account's PDS.
 
 A person who signs in to an instance's dashboard to manage it is an **operator**. **Permissions** set what each operator may do. The superadmin holds every permission.
 
@@ -92,8 +94,9 @@ Set it to `true` and restart `dev` to backfill locally. The setting applies only
 | `--reset` | With `--network local`, discards the local network's accounts, records and database first. |
 | `--subnet <CIDR>` | With `--network local`, the private IPv4 network to create it on, when the one derived from the project's path is taken. Kept until another is given. |
 | `--yes`, `-y` | Skips the confirmation `--network local` asks for. |
-| `--locked` | Fails instead of updating `happyview.lock` when it doesn't match `happyview.toml`. Intended for CI. |
-| `PORT=<port>` | Serves on another port. `port = <port>` under `[dev]` in `happyview.toml` does the same; the environment variable takes precedence. |
+| `--locked` | Fails instead of updating `happyview.lock` when it does not match `happyview.toml`. Intended for CI. |
+
+The instance serves on port 3000. To use another port, set the `PORT` environment variable or `port` under `[dev]` in `happyview.toml`. The environment variable takes precedence.
 
 ## Next steps
 
