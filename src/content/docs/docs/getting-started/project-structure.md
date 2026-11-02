@@ -5,7 +5,7 @@ prerequisites:
   - /docs/getting-started/running-locally
 ---
 
-A project is a directory with a `happyview.toml` at its root and your code under `src/`. HappyView decides what each file is from its path alone, so there's nothing to register: put a file in the right place and it's part of your app.
+A project is a directory with a `happyview.toml` at its root and your code under `src/`. HappyView decides what each file is from its path alone.
 
 A project as it grows, after `create` and the next few pages:
 
