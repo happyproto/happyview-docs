@@ -5,7 +5,7 @@ description: Run HappyView from its published container image with one of the pr
 
 This guide deploys HappyView from the prebuilt images published to GitHub Container Registry, using one of the two production Compose files in the repository. Nothing is compiled locally: the image already contains HappyView and its dashboard.
 
-If you want to run the repository's development stack with hot reloading, see [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md instead. To run HappyView directly with `cargo run`, see [From source](/docs/guides/self-hosting/from-source).
+If you want to run the repository's development stack with hot reloading, see [Run the development stack](/docs/contributing/develop#run-the-development-stack) instead. To run HappyView directly with `cargo run`, see [From source](/docs/guides/self-hosting/from-source).
 
 ## Prerequisites
 
@@ -146,7 +146,7 @@ It serves the redirect from HTTP to HTTPS *and* the ACME HTTP-01 challenge, whic
 ### Other options
 
 - **A proxy on the host**: leave the default `ports` block and point nginx, Caddy, or Traefik at `127.0.0.1:3000`
-- **Cloudflare Tunnel**: no inbound port needs opening at all. See [Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in HappyView's CONTRIBUTING.md for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname
+- **Cloudflare Tunnel**: no inbound port needs opening at all. See [Expose the stack through a Cloudflare Tunnel](/docs/contributing/develop#expose-the-stack-through-a-cloudflare-tunnel) for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname
 - **`HTTP_BIND=0.0.0.0:3000`**: publishes on all interfaces. Only do this if something else is firewalling the port, since `ports` bypasses the host firewall on most Docker installs
 
 Whatever you use, `PUBLIC_URL` must match the resulting public URL exactly. To serve HappyView at a subpath alongside other services, see [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath). `BASE_PATH` is applied at container start, so prebuilt images work at any subpath without a rebuild.
