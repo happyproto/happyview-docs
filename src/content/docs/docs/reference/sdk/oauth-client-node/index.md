@@ -5,6 +5,8 @@ description: "HappyViewNodeClient: the server-side OAuth flow for Node.js apps s
 
 The Node client is a server-side OAuth client for authenticating with a HappyView instance using atproto. It is built on top of [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) and matches the API surface of [`@atproto/oauth-client-node`](https://www.npmjs.com/package/@atproto/oauth-client-node).
 
+The Node client signs no client assertion, so it authenticates to a user's PDS as a public atproto OAuth client, whatever kind of API client it is registered as on HappyView. [`@happyview/oauth-client-browser`](/docs/reference/sdk/oauth-client-browser) signs one for a confidential client.
+
 ## Installation
 
 ```bash

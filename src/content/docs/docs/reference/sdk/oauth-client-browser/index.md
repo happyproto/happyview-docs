@@ -48,7 +48,7 @@ const client = new HappyViewBrowserClient({
 ```
 
 :::note
-The API client must be registered as a **public** client (no secret) with your app's origin in `allowed_origins`. See [API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
+The API client must be registered as a **public** client (no secret) If the client sets `allowed_origins`, your app's origin must be in it. See [API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
 :::
 
 ## Sign in
