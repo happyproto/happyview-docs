@@ -3,19 +3,19 @@ title: "Release"
 description: "How CI turns a merge into a HappyView release: version numbers, binaries, container images and the SDK packages."
 ---
 
-HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files. A manual CI run with `server` selected also releases. Either must pass the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. Maintainers act only to [build native binaries by hand](#build-native-binaries-by-hand) or to rerun a failed dispatch. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
+HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files, and a manual CI run with `server` selected. Either must pass the checks listed in [How a version is chosen](#how-a-version-is-chosen). The release gets a version computed from its commit messages, a GitHub release, container images and, except for some alpha versions, native binaries. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
 
-Each branch runs the workflow files it carries. Everything below the release lines describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
+Each branch runs the workflow files it carries. Everything after this section describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
 
 ## Release lines
 
 Each release branch is a release line.
 
-| Branch | Line | Example tag | Container tags it moves |
+| Branch | Line | Tag form | Container tags it moves |
 | --- | --- | --- | --- |
-| `main` | Stable | `v2.16.0` | The version, `<major>.<minor>`, `<major>` and `latest` |
-| `beta` | Prerelease | `v2.17.0-beta.16` | The version |
-| `alpha` | Prerelease | `v3.0.0-alpha.57` | The version |
+| `main` | Stable | `vX.Y.Z` | The version, `<major>.<minor>`, `<major>` and `latest` |
+| `beta` | Prerelease | `vX.Y.Z-beta.N` | The version |
+| `alpha` | Prerelease | `vX.Y.Z-alpha.N` | The version |
 
 Every build is also tagged with its commit's short SHA. A prerelease never moves `<major>.<minor>`, `<major>` or `latest`.
 
@@ -27,7 +27,7 @@ Every build is also tagged with its commit's short SHA. A prerelease never moves
 
 The `release` job in `.github/workflows/ci.yml` runs semantic-release once these jobs have passed: `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability`. It also waits on the rest of the CI jobs, such as `coverage`, `audit` and the SDK tests, whose failures don't stop it. If any job it waits on was cancelled, it doesn't run, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
 
-semantic-release creates the tag (`v<version>`) and the GitHub release. semantic-release stores each tag's prerelease name (`beta` or `alpha`, and none for `main`) in a git note, and the job fetches the notes before it runs.
+semantic-release creates the tag (`v<version>`) and the GitHub release, and stores each tag's prerelease name (`beta` or `alpha`, and none for `main`) in a git note, and the job fetches the notes before it runs.
 
 `Cargo.toml` keeps version `0.1.0` in the repository. Each release build writes the tag's version into `Cargo.toml` and `Cargo.lock` first, with `scripts/stamp-version.sh`, so the binary reports the released version.
 
@@ -52,7 +52,7 @@ An alpha version gets native binaries at most once every 20 hours. When another 
 To build the binaries for a version whose build was skipped, or to rerun one:
 
 ```sh
-gh workflow run release.yml --ref v3.0.0-alpha.57 -f tag=v3.0.0-alpha.57
+gh workflow run release.yml --ref vX.Y.Z-alpha.N -f tag=vX.Y.Z-alpha.N
 ```
 
 Dispatched with its default tag, `dry-run`, the workflow builds without publishing.
@@ -67,14 +67,14 @@ A package releases when its `test-<package>` job passes on a push that changes i
 
 The three packages that depend on `@happyview/oauth-client` wait for its release when it changed. Before they publish, `scripts/resolve-workspace-deps.sh` replaces their `workspace:` ranges with the newest version of each dependency published under the branch's dist-tag. When that dist-tag has no version, it tries each earlier branch's dist-tag in turn: from `alpha`, that is `beta` and then `latest`.
 
+## Pull request builds
+
+Pull request builds aren't releases, and they publish nothing on a release line. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and it also skips a draft pull request. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
+
 ## On beta and main
 
 `beta` and `main` carry the v2 workflow. Its differences from the pipeline above:
 
 - `release` waits on `unit-tests`, `e2e-tests`, `frontend`, `playwright` and `lint`. It has no guard against cancelled jobs, doesn't fetch the git notes first, and runs whichever semantic-release version `npx` resolves.
 - The `build` job attaches two native binaries to the GitHub release, `happyview-linux-amd64` and `happyview-linux-arm64`. There is no `Release` workflow, no cargo-dist build and no `scripts/stamp-version.sh`.
-- CI runs in full on draft pull requests.
-
-## Pull request builds
-
-Pull request builds aren't releases, and they publish nothing on a release line. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and it also skips a draft pull request. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
+- CI runs in full on draft pull requests, and `pr-build` builds their images too.

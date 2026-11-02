@@ -89,7 +89,7 @@ The Prettier step restages the files it formats. It leaves alone any file that i
 | `web` | 3001 | The Next.js dashboard dev server |
 | `tunnel` | none | `cloudflared`, which gives the stack a public HTTPS URL |
 
-Use port 3080. Opening 3000 or 3001 directly splits the session cookie across two origins and bypasses Caddy's routing. Port 3000 does serve a dashboard, but not this stack's: the `happyview` service sets no `STATIC_DIR`, so it serves `web/out`, which holds whatever your last local `npm run build` left there, or nothing.
+Use port 3080. Opening 3000 or 3001 directly splits the session cookie across two origins and bypasses Caddy's routing. Port 3000 does serve a dashboard, but not this stack's: the `happyview` service sets no `STATIC_DIR`. It serves `web/out` instead, which holds whatever your last local `npm run build` left there, or nothing.
 
 [Configuration](/docs/reference/configuration) lists every variable `.env` can set.
 
@@ -166,7 +166,9 @@ Then set `TUNNEL_HOSTNAME=happyview-dev.example.com` in `.env` and leave `CLOUDF
 Git ignores everything in `.cloudflared/` except its `.gitignore`. The credentials file runs only that one tunnel (see Cloudflare's [tunnel permissions](https://developers.cloudflare.com/tunnel/features/locally-managed-tunnels/tunnel-permissions/)), but treat it as a secret.
 
 :::caution[One tunnel per person]
-Two machines running the same tunnel both become its [replicas](https://developers.cloudflare.com/tunnel/configuration/#replicas-and-high-availability), and Cloudflare sends each request to whichever one it picks, usually the closer. Everyone who works on HappyView needs their own tunnel and hostname, so don't share credentials files or tokens. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free [Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/limitations/) certificate covers `*.example.com` but not `alice.dev.example.com`.
+Two machines running the same tunnel both become its [replicas](https://developers.cloudflare.com/tunnel/configuration/#replicas-and-high-availability), and Cloudflare sends each request to whichever one it picks, usually the closer. Everyone who works on HappyView needs their own tunnel and hostname, so don't share credentials files or tokens.
+
+On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's [Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/limitations/) certificate covers `*.example.com` but not `alice.dev.example.com`.
 :::
 
 #### Without a tunnel
@@ -183,7 +185,7 @@ The instance still waits 30 seconds for a tunnel URL, then uses `PUBLIC_URL` fro
 Without a tunnel, the instance signs users in as an atproto OAuth loopback client, whose redirect URI must use `127.0.0.1` under atproto's [localhost client rules](https://atproto.com/specs/oauth#localhost-client-development). With `PUBLIC_URL=http://localhost:3000`, OAuth sign-in fails.
 :::
 
-### The other Compose files
+### Compose files and their project names
 
 Each of these Compose files declares its own project name, so the stacks can run at the same time without sharing containers, networks or volumes.
 
@@ -194,8 +196,6 @@ Each of these Compose files declares its own project name, so the stacks can run
 | `docker-compose.e2e.yml` | `happyview-e2e` | The full stack with a local PLC directory and PDS, for the browser tests |
 | `docker-compose.prod.sqlite.yml` | `happyview-prod-sqlite` | Production on SQLite; see [Docker](/docs/guides/self-hosting/docker) |
 | `docker-compose.prod.postgres.yml` | `happyview-prod-postgres` | Production on Postgres; see [Docker](/docs/guides/self-hosting/docker) |
-
-A container named `happyview-postgres-1`, with no project prefix, comes from a stack started before the files had their own names, and can be removed.
 
 The other Compose files are `docker-compose.e2e.ci.yml`, which CI layers over the end-to-end stack, and the four interop stacks listed in [Interop tests](/docs/contributing/test#interop-tests).
 
