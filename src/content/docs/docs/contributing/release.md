@@ -3,7 +3,7 @@ title: "Release"
 description: "How CI turns a merge into a HappyView release: version numbers, binaries, container images and the SDK packages."
 ---
 
-HappyView releases are cut by CI. A push to `main`, `beta` or `alpha` that changes the server or its build files, and passes the release-gating checks, gets a version computed from its commit messages, a GitHub release, container images and native binaries. The only manual step is the optional [native build a maintainer dispatches](#build-native-binaries-by-hand). The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
+HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files and passes the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. The only manual step is the optional [native build a maintainer dispatches](#build-native-binaries-by-hand). The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
 
 Each branch runs the workflow files it carries. Everything below the release lines describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
 
@@ -19,7 +19,7 @@ Each release branch is a release line.
 
 Every build is also tagged with its commit's short SHA. A prerelease never moves `<major>.<minor>`, `<major>` or `latest`.
 
-After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` into `beta`.
+`main` is updated from `beta` when a release is cut. After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`, so the two don't diverge.
 
 ## How a version is chosen
 
@@ -61,11 +61,11 @@ If `dispatch-native-release` itself failed after the tag was created, rerun that
 
 ## The SDK packages
 
-The five JavaScript SDK packages release from the same three branches, independently of the server: `@happyview/oauth-client`, `@happyview/oauth-client-browser`, `@happyview/oauth-client-node`, `@happyview/lex-agent` and `@happyview/nsid`.
+The five JavaScript SDK packages release from the same three branches, with versions of their own: `@happyview/oauth-client`, `@happyview/oauth-client-browser`, `@happyview/oauth-client-node`, `@happyview/lex-agent` and `@happyview/nsid`.
 
 A package releases when its `test-<package>` job passes on a push that changes its files. `@happyview/oauth-client-browser`, `@happyview/oauth-client-node` and `@happyview/lex-agent` also release on changes to `packages/oauth-client/`, and `@happyview/nsid` on changes to the `happyview-nsid` crate. Each package runs semantic-release from its own directory and publishes to npm under the dist-tag `latest` from `main`, or the branch name from `beta` and `alpha`.
 
-The three packages that depend on `@happyview/oauth-client` wait for its release when it changed. Before they publish, `scripts/resolve-workspace-deps.sh` replaces their `workspace:` ranges with the newest version of each dependency published under the branch's dist-tag. When that dist-tag has no version, it falls back to the next earlier branch's.
+The three packages that depend on `@happyview/oauth-client` wait for its release when it changed. Before they publish, `scripts/resolve-workspace-deps.sh` replaces their `workspace:` ranges with the newest version of each dependency published under the branch's dist-tag. When that dist-tag has no version, it tries each earlier branch's dist-tag in turn: from `alpha`, that is `beta` and then `latest`.
 
 ## On beta and main
 
@@ -77,4 +77,4 @@ The three packages that depend on `@happyview/oauth-client` wait for its release
 
 ## Pull request builds
 
-Pull request builds aren't releases, and they publish nothing on a release channel. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
+Pull request builds aren't releases, and they publish nothing on a release channel. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and on `alpha` it skips a draft. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.

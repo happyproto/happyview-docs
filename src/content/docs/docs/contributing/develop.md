@@ -37,6 +37,8 @@ You need:
    git switch -c fix/my-change upstream/alpha
    ```
 
+   The commands on this page use `alpha`. For a v2 change, use `beta` in its place.
+
 3. Point git at the repository's `.githooks/` directory, once per clone:
 
    ```sh
@@ -50,7 +52,7 @@ Git then runs a subset of CI's `lint` checks before each commit and push:
 | `pre-commit` | `cargo fmt -- --check` and `cargo clippy -- -D warnings` over the library and binaries, then Prettier on the staged files under `web/` |
 | `pre-push` | `cargo clippy --all-targets -- -D warnings`, which also lints the test code |
 
-The Prettier step restages the files it formats. It leaves alone any file that is staged and also modified in the working tree, and it is skipped while `web/node_modules/.bin/prettier` is missing, so run `npm ci` in `web/` on the host. The development stack installs the dashboard's dependencies inside its container, which doesn't count. Both build into `target/clippy`, so clippy and `cargo test` don't invalidate each other's build cache.
+The Prettier step restages the files it formats. It leaves alone any file that is staged and also modified in the working tree, and it is skipped while `web/node_modules/.bin/prettier` is missing, so run `npm ci` in `web/` on the host. The development stack installs the dashboard's dependencies inside its container, which doesn't count. The two clippy runs build into `target/clippy`, so clippy and `cargo test` don't invalidate each other's build cache.
 
 ## Run the development stack
 
@@ -98,11 +100,98 @@ POSTGRES_PASSWORD=happyview
 POSTGRES_DB=happyview
 ```
 
+To run the server with `cargo run` and no containers, see [From source](/docs/guides/self-hosting/from-source).
+
+### Expose the stack through a Cloudflare Tunnel
+
+The `tunnel` service gives the stack a public HTTPS URL, which atproto OAuth needs to sign in with a real account. It runs `cloudflared` against Caddy and writes the URL to a shared volume. The `happyview` service waits up to 30 seconds for that file and exports the URL as `PUBLIC_URL`.
+
 :::caution[The tunnel replaces PUBLIC_URL]
-The `happyview` service waits up to 30 seconds for the tunnel's URL and uses it as `PUBLIC_URL`. The `PUBLIC_URL` in `.env` applies only when no tunnel URL arrives in that time. A quick tunnel's hostname changes on every restart, and `docker compose logs tunnel | grep trycloudflare` shows the current one.
+The `PUBLIC_URL` in `.env` applies only when no tunnel URL arrives within the 30 seconds. That is why a fresh stack reports a `trycloudflare.com` address.
 :::
 
-[Running the development stack](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CONTRIBUTING.md#running-the-development-stack) in `CONTRIBUTING.md` covers the three tunnel modes, running without a tunnel, and the other Compose files. To run the server with `cargo run` and no containers, see [From source](/docs/guides/self-hosting/from-source).
+The tunnel service picks its mode in this order:
+
+| Your setup | Mode | Hostname |
+| --- | --- | --- |
+| `CLOUDFLARE_TUNNEL_TOKEN` is set | Named tunnel, routed from the Cloudflare dashboard | Stable |
+| `.cloudflared/` holds a tunnel credentials file | Locally managed tunnel, routed from `.env` | Stable |
+| Neither | Quick tunnel; no Cloudflare account needed | Random, and changes on every restart |
+
+#### Quick tunnel
+
+Leave `CLOUDFLARE_TUNNEL_TOKEN` blank and `.cloudflared/` empty. Find the URL in the logs:
+
+```sh
+docker compose logs tunnel | grep trycloudflare
+```
+
+Anything that pins the instance's URL, such as an OAuth client registration or a lexicon's service entry, has to be updated after each restart.
+
+#### Named tunnel
+
+Create a tunnel in the Cloudflare dashboard and set both variables in `.env`:
+
+```sh
+CLOUDFLARE_TUNNEL_TOKEN=<token from the Cloudflare dashboard>
+TUNNEL_HOSTNAME=happyview-dev.example.com
+```
+
+The token starts the tunnel, and `TUNNEL_HOSTNAME` is the value written to the shared URL file. With the token alone, nothing is written, so the server waits the full 30 seconds and falls back to `PUBLIC_URL` in `.env`.
+
+#### Locally managed tunnel
+
+The tunnel service generates the `cloudflared` configuration from `TUNNEL_HOSTNAME` and points it at Caddy, so the routing stays out of the Cloudflare dashboard. The one-time setup needs a Cloudflare account with a domain and [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/) installed on your machine.
+
+```sh
+# Authorize cloudflared for your domain (opens a browser).
+cloudflared tunnel login
+
+# Create the tunnel. This writes ~/.cloudflared/<tunnel-id>.json.
+cloudflared tunnel create happyview-dev
+
+# Point a hostname at the tunnel.
+cloudflared tunnel route dns happyview-dev happyview-dev.example.com
+
+# Hand the credentials to the stack.
+cp ~/.cloudflared/<tunnel-id>.json .cloudflared/
+```
+
+Then set `TUNNEL_HOSTNAME=happyview-dev.example.com` in `.env` and leave `CLOUDFLARE_TUNNEL_TOKEN` blank, since a token takes precedence.
+
+Git ignores everything in `.cloudflared/` except its `.gitignore`. The credentials file can run only that one tunnel, but treat it as a secret.
+
+:::caution[One tunnel per person]
+Two machines running the same tunnel both become its connectors, and Cloudflare splits requests between them. Everyone who works on HappyView needs their own tunnel and hostname. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free certificate covers `*.example.com` but not `alice.dev.example.com`.
+:::
+
+#### Without a tunnel
+
+Start only the three local services:
+
+```sh
+docker compose up happyview web caddy
+```
+
+The server still waits 30 seconds for a tunnel URL, then uses `PUBLIC_URL` from `.env`. To skip the wait, comment out the `TUNNEL_URL_FILE` line on the `happyview` service in `docker-compose.yml`.
+
+:::caution[Use 127.0.0.1, not localhost]
+Without a tunnel, the instance is an atproto OAuth loopback client, which is registered with `127.0.0.1`. With `PUBLIC_URL=http://localhost:3000`, OAuth sign-in fails because the redirect URI doesn't match the loopback client ID.
+:::
+
+### The other Compose files
+
+Each Compose file declares its own project name, so the stacks can run at the same time without sharing containers, networks or volumes.
+
+| File | Project name | What it runs |
+| --- | --- | --- |
+| `docker-compose.yml` | `happyview` | The development stack |
+| `docker-compose.test.yml` | `happyview-test` | Postgres for the Rust integration tests; see [Test](/docs/contributing/test) |
+| `docker-compose.e2e.yml` | `happyview-e2e` | The full stack with a local PLC directory and PDS, for the browser tests |
+| `docker-compose.prod.sqlite.yml` | `happyview-prod-sqlite` | Production on SQLite; see [Docker](/docs/guides/self-hosting/docker) |
+| `docker-compose.prod.postgres.yml` | `happyview-prod-postgres` | Production on Postgres; see [Docker](/docs/guides/self-hosting/docker) |
+
+The repository has further Compose files for the interop suites against other PDS implementations.
 
 ## Commit
 
@@ -143,7 +232,7 @@ gh pr create --draft --base alpha
 gh pr ready
 ```
 
-A pull request into `alpha` or `beta` can merge once its required checks pass and one maintainer has approved it. [Test](/docs/contributing/test#checks-and-their-local-commands) lists which checks are required. Both branches accept merge commits only.
+A pull request into `alpha` or `beta` can merge once its required checks pass and it has one approving review. The approval must come from someone other than whoever pushed last. [Test](/docs/contributing/test#checks-and-their-local-commands) lists which checks are required. Both branches accept merge commits only.
 
 Other things that can appear on a pull request:
 

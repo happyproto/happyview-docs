@@ -33,7 +33,7 @@ The SDK packages that carry their own `LICENSE.md` name Lexicon Community as the
 
 ## Plugins
 
-The interpreter plugins that run Lua, JavaScript and TypeScript scripts are released from a separate repository, [happyproto/plugins](https://github.com/happyproto/plugins). The `[workspace.package]` table in its `Cargo.toml` declares the MIT license, and the Lua and JavaScript plugin crates inherit it.
+The interpreter plugins that run Lua, JavaScript and TypeScript scripts are released from a separate repository, [happyproto/plugins](https://github.com/happyproto/plugins). The `[workspace.package]` table in its `Cargo.toml` declares the MIT license, and the Lua, JavaScript and TypeScript plugin crates inherit it.
 
 ## Contributions
 

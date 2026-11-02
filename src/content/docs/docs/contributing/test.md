@@ -25,9 +25,9 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 
 Some checks that aren't required to merge still gate a release. On `alpha`, a push cuts a version only when `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability` have passed. See [Release](/docs/contributing/release) for the gate on `beta` and `main`.
 
-CI runs a job only when the files it covers change. The `changes` job in `.github/workflows/ci.yml` holds the path filters: the server checks run on changes under `src/`, `web/`, `migrations/`, `tests/`, `crates/`, `scripts/` and `.github/workflows/`, among others, and each `test-<package>` check runs on changes to its package and to the packages it depends on.
+CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
-On `alpha`, a draft pull request skips the costly jobs, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
+On `alpha`, a draft pull request skips the build, test and lint jobs, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
 
 ## Missing prerequisites fail
 
@@ -118,6 +118,24 @@ dir=$(mktemp -d)
 TEST_DATABASE_URL="sqlite://$dir/e2e.db?mode=rwc" cargo test --tests -- --test-threads=1
 ```
 
+### When a run fails without naming the cause
+
+A few targets read a plugin fixture directly rather than through the prerequisite check, so an unbuilt fixture can fail many tests without saying why. `external_storage` is one: without `test_library`, eleven of its tests panic. Build the fixtures first:
+
+```sh
+bash scripts/build-plugin-fixtures.sh
+```
+
+A fresh worktree has no fixture artefacts until you do.
+
+In a worktree created inside the main checkout, such as under `.worktrees/`, the build can fail with "current package believes it's in a workspace when it's not". Cargo walks up from the fixture to the parent checkout's `Cargo.toml`, whose `workspace.exclude` may lack a fixture your branch added. Create the worktree outside the checkout, with `git worktree add ../my-branch -b my-branch`, or bring the parent checkout's `Cargo.toml` up to date with your branch.
+
+### Measure storage and ingest cost
+
+For a change that affects storage or ingest cost, measure it with `scripts/measure-backfill-storage.sh [dids-file] [collection]`. It backfills a fixed list of repos, `scripts/measure-backfill-dids.txt` by default, into a fresh SQLite database. It reports the write-ahead log's peak size, the database size and, on Linux, the bytes the server wrote; elsewhere `write_bytes` reads `unavailable`.
+
+The script reaches the real PLC directory and PDSes, so results vary over time. Run it on your branch and on `alpha` back to back, and put both summaries in the pull request. The storage settings it exercises are in [Configuration](/docs/reference/configuration).
+
 ### The provider conformance cases
 
 The record-provider conformance cases build only with the `testkit` feature, so the run above leaves them out:
@@ -143,6 +161,23 @@ The Postgres shards run under [`cargo-llvm-cov`](https://github.com/taiki-e/carg
 cargo install cargo-llvm-cov
 rustup component add llvm-tools
 TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test cargo llvm-cov --workspace --open
+```
+
+## Interop tests
+
+The atproto spaces interop tests run HappyView against other PDS implementations. Each has its own Compose file and an ignored test target:
+
+| PDS | Compose file | Test target |
+| --- | --- | --- |
+| The Bluesky reference PDS with permissioned data | `docker-compose.spaces-alpha.yml` | `spaces_reference_interop` |
+| atproto-pds | `docker-compose.atproto-pds.yml` | `spaces_atproto_pds_interop` |
+| pds.js | `docker-compose.pdsjs.yml` | `spaces_pdsjs_interop` |
+| ZDS | `docker-compose.zds.yml` | `spaces_zds_interop` |
+
+```sh
+docker compose -f docker-compose.zds.yml up -d --wait
+cargo test --test spaces_zds_interop -- --ignored --nocapture
+docker compose -f docker-compose.zds.yml down -v
 ```
 
 ## Lua differential test

@@ -1,24 +1,24 @@
 ---
 title: "Security policy"
-description: "Where HappyView stands on vulnerability reports, and how CI checks its dependencies for advisories."
+description: "How to report a security vulnerability in HappyView, which release lines receive fixes, and how CI checks dependencies."
 ---
 
-Don't describe a suspected vulnerability in a public issue, pull request or discussion.
+Report a suspected vulnerability privately, through GitHub. Don't describe it in a public issue, pull request or discussion.
 
 ## Report a vulnerability
 
-HappyView has not published a private reporting channel or a security contact yet. GitHub's private vulnerability reporting is not enabled on the repository.
+Open a private report on the repository's [Security tab](https://github.com/gamesgamesgamesgamesgames/happyview/security/advisories/new). Only you and the maintainers can see it.
 
 A report is most useful when it includes:
 
-- the HappyView version and how it is deployed (the binary, the container image, or a build from source);
+- the HappyView version and how it is deployed: the binary, the container image, or a build from source;
 - the steps that reproduce the problem;
 - what an attacker could do with it.
 
-## Releases
+## Release lines that receive fixes
 
-Releases are cut by CI from the `main`, `beta` and `alpha` branches, as described in [Release](/docs/contributing/release). The [changelog](/docs/changelog) lists what each release changed.
+Security fixes are released on the stable line, `main`, and on `beta`. See [Release lines](/docs/contributing/release#release-lines).
 
 ## Dependency advisories
 
-CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. The check doesn't block a merge or a release.
+CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. On `alpha`, the check doesn't block a merge or a release.
