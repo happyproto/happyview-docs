@@ -113,6 +113,8 @@ Structured logs go to stdout, so any platform that captures container stdout (Fl
 
 The admin [event log](/docs/guides/event-logs) is stored in the same database as records. `EVENT_LOG_RETENTION_DAYS` (default `30`) controls automatic cleanup. Set it to `0` to keep events indefinitely, and plan for database growth. [Script performance](/docs/guides/dashboard#script-performance) metrics and job logs follow the same setting.
 
+[Protected events](/docs/guides/event-logs#protected-events), the space access audit records, follow `SPACE_ACCESS_LOG_RETENTION_DAYS` instead, 365 days by default. A purge never deletes them.
+
 ## Health checks
 
 `GET /health` returns `200 ok` when HappyView can bind its HTTP listener. Use it as the readiness/liveness probe for your platform. It doesn't touch the database.

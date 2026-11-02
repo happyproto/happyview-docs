@@ -175,7 +175,7 @@ Events are returned in reverse chronological order (newest first). `actor_did` a
 GET /admin/events/count
 ```
 
-Counts the events that match the same filters as [List event logs](#list-event-logs): `event_type`, `category`, `severity`, `subject`, `after` and `before`. `cursor` and `limit` are ignored.
+Counts the events that match the same filters as [List event logs](#list-event-logs): `event_type`, `category`, `severity`, `subject`, `after` and `before`. `cursor` and `limit` are ignored. It is the purge preview, so it never counts [protected events](/docs/guides/event-logs#protected-events), which a purge skips.
 
 **Permission:** `events:read`
 
@@ -198,7 +198,7 @@ Deletes the events that match a filter, in a background job. The body takes the 
 ```
 
 :::danger[An empty filter deletes every event]
-A body with no filters, `{}`, matches every event, and the job deletes them all.
+A body with no filters, `{}`, matches every event, and the job deletes them all, except [protected events](/docs/guides/event-logs#protected-events).
 :::
 
 **Permission:** `events:purge`
@@ -209,4 +209,4 @@ A body with no filters, `{}`, matches every event, and the job deletes them all.
 { "job_id": "550e8400-e29b-41d4-a716-446655440000" }
 ```
 
-The job is a `happyview.purge-event-logs` [job](/docs/reference/admin/jobs); watch it there. The purge itself is logged as an `event_logs.purged` event. An unreadable `after` or `before` is a `400`.
+The job is a `happyview.purge-event-logs` [job](/docs/reference/admin/jobs); watch it there. The purge itself is logged as an `event_logs.purged` event. An unreadable `after` or `before` is a `400`. So is a filter naming a protected event type, or a `category` holding one, such as `space` or `event_logs`.

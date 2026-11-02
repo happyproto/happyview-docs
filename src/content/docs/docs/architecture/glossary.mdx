@@ -196,6 +196,20 @@ HappyView instances"), which grants `rpc` on `dev.happyview.admin.manage`. An ap
 holding it acts with the permissions the signed-in operator already has on that
 instance, never more. `hpy` signs in with it.
 
+### Space inspector
+
+The dashboard pages and admin routes an operator uses to read private
+[space](/docs/guides/spaces) contents while handling a report. It is off by
+default, and reading needs `spaces:inspect` and an
+[access grant](#access-grant). See
+[Moderating spaces](/docs/guides/spaces#moderating-spaces).
+
+### Access grant
+
+Time-limited permission for one operator to read one space's contents, or one
+account's records in every space, given with a reason. The grant and every read
+under it are [protected events](/docs/guides/event-logs#protected-events).
+
 ## Lexicons
 
 ### Lexicon
@@ -285,7 +299,7 @@ What a backfill's records cost in record scripts, reported in a backfill job's
 
 {/* BEGIN generated: permissions (generate-permissions.mjs) */}
 
-HappyView has **53 permissions**. An operator holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (11), **Maintainer** (15), **Manager** (42) and **Full Access** (all 53). The operator with superadmin holds every permission and can't be restricted.
+HappyView has **54 permissions**. An operator holds any mix of them; the four built-in templates are starting points. Each template includes everything in the one before it: **Viewer** (11), **Maintainer** (15), **Manager** (42) and **Full Access** (all 54). The operator with superadmin holds every permission and can't be restricted.
 
 | Permission | What it allows | Lowest template that grants it |
 |---|---|---|
@@ -344,8 +358,9 @@ HappyView has **53 permissions**. An operator holds any mix of them; the four bu
 | `spaces:delete` | Remove spaces and their data | Manager |
 | `spaces:manage-members` | Add or remove space members and roles | Manager |
 | `spaces:manage-invites` | Create and revoke space invitations | Manager |
-| `spaces:manage-records` | Read and write records within spaces | Manager |
+| `spaces:manage-records` | Reserved; grants no access. Use `spaces:inspect` to read space contents. | Manager |
 | `spaces:manage-credentials` | Issue and revoke space access credentials | Manager |
+| `spaces:inspect` | Request time-limited access to read records and blobs in private spaces | Full Access |
 | **Scripts** | | |
 | `scripts:read` | View trigger-keyed scripts | Viewer |
 | `scripts:manage` | Create, update, and delete trigger-keyed scripts | Manager |

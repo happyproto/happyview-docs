@@ -96,11 +96,27 @@ Logged when an operator attempts to access an endpoint they don't have permissio
 
 ### Space events
 
-| Event Type             | Severity | Subject       | Detail                                                        |
-| ---------------------- | -------- | ------------- | ------------------------------------------------------------- |
-| `space.moderator_read` | info     | Space AT URI  | `action`, `space_id`, `user_id`, and what was read (see below) |
+| Event Type | Severity | Subject | Detail |
+| --- | --- | --- | --- |
+| `space.access_granted` | info | Space AT URI for a space grant, the DID for an account grant | `grant_id`, `scope`, `target`, `reason`, `expires_at`, `user_id` |
+| `space.access_revoked` | info | As for `space.access_granted`, or the space id once the space is deleted | `grant_id`, `revoked_by`, `user_id` |
+| `space.moderator_read` | info | Space AT URI, or the account's DID | `action`, `grant_id`, `scope`, `user_id`, and what was read (see below) |
+| `space_inspector.enabled` | warn | `feature.space_inspector_enabled` | none |
+| `space_inspector.disabled` | warn | `feature.space_inspector_enabled` | none |
 
-Logged when an operator reads a space's records or blobs through the [admin spaces API](/docs/reference/admin/spaces). `action` is `list_records` or `get_blob`. A `list_records` event includes the `repo` and `collection` filters and the `uris` returned. A `get_blob` event includes the blob `cid` and the `repo` that references it. Listing spaces and viewing their metadata or members is not logged.
+These record access to private space contents through the [space inspector](/docs/guides/spaces#moderating-spaces), and every one is a [protected event](#protected-events). `space.access_granted` and `space.access_revoked` record a grant's start and early end. `user_id` is the operator the grant belongs to, and `revoked_by` is the DID of the operator who ended it. `space_inspector.enabled` and `space_inspector.disabled` record the inspector being turned on or off, from the dashboard or the [settings API](/docs/reference/admin/settings).
+
+`space.moderator_read` is logged when an operator reads space records or blobs through the [admin spaces API](/docs/reference/admin/spaces). `grant_id` is the [access grant](/docs/reference/admin/spaces#access-grants) the read was made under, and `scope` is its scope, `space` or `account`. `action` is one of these:
+
+- `list_records`: includes `space_id`, the `repo` and `collection` filters, and the `uris` returned.
+- `get_blob`: includes `space_id`, the blob `cid` and the `repo` that references it.
+- `list_account_records`: its subject is the account's DID. It includes that `repo`, the `space_id` and `collection` filters, and the `uris` returned.
+
+Listing spaces and viewing their metadata or members is not logged. In the dashboard, a `space.access_granted` event lists the reads made under that grant.
+
+:::note[Pending on alpha]
+The grant events, `list_account_records`, `grant_id` and `scope` come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`. Until they merge, `space.moderator_read` carries `action`, `space_id`, `user_id` and what was read.
+:::
 
 ### API key events
 
@@ -213,7 +229,10 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | `setting.updated` | info | Setting key | `value`, or `content_type` and `size_bytes` for the logo |
 | `setting.deleted` | info | Setting key | none |
 | `setup.completed` | info | none | none |
-| `event_logs.purged` | warn | The purge job's id | The purge's filter: `event_type`, `category`, `severity`, `subject`, `after`, `before` |
+| `event_logs.purged` | warn | The purge job's id | The purge's filter: `event_type`, `category`, `severity`, `subject`, `after`, `before`, and `protected`, always `exclude` |
+| `event_logs.retention_changed` | warn | `event_log_retention_days` or `space_access_log_retention_days` | `from`, `to` |
+
+`event_logs.retention_changed` is logged when a retention setting's effective value changes, defaults included. `from` and `to` are day counts. Saving a setting back to its current value logs nothing. Because protected retention can follow the general one, one change can log an event for each key. The setting and its event are saved together, so if the event can't be written, the setting isn't changed.
 
 ## Querying events
 
@@ -414,9 +433,31 @@ See the [Admin API reference](/docs/reference/admin/events#list-event-logs) for 
 
 Event logs are automatically cleaned up after 30 days. Change that with **Event Log Retention (days)** under **System > General**, or the `EVENT_LOG_RETENTION_DAYS` environment variable; the setting wins. A background task runs hourly to delete events older than the retention period. Job logs and stored [script performance](/docs/guides/dashboard#script-performance) metrics follow the same period.
 
-Set the value to `0` to disable automatic cleanup and keep logs indefinitely.
+Set the value to `0` to disable automatic cleanup and keep logs indefinitely. [Protected events](#protected-events) follow a schedule of their own.
 
 See the [Configuration reference](/docs/reference/configuration#logging-retention-and-telemetry) for the other retention settings.
+
+## Protected events
+
+Some events record access to private space data, or changes to the audit trail itself. These are protected, and can't be purged by hand:
+
+- `space.access_granted`
+- `space.access_revoked`
+- `space.moderator_read`
+- `space_inspector.enabled`
+- `space_inspector.disabled`
+- `event_logs.purged`
+- `event_logs.retention_changed`
+
+A [purge](/docs/reference/admin/events#purge-event-logs) skips them. A purge filter naming one of these types, or a category holding one, answers `400 Bad Request`. The purge preview, `GET /admin/events/count`, doesn't count them either.
+
+They're removed only by their own retention, `space_access_log_retention_days`. Pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`, adds it to **System > General** as **Space Access Log Retention (days)**. It is 365 days by default, and `0` keeps them. While it is unset, a general retention of `0` makes it `0` too. The same sweep deletes access grants that ended longer ago than that.
+
+Events tied to an access grant that still exists are kept whatever their age: its grant and revocation events and the reads made under it. So a grant's reason and reads last as long as the grant does. Other protected events keep their own schedule.
+
+Protected events live in the same database table as every other event. This guards against a routine or accidental purge, but it isn't a tamper-proof audit log. Anyone with direct access to the database can still delete them.
+
+A hosting platform can [fix this retention](/docs/reference/configuration#settings-a-hosting-platform-fixes), and then it can't be changed from the dashboard or the API.
 
 ## Dead letters
 

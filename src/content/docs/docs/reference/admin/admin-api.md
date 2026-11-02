@@ -78,7 +78,7 @@ AUTH="Authorization: Bearer $TOKEN"
 | [Records](/docs/reference/admin/records) | List, delete and reconcile indexed records |
 | [Project](/docs/reference/admin/project) | Deploy a project and read what's deployed |
 | [Linked repos](/docs/reference/admin/linked-repos) | Grant, invite and revoke access to repositories an instance can write to |
-| [Spaces](/docs/reference/admin/spaces) | Browse spaces and their records for moderation |
+| [Spaces](/docs/reference/admin/spaces) | Browse spaces for moderation, and read their contents under a time-limited access grant |
 | [Instance settings](/docs/reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
 | [XRPC proxy](/docs/reference/admin/xrpc-proxy) | Decide whether and where unknown XRPC methods are proxied |
 | [Telemetry](/docs/reference/admin/telemetry) | Telemetry consent, previews and sending |
@@ -101,6 +101,8 @@ AUTH="Authorization: Bearer $TOKEN"
 ## Permissions
 
 Each admin API endpoint requires a specific permission. See the [Permissions guide](/docs/guides/permissions) for the full list of permissions and templates.
+
+The space inspector rows come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`. Until they merge, the space record and blob reads need `spaces:manage-records`.
 
 | Endpoint                                 | Required permission        |
 | ---------------------------------------- | -------------------------- |
@@ -190,9 +192,18 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `DELETE /admin/records/collection`       | `records:delete-collection` and `records:delete` |
 | `POST /admin/records/collection/reconcile` | `records:read` for a dry run, `records:delete` to apply |
 | `GET /admin/spaces`                      | `spaces:read`              |
+| `GET /admin/spaces/inspector`            | `spaces:read` or `spaces:inspect` |
+| `GET /admin/spaces/access-grants`        | `spaces:inspect`           |
+| `POST /admin/spaces/access-grants`       | `spaces:inspect`           |
+| `DELETE /admin/spaces/access-grants/{id}` | `spaces:inspect` or `users:update` for your own grant, `users:update` for another operator's |
+| `GET /admin/spaces/access-grants/{id}/reads` | `events:read`          |
 | `GET /admin/spaces/{id}`                 | `spaces:read`              |
-| `GET /admin/spaces/{id}/records`         | `spaces:manage-records`    |
-| `GET /admin/spaces/{id}/blob`            | `spaces:manage-records`    |
+| `GET /admin/spaces/{id}/access`          | `spaces:inspect`           |
+| `GET /admin/spaces/{id}/records`         | `spaces:inspect` and a covering grant |
+| `GET /admin/spaces/{id}/blob`            | `spaces:inspect` and a covering grant |
+| `GET /admin/accounts/{did}/spaces`       | `spaces:read`              |
+| `GET /admin/accounts/{did}/access`       | `spaces:inspect`           |
+| `GET /admin/accounts/{did}/space-records` | `spaces:inspect` and an account grant |
 | `GET /admin/spaces/migration-status`     | `spaces:read`              |
 | `GET /admin/database/status`             | `settings:manage`          |
 | `POST /admin/database/vacuum/schedule`   | `settings:manage`          |

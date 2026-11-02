@@ -1,13 +1,35 @@
 ---
 title: "Spaces"
-description: "Admin API endpoints for browsing spaces, their members, records and blobs for moderation, and for space migration status."
+description: "Admin API endpoints for the space inspector and its access grants, for browsing spaces, accounts, records and blobs for moderation, and for space migration status."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Browse the [spaces](/docs/guides/spaces) on this instance for moderation. These endpoints give operators access to spaces they are not members of, so they live in the admin API rather than the space XRPC API.
 
-Listing spaces and reading their metadata and members requires `spaces:read`. Reading records and blobs requires `spaces:manage-records`, and each read is written to the [event log](/docs/guides/event-logs#space-events) as a `space.moderator_read` event.
+:::note[Pending on alpha]
+The space inspector, access grants and `spaces:inspect` come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet. Until they do, reading records and blobs needs `spaces:manage-records` and no grant.
+:::
+
+## The space inspector
+
+The space inspector is off by default. An operator with `settings:manage` turns it on with **Enable Space Inspector** under **System > General**, the `feature.space_inspector_enabled` [setting](/docs/reference/admin/settings), or [`SPACE_INSPECTOR_ENABLED`](/docs/reference/configuration#space-inspector).
+
+While it's off, every route on this page answers `403 SpaceInspectorDisabled`, except these:
+
+- [Space inspector status](#space-inspector-status)
+- [List access grants](#list-access-grants), [Revoke an access grant](#revoke-an-access-grant) and [List a grant's reads](#list-a-grants-reads), so access can still be ended and audited
+- [Space migration status](#space-migration-status)
+
+Listing spaces and reading their metadata and members needs `spaces:read`. Reading a space's records or blobs needs `spaces:inspect` and an active [access grant](#access-grants) that covers the request.
+
+Every grant, every revocation and every read made under a grant is written to the [event log](/docs/guides/event-logs#space-events) as a [protected event](/docs/guides/event-logs#protected-events). The grant or revocation is saved together with its event. Content is returned only after its read event is written. If the event can't be written, the request fails with `500` and nothing changes or is returned.
+
+### Cookie reads come from the instance's own pages
+
+Each content read is recorded against the operator making it. So [List records in a space](#list-records-in-a-space), [Get a blob in a space](#get-a-blob-in-a-space) and [List an account's records](#list-an-accounts-records) accept the dashboard's session cookie only from the instance's own pages. The browser has to send `Sec-Fetch-Site: same-origin`, or an `Origin` that is one of the instance's [domains](/docs/reference/admin/domains). Any other request with the cookie gets `403 Forbidden`.
+
+API keys and other `Authorization` credentials are not affected. A browser that sends neither `Sec-Fetch-Site` nor `Origin`, such as Safari before 16.4, can't load blobs with the session cookie.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -50,13 +72,462 @@ AUTH="Authorization: Bearer $TOKEN"
 </TabItem>
 </Tabs>
 
+## Space inspector status
+
+```
+GET /admin/spaces/inspector
+```
+
+Whether the space inspector is on, and how long an access grant can last. Requires `spaces:read` or `spaces:inspect`. It answers while the inspector is off, so a client can tell why the other routes are closed.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/inspector", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/inspector", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/inspector")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/inspector", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/spaces/inspector -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "enabled": true,
+  "default_grant_minutes": 60,
+  "max_grant_minutes": 120
+}
+```
+
+`max_grant_minutes` is the `space_inspector_max_grant_minutes` setting. `default_grant_minutes` is what a grant gets when [`duration_minutes`](#create-an-access-grant) is left out: 60, or `max_grant_minutes` if that's shorter.
+
+## Access grants
+
+An access grant lets one operator read one space's contents, or one account's records, for a limited time. It records why. A grant lasts from 5 minutes to `max_grant_minutes`, and 60 minutes by default.
+
+| `scope` | `target` | Covers |
+| --- | --- | --- |
+| `space` | A space id | Every record and blob in that space, from every author |
+| `account` | A DID | That account's own records in any space, and the blobs its own records reference |
+
+Only the caller's own active grants count. When more than one covers a request, the one expiring last is used. Within a space, an account grant covers [List records in a space](#list-records-in-a-space) only when its `repo` filter names the grant's DID. [List an account's records](#list-an-accounts-records) always needs an account grant for that DID, and a space grant never covers it.
+
+### Create an access grant
+
+```
+POST /admin/spaces/access-grants
+```
+
+Requires `spaces:inspect`, and the space inspector on.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `scope` | string | yes | `space` or `account` |
+| `target` | string | yes | A space id for `space`, a DID for `account` |
+| `reason` | string | yes | Why access is needed. Trimmed, then 1 to 2000 characters |
+| `duration_minutes` | number | no | The grant's length, raised to 5 or lowered to `max_grant_minutes` when outside them. Defaults to 60, or `max_grant_minutes` if that's shorter |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    "scope": "space",
+    "target": "0b6c1f0e-...",
+    "reason": "Report #482: harassment in a thread",
+    "duration_minutes": 30
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants", {
+  method: "POST",
+  headers: {
+    ...headers,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    "scope": "space",
+    "target": "0b6c1f0e-...",
+    "reason": "Report #482: harassment in a thread",
+    "duration_minutes": 30
+  }),
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:3000/admin/spaces/access-grants")
+    .bearer_auth(token)
+    .json(&serde_json::json!({
+      "scope": "space",
+      "target": "0b6c1f0e-...",
+      "reason": "Report #482: harassment in a thread",
+      "duration_minutes": 30
+    }))
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+body := bytes.NewBufferString(`{
+  "scope": "space",
+  "target": "0b6c1f0e-...",
+  "reason": "Report #482: harassment in a thread",
+  "duration_minutes": 30
+}`)
+req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/spaces/access-grants", body)
+req.Header.Set("Authorization", "Bearer "+token)
+req.Header.Set("Content-Type", "application/json")
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl -X POST http://127.0.0.1:3000/admin/spaces/access-grants \
+  -H "$AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{"scope":"space","target":"0b6c1f0e-...","reason":"Report #482: harassment in a thread","duration_minutes":30}'
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `201 Created`
+
+```json
+{
+  "id": "6f1ecb2a-...",
+  "user_id": "u_123",
+  "user_did": "did:plc:moderator",
+  "scope": "space",
+  "target": "0b6c1f0e-...",
+  "reason": "Report #482: harassment in a thread",
+  "created_at": "2026-01-01T00:00:00+00:00",
+  "expires_at": "2026-01-01T00:30:00+00:00",
+  "revoked_at": null,
+  "revoked_by": null
+}
+```
+
+`user_id` and `user_did` name the operator the grant belongs to. Returns `403 SpaceInspectorDisabled` while the inspector is off. Returns `400 Bad Request` for a blank or overlong reason, or a `target` that isn't a DID for `account`. Returns `404 Not Found` when no space has the `target` id for `space`.
+
+### List access grants
+
+```
+GET /admin/spaces/access-grants
+```
+
+The caller's own grants, newest first, at most 200. Requires `spaces:inspect`.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `active` | boolean | no | `true` lists only grants that haven't expired or been revoked |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants?active=true", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants?active=true", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/access-grants?active=true")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/access-grants?active=true", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/spaces/access-grants?active=true" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "grants": [
+    { "id": "6f1ecb2a-...", "scope": "space", "target": "0b6c1f0e-...", "...": "..." }
+  ]
+}
+```
+
+### Revoke an access grant
+
+```
+DELETE /admin/spaces/access-grants/{id}
+```
+
+Ends a grant early. Ending your own grant requires `spaces:inspect` or `users:update`. Ending another operator's requires `users:update`.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-...", {
+  method: "DELETE",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-...", {
+  method: "DELETE",
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-...")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("DELETE", "http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-...", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl -X DELETE http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-... -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK` with the grant, its `revoked_at` set and `revoked_by` holding the revoking operator's id. A grant that has already expired or been revoked comes back unchanged, and nothing is logged. Returns `404 Not Found` if no grant has that id.
+
+### List a grant's reads
+
+```
+GET /admin/spaces/access-grants/{id}/reads
+```
+
+The `space.moderator_read` events made under a grant, oldest first. Requires `events:read`, for any operator's grant.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `limit` | number | no | Max results per page (default 100, max 500) |
+| `cursor` | string | no | Pagination cursor from a previous response |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-.../reads", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-.../reads", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-.../reads")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-.../reads", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/spaces/access-grants/6f1ecb2a-.../reads -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "events": [
+    {
+      "id": "...",
+      "event_type": "space.moderator_read",
+      "severity": "info",
+      "actor_did": "did:plc:moderator",
+      "subject": "at://did:web:happyview.example.com/space/com.example.forum/main",
+      "detail": { "action": "list_records", "grant_id": "6f1ecb2a-...", "scope": "space", "...": "..." },
+      "created_at": "2026-01-01T00:05:00Z"
+    }
+  ],
+  "cursor": "..."
+}
+```
+
+`cursor` is returned whenever a page is full.
+
 ## List spaces
 
 ```
 GET /admin/spaces
 ```
 
-Every space on the instance, newest first.
+Every space on the instance, newest first. Requires `spaces:read`, and the space inspector on.
 
 | Param    | Type   | Required | Description                                 |
 | -------- | ------ | -------- | ------------------------------------------- |
@@ -155,7 +626,7 @@ curl "http://127.0.0.1:3000/admin/spaces?limit=20" -H "$AUTH"
 GET /admin/spaces/{id}
 ```
 
-A space's metadata, its resolved member list (including members added through delegation), and the record count of each collection in it. `{id}` is the space's `id` from [List spaces](#list-spaces).
+A space's metadata, its resolved member list (including members added through delegation), and the record count of each collection in it. `{id}` is the space's `id` from [List spaces](#list-spaces). Requires `spaces:read`, and the space inspector on.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -229,13 +700,85 @@ curl http://127.0.0.1:3000/admin/spaces/0b6c1f0e-... -H "$AUTH"
 
 Returns `404 Not Found` if no space has that ID.
 
+## Get the grant covering a space
+
+```
+GET /admin/spaces/{id}/access
+```
+
+The caller's active grant that covers this space. That's a `space` grant for it if there is one. Otherwise it's the account grant expiring last whose account is a member of the space or has records in it. Requires `spaces:inspect`, and the space inspector on.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../access", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../access", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../access")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../access", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../access -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{ "grant": { "id": "6f1ecb2a-...", "scope": "space", "target": "0b6c1f0e-...", "...": "..." } }
+```
+
+`grant` is `null` when none of the caller's active grants covers the space. Returns `404 Not Found` if no space has that ID.
+
 ## List records in a space
 
 ```
 GET /admin/spaces/{id}/records
 ```
 
-Records in a space, newest first. Requires `spaces:manage-records`.
+Records in a space, newest first. Requires `spaces:inspect`, the space inspector on, and a grant covering the space. With `repo` set, an account grant for that DID covers it too.
 
 | Param        | Type   | Required | Description                                 |
 | ------------ | ------ | -------- | ------------------------------------------- |
@@ -321,13 +864,15 @@ curl "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../records?collection=com.exa
 
 `cursor` is returned whenever a page is full, so the last page can be empty. Each request is logged with the URIs of the records it returned.
 
+Returns `403 SpaceAccessGrantRequired` when no active grant covers the request, and `404 Not Found` if no space has that ID.
+
 ## Get a blob in a space
 
 ```
 GET /admin/spaces/{id}/blob
 ```
 
-A blob referenced by a record in the space, fetched from its author's PDS. The response body is the blob, with the content type the PDS reports. Requires `spaces:manage-records`.
+A blob referenced by a record in the space, fetched from its author's PDS. The response body is the blob, with the content type the PDS reports. Requires `spaces:inspect`, the space inspector on, and a covering grant.
 
 | Param | Type   | Required | Description  |
 | ----- | ------ | -------- | ------------ |
@@ -389,7 +934,243 @@ curl "http://127.0.0.1:3000/admin/spaces/0b6c1f0e-.../blob?cid=bafkrei..." -H "$
 </TabItem>
 </Tabs>
 
-Returns `404 Not Found` if no record in the space references the blob, and `502 Bad Gateway` if the author's PDS cannot serve it.
+A space grant for this space opens any blob a record in it references. Without one, an account grant opens the blob only when that account's own record references it. Another author's record sharing the CID doesn't count.
+
+Returns `403 SpaceAccessGrantRequired` when no grant covers the space and the caller holds no account grant. When the caller holds account grants but none of them opens the blob, the answer is `404 Not Found`, as for a CID no record references. Returns `502 Bad Gateway` if the author's PDS cannot serve it.
+
+## List an account's spaces
+
+```
+GET /admin/accounts/{did}/spaces
+```
+
+The spaces an account is a member of or has records in, newest first, each with its count of the account's records. This is metadata, so no grant is needed. Requires `spaces:read`, and the space inspector on.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/spaces", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/spaces", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/accounts/did:plc:abc/spaces")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/accounts/did:plc:abc/spaces", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/accounts/did:plc:abc/spaces -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "spaces": [
+    { "space": { "id": "0b6c1f0e-...", "uri": "at://...", "...": "..." }, "record_count": 12 }
+  ]
+}
+```
+
+## Get the grant covering an account
+
+```
+GET /admin/accounts/{did}/access
+```
+
+The caller's active account grant for `{did}`, the one expiring last. Requires `spaces:inspect`, and the space inspector on.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/access", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/access", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/accounts/did:plc:abc/access")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/accounts/did:plc:abc/access", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/accounts/did:plc:abc/access -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK` with `{ "grant": { ... } }`, or `{ "grant": null }` when no active grant covers the account.
+
+## List an account's records
+
+```
+GET /admin/accounts/{did}/space-records
+```
+
+One account's records across every space, newest first. Requires `spaces:inspect`, the space inspector on, and an account grant for `{did}`. A space grant never covers this route, even for a space the account belongs to.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `space` | string | no | Only records in this space, by id |
+| `collection` | string | no | Only records in this collection |
+| `limit` | number | no | Max results per page (default 20, max 100) |
+| `cursor` | string | no | Pagination cursor from a previous response |
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/space-records?collection=com.example.forum.post", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/accounts/did:plc:abc/space-records?collection=com.example.forum.post", {
+  headers,
+});
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/accounts/did:plc:abc/space-records?collection=com.example.forum.post")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/accounts/did:plc:abc/space-records?collection=com.example.forum.post", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/accounts/did:plc:abc/space-records?collection=com.example.forum.post" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "records": [
+    {
+      "uri": "at://did:web:happyview.example.com/space/com.example.forum/main/did:plc:abc/com.example.forum.post/3k...",
+      "did": "did:plc:abc",
+      "collection": "com.example.forum.post",
+      "rkey": "3k...",
+      "cid": "bafyrei...",
+      "indexed_at": "2026-01-01T00:00:00Z",
+      "record": { "...": "..." },
+      "space_id": "0b6c1f0e-...",
+      "space_uri": "at://did:web:happyview.example.com/space/com.example.forum/main"
+    }
+  ],
+  "cursor": "..."
+}
+```
+
+Each request is logged with the URIs of the records it returned. Returns `403 SpaceAccessGrantRequired` when the caller has no active account grant for `{did}`.
 
 ## Space migration status
 
