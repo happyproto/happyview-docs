@@ -539,6 +539,17 @@ pre.mermaid small,
   outline-offset: -2px;
 }
 
+/* A code block shades the edge a line runs past, as a terminal does, on its
+   own ground: the surface, or the page inside an editor. */
+.expressive-code pre {
+  background:
+    linear-gradient(to right, var(--ec-codeBg) 40%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--ec-codeBg) 40%, transparent) right / 2rem 100% no-repeat local,
+    linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+  background-color: var(--ec-codeBg);
+}
+
 /* In an editor, Expressive Code draws only the code: the editor is its frame. */
 .hp-editor-body .expressive-code {
   margin: 0;
