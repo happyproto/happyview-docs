@@ -137,7 +137,7 @@ Control which unrecognized XRPC methods are forwarded, and where. Choose from fo
 
 ### ENV Variables
 
-Manage script variables, which every script receives as `ctx.env` at run time. They hold shared configuration without hardcoding it in a script. Despite the page's name, these aren't the instance's environment variables. See [Script variables](/docs/reference/admin/script-variables).
+Manage script variables, which every script receives as `ctx.env` at run time. They hold shared configuration and secrets, such as API tokens, without hardcoding them in a script; values are encrypted at rest and shown masked. Despite the page's name, these aren't the instance's environment variables. See [Script variables](/docs/reference/admin/script-variables).
 
 ### Event Logs
 
