@@ -100,7 +100,7 @@ describe('terminals', () => {
     const page = render(fence('sh', 'hpy happyview dev') + '\nWhen it is ready, it prints:\n\n' + fence('text', 'dashboard: http://127.0.0.1:3000/dashboard/'));
     const terms = byClass(page, 'hp-term');
     expect(terms).toHaveLength(2);
-    expect(text(byClass(page, 'hp-term-title')[1]!)).toBe('Output');
+    expect(text(byClass(page, 'hp-term-result-label')[0]!)).toBe('Output');
     expect(byClass(page, 'hp-term-copy')).toHaveLength(1);
   });
 
@@ -126,5 +126,22 @@ describe('editors', () => {
     expect(namedFile({ type: 'code', lang: 'ts', value: '// Read a record\nconst x = 1' })).toBeUndefined();
     expect(namedFile({ type: 'code', lang: 'js', value: '// src/jobs/export.js\nexport default {}' })).toBe('src/jobs/export.js');
     expect(namedFile({ type: 'code', lang: 'sh', value: '# src/run.lua' })).toBeUndefined();
+  });
+});
+
+describe('terminal bars and output', () => {
+  test('a bar names the directory a leading cd enters, or the program', async () => {
+    const { terminalTitle } = await import('../src/lib/remark-workbench');
+    expect(terminalTitle('cd my-app\nhpy happyview dev')).toBe('my-app');
+    expect(terminalTitle('# Check it\nhpy --version')).toBe('hpy');
+    expect(terminalTitle('PORT=4000 hpy happyview dev')).toBe('hpy');
+  });
+
+  // Printed local addresses stay text: the site's link check refuses local links.
+  test('output alone is a result with no bar', () => {
+    const page = render(fence('sh', 'hpy happyview dev') + '\nIt prints:\n\n' + fence('text', 'dashboard: http://127.0.0.1:3000/dashboard/'));
+    const [, outputOnly] = byClass(page, 'hp-term');
+    expect(byClass({ type: 'root', children: [outputOnly!] }, 'hp-term-bar')).toHaveLength(0);
+    expect(elements({ type: 'root', children: [outputOnly!] }).some((e) => e.tagName === 'a')).toBe(false);
   });
 });

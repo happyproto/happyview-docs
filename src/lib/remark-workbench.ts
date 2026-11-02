@@ -187,11 +187,23 @@ export function outputLines(text: string): Element[] {
     });
 }
 
+/**
+ * What a terminal's bar says: the directory a leading `cd` moves into, or
+ * else the program the session runs, so the bar names something real.
+ */
+export function terminalTitle(text: string): string {
+  const commands = text.split('\n').filter((line) => line.trim() && !/^\s*#/.test(line));
+  const cd = /^cd\s+(\S+)/.exec(commands[0] ?? '');
+  if (cd) return cd[1]!.replace(/\/$/, '');
+  const program = (commands[0] ?? '').trim().split(/\s+/).find((word) => !/^[A-Z_][A-Z0-9_]*=/.test(word));
+  return program ?? 'Terminal';
+}
+
 export function terminal(command: Code, output?: Code): RootContent {
   const { lines, copy } = commandLines(command.value);
   const children: Child[] = [
     h('figcaption', { className: ['hp-term-bar'] }, [
-      h('span', { className: ['hp-term-title'] }, [t('Terminal')]),
+      h('span', { className: ['hp-term-title'] }, [t(terminalTitle(command.value))]),
       ...(copy
         ? [h('button', { className: ['hp-term-copy'], type: 'button', dataCopy: copy, hidden: true }, [t('Copy')])]
         : []),
@@ -213,8 +225,10 @@ export function terminal(command: Code, output?: Code): RootContent {
 export function output(code: Code): RootContent {
   return marked(
     node('figure', { className: ['hp-term', 'not-content'] }, [
-      h('figcaption', { className: ['hp-term-bar'] }, [h('span', { className: ['hp-term-title'] }, [t('Output')])]),
-      h('pre', { className: ['hp-term-body'], tabIndex: 0 }, outputLines(code.value)),
+      h('div', { className: ['hp-term-result'] }, [
+        h('p', { className: ['hp-term-result-label'] }, [t('Output')]),
+        h('pre', { className: ['hp-term-body'], tabIndex: 0 }, outputLines(code.value)),
+      ]),
     ]),
   );
 }
