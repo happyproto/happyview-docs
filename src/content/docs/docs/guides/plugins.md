@@ -3,7 +3,7 @@ title: Plugins
 description: Install plugins from the registry, a URL, environment variables or the file system, and configure their secrets.
 ---
 
-Plugins are WebAssembly modules that add to what HappyView can do. Interpreters run scripts in one language, libraries are what a script loads with `require("happyview.*")`, and auth plugins let users link accounts from platforms like Steam, Xbox and itch.io.
+Plugins are WebAssembly modules that add to what HappyView can do. Interpreters run scripts in one language, libraries are what a script loads with `require("happyview.*")`, and auth plugins link a user's account on another platform.
 
 The official plugins are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
@@ -71,7 +71,7 @@ A plugin installed from a URL, by the dashboard or `PLUGIN_URLS`, is matched to 
 Set `PLUGIN_URLS` to load plugins at startup:
 
 ```
-PLUGIN_URLS=steam|https://example.com/plugins/steam/manifest.json
+PLUGIN_URLS=example-search|https://example.com/plugins/example-search/manifest.json
 ```
 
 Format: `id|url` or `id|url|sha256:hash` (comma-separated for multiple).
@@ -94,7 +94,7 @@ Place plugins in the `./plugins/` directory, or the directory `PLUGIN_DIR` names
 
 ```
 plugins/
-  steam/
+  example-search/
     manifest.json
     plugin.wasm
 ```
@@ -117,12 +117,10 @@ openssl rand -base64 32
 
 ### Environment variables
 
-Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_`. The official Steam plugin, `happyview-auth-steam`, reads `PLUGIN_HAPPYVIEW_AUTH_STEAM_API_KEY`:
+Set secrets as environment variables with the `PLUGIN_<ID>_` prefix, where `<ID>` is the plugin's id upper-cased with every non-alphanumeric character replaced by `_`. A plugin with the id `example-search` reads `PLUGIN_EXAMPLE_SEARCH_API_KEY`:
 
 ```bash
-PLUGIN_HAPPYVIEW_AUTH_STEAM_API_KEY=your-api-key
-PLUGIN_HAPPYVIEW_AUTH_XBOX_CLIENT_ID=your-client-id
-PLUGIN_HAPPYVIEW_AUTH_XBOX_CLIENT_SECRET=your-client-secret
+PLUGIN_EXAMPLE_SEARCH_API_KEY=your-api-key
 ```
 
 These are only necessary if you can't configure secrets in the dashboard. Dashboard-configured secrets take precedence: once any secret for a plugin is saved in the dashboard, HappyView reads none of that plugin's secrets from the environment.

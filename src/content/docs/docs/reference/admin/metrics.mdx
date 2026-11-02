@@ -80,7 +80,7 @@ Durations are in milliseconds. A mean is over the runs that reached that stage. 
 | `wall_ms` | The whole run: building the script's input, instantiating the interpreter, running the script, and settling the library calls it left running |
 | `guest_ms` | Time inside the script's own code: the call into the interpreter less the time spent in host imports |
 | `prepare_ms_mean` | Building the script's input, including reading script variables, and attaching its prepared artifact |
-| `instantiate_ms_mean` | Instantiating the interpreter or compiled module: `link_ms_mean` plus `allocate_ms_mean` |
+| `instantiate_ms_mean` | Instantiating the interpreter: `link_ms_mean` plus `allocate_ms_mean` |
 | `link_ms_mean` | Building the linker the instance's imports are resolved through |
 | `allocate_ms_mean` | The rest of instantiation: finding the module, building the store and the instance, and running the module's initializer |
 | `teardown_ms_mean` | Dropping the store and instance once the run is over |
@@ -88,7 +88,7 @@ Durations are in milliseconds. A mean is over the runs that reached that stage. 
 | `settle_ms_mean` | Waiting for library calls the script started and never awaited |
 | `host_imports` | The host imports the script called, each with its `calls` and `ms_mean`, by total time spent |
 | `memory_peak_bytes` | The interpreter's linear memory at the end of the run, which is its high-water mark, as `max` and `mean` |
-| `instructions_mean` | Instructions per run, over the runs that reported a count. A compiled script module always does, and an interpreted script does when its interpreter counts them. `null` when no run in the window reported one |
+| `instructions_mean` | Instructions per run, over the runs that reported a count. A script reports one when its interpreter counts them. `null` when no run in the window reported one |
 | `module_cache` | How often the interpreter's compiled module came from memory (`hits`) rather than disk or a compile (`misses`) |
 
 A run ends in one of these outcomes:

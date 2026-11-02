@@ -61,8 +61,6 @@ Run the project with its pinned HappyView at `http://127.0.0.1:3000`, rebuilding
 | `--subnet <cidr>` | derived from the project's path | With `--network local`: the private IPv4 network to create it on, a /16 to /28. Kept until another is given. |
 | `-y`, `--yes` | off | Don't ask before starting the local network. |
 
-A compiled module is rebuilt when a file in its own directory changes. A path dependency outside that directory is not watched; saving a file inside the module rebuilds it.
-
 ### hpy happyview add
 
 ```text
@@ -86,7 +84,6 @@ Add plugins to `happyview.toml` and `happyview.lock` and download them. With no 
 | `hpy happyview check [--locked]` | Build the project the way an instance would, without serving it. Exits non-zero on any error. |
 | `hpy happyview test [--locked] [--watch] [filter]` | Run the project's tests. `--watch` reruns the affected tests on every change; `[filter]` runs only test files whose path contains it. See [Testing](/docs/getting-started/testing). |
 | `hpy happyview types [--locked]` | Write editor types into `.happyview/types/`, and the `tsconfig.json` or `.luarc.json` that points editors at them. |
-| `hpy happyview build` | Build every compiled script module in `happyview.toml` into `.happyview/build/`. |
 
 Their exit codes are under [hpy exit codes](#hpy-exit-codes).
 

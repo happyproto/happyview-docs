@@ -5,6 +5,16 @@ description: What HappyView scripts are, where they run, and how the pieces fit 
 
 A script is a small program HappyView runs when something happens: an XRPC request arrives, a record is created, a label is applied, or a background job is picked up. Without scripts, query endpoints return raw records and procedures write their input as a record to the caller's PDS. With them, you decide what an endpoint returns and what happens to each record before it is indexed.
 
+## What a script can do
+
+- **Write to a user's PDS**, as the user who called it, with the `happyview.record` library.
+- **React to records** being created, updated or deleted, and to labels being applied. See [Reacting to records](/docs/getting-started/reacting-to-records).
+- **Start long-running jobs** that run in the background, outside a request's time limits. See [Background jobs](/docs/getting-started/background-jobs).
+- **Use plugins from the registry**, such as libraries for HTTP, XRPC calls and stored blobs. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
+- **Store data that isn't a record** in the instance's database, in tables of its own, with the `happyview.sql` library.
+
+[Libraries](/docs/reference/scripts/libraries) lists each library and the capabilities it needs.
+
 ## Scripts run in interpreter plugins
 
 HappyView does not run scripts itself. A script runs inside an **interpreter plugin**, a WebAssembly plugin that knows one language. Three are published:
@@ -14,6 +24,8 @@ HappyView does not run scripts itself. A script runs inside an **interpreter plu
 | Lua 5.4 | `lua` | `happyview-lua` |
 | JavaScript (QuickJS-ng) | `javascript` | `happyview-javascript` |
 | TypeScript (SWC, then QuickJS-ng) | `typescript` | `happyview-typescript` |
+
+Compiled script modules in Rust, Go and Zig are planned.
 
 A self-hosted instance starts with no interpreter. Until one is installed, no script can be saved or run, and the instance logs this when it starts:
 
