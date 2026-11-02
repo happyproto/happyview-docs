@@ -11,6 +11,7 @@ HappyView provides JavaScript packages for building third-party apps that authen
 | [`@happyview/oauth-client`](https://npmx.dev/package/@happyview/oauth-client)                 | Platform-agnostic core: DPoP key provisioning, session management, authenticated fetch                                    |
 | [`@happyview/oauth-client-browser`](https://npmx.dev/package/@happyview/oauth-client-browser) | Browser OAuth client whose API matches `@atproto/oauth-client-browser`                                                     |
 | [`@happyview/oauth-client-node`](https://npmx.dev/package/@happyview/oauth-client-node)       | Node.js OAuth client for server-side apps, matching `@atproto/oauth-client-node`                                           |
+| [`@happyview/nsid`](https://npmx.dev/package/@happyview/nsid)                                 | AT Protocol NSID validation                                                                                                |
 
 ## Choosing a package
 

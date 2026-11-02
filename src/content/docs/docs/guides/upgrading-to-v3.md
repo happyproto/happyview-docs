@@ -183,7 +183,7 @@ A default build compiles no Lua interpreter at all: `mlua` sits behind a non-def
 
 `lua-reference` is **not** a fallback interpreter. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
 
-v3 adds environment variables of its own, all optional. Two are about plugins: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. See the [Configuration reference](/docs/reference/configuration#plugins).
+v3 adds environment variables of its own, all optional. Two are about plugins: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. `HAPPYVIEW_DEFAULT_PLUGINS` installs each source once; `PLUGIN_URLS`, which v2 also read, loads its plugins again at every boot. See the [Configuration reference](/docs/reference/configuration#plugins).
 
 ## 10. Rolling back
 

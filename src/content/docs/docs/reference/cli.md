@@ -210,15 +210,18 @@ These are read from the environment only.
 ## happyview
 
 ```text
-happyview                                   serve; HAPPYVIEW_PROJECT names a project to serve
-happyview check <root> [--plugin <dir>]... [--json]
-happyview dev <root>
-happyview test <root> [--watch] [--plugin <dir>]... [filter]
-happyview types <root> [--plugin <dir>]... [--out <dir>]
-happyview help                              also -h and --help
+usage:
+  happyview                                   serve; HAPPYVIEW_PROJECT names a project to serve
+  happyview check <root> [--plugin <dir>]... [--json]
+                                              build the project at <root> without serving it
+  happyview dev <root>                        serve the project at <root> locally, rebuilding on save
+  happyview test <root> [--watch] [--plugin <dir>]... [filter]
+                                              run the project's *.test.* files
+  happyview types <root> [--plugin <dir>]... [--out <dir>]
+                                              write editor declarations for the project
 ```
 
-A usage error prints the message and the usage above, and exits `2`. There's no per-command help.
+`happyview help`, `-h` or `--help` prints this usage. A usage error prints the message and the usage, and exits `2`. There's no per-command help.
 
 ### Serving
 
