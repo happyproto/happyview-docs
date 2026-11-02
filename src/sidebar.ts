@@ -13,6 +13,7 @@ export const v3Sidebar: Sidebar = [
     items: [
       { label: 'Overview', slug: d('') },
       d('getting-started/installation'),
+      d('getting-started/quickstart'),
       { label: 'Run your own instance', slug: d('guides/self-hosting/docker') },
     ],
   },
@@ -182,16 +183,27 @@ export const v3Sidebar: Sidebar = [
       d('guides/recipes/meilisearch-sync'),
     ],
   },
+  d('ecosystem'),
   d('guides/troubleshooting'),
+  d('faq'),
   {
     label: 'Migration',
     collapsed: true,
     items: [d('guides/upgrading-to-v3'), d('guides/migrating-scripts')],
   },
   d('changelog'),
+  d('roadmap'),
   {
     label: 'Contributing',
     collapsed: true,
-    items: [{ label: 'Architecture', slug: d('architecture') }],
+    items: [
+      d('contributing/develop'),
+      d('contributing/test'),
+      d('contributing/release'),
+      { label: 'Architecture', slug: d('architecture') },
+      d('contributing/community'),
+      d('contributing/security'),
+      d('contributing/license'),
+    ],
   },
 ];
