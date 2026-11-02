@@ -45,7 +45,7 @@ HappyView runs migrations automatically on startup for both backends.
 
 ## Migrations at startup
 
-HappyView applies any pending migrations every time it starts, before it serves requests. Most take milliseconds. One that builds an index over `happyview_records` scales with that table, and so does the boot that applies it.
+HappyView applies any pending migrations every time it starts, before it serves requests. A migration that builds an index over `happyview_records` takes time in proportion to that table, and so does the boot that applies it.
 
 **SQLite** builds an index inside the migration's transaction, which holds the database's write lock. On a records table of several gigabytes, expect a boot that takes minutes rather than seconds, during which HappyView is not serving. Plan for free disk of roughly two to three times the size of the new index while it runs. The build sorts every row, spilling to temporary storage, and writes the index into the write-ahead log. The next checkpoint copies the log into the database file before truncating it. Let it finish: stopping the process rolls the migration back, and the next boot starts the build over.
 
@@ -55,7 +55,7 @@ HappyView applies any pending migrations every time it starts, before it serves 
 
 ## The compact record format
 
-HappyView v3 stores records in a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` become views with the same columns, so `happyview.sql`'s `raw`, scripts and plugin SQL keep reading them, and `record` is still the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
+HappyView v3 stores records in a compact format. Each DID and collection is stored once and referenced by number, CIDs are stored as bytes and timestamps as integers. On SQLite, record bodies are also compressed with a zstd dictionary trained for each collection. `happyview_records` and `happyview_record_refs` are views over the compact tables. `happyview.sql`'s `raw`, scripts and plugin SQL read them, and their `record` column is the exact JSON HappyView received. Writes through the views work with a few differences, listed under [raw SQL on the record views](#raw-sql-on-the-record-views).
 
 Measured on 67,437 Bluesky posts and their 105,095 refs, against the v2 format:
 
@@ -81,7 +81,7 @@ Make sure there is enough free disk:
 
 **Your own indexes, triggers and views on the old tables.** The upgrade drops `happyview_records` and `happyview_record_refs` and puts views of the same names in their place, so what you built on the old tables goes with them:
 
-- **Indexes and triggers** you created on either table are dropped with it, on both backends, and so are rules on Postgres. The upgrade logs each one first, at warn level, with its full definition (`record store upgrade: dropping an object on the old record tables that HappyView did not create`, with `kind`, `name` and `definition` fields), and then carries on. On Postgres, recreate an index on the table behind the view, where queries on the view use it; see [JSON indexes on Postgres](#after-the-upgrade):
+- **Indexes and triggers** you created on either table are dropped with it, on both backends, and so are rules on Postgres. The upgrade logs each one first, at warn level, with its full definition, and then carries on. The log line is `record store upgrade: dropping an object on the old record tables that HappyView did not create`, with `kind`, `name` and `definition` fields. On Postgres, recreate an index on the table behind the view, where queries on the view use it; see [JSON indexes on Postgres](#after-the-upgrade):
 
   ```sql
   CREATE INDEX ON happyview_records_v2 ((record::jsonb->>'via'));
@@ -89,9 +89,9 @@ Make sure there is enough free disk:
 
   On SQLite a JSON index such as `json_extract(record, '$.via')` has no replacement: the body behind the view is compressed, so there is no column to index. Queries on JSON fields still work through the view, as a scan of the collection.
 
-  A trigger cannot be recreated on the view as it was: write through the view and react in your own code, or put the trigger on `happyview_records_v2`, whose columns are the compact ones.
+  A trigger from the old table has no equivalent on the view. Write through the view and react in your own code, or put the trigger on `happyview_records_v2`, whose columns are the compact ones.
 - **Views on SQLite** keep working. They name `happyview_records`, which is the new view after the upgrade.
-- **Views, materialized views, rules and foreign keys on Postgres** that depend on either table would stop the old table from being dropped. The upgrade checks for them before it copies anything and stops with an error that names each one, such as `record store upgrade: these objects depend on happyview_records or happyview_record_refs, which the upgrade replaces with views of the same names: view my_witchsky; …`. Nothing is copied or dropped. Save their definitions, drop them and start HappyView again so the upgrade runs. Then recreate the views and rules: they read the new views the same way they read the tables. A foreign key cannot point at a view, so a foreign key to either table cannot come back; check the reference in your own code instead.
+- **Views, materialized views, rules and foreign keys on Postgres** that depend on either table would stop the old table from being dropped. The upgrade checks for them before it copies anything. If it finds any, it stops with an error that names each one, such as `record store upgrade: these objects depend on happyview_records or happyview_record_refs, which the upgrade replaces with views of the same names: view my_witchsky; …`. Nothing is copied or dropped. Save their definitions, drop them and start HappyView again so the upgrade runs. Then recreate the views and rules: they read the new views the same way they read the tables. A foreign key cannot point at a view, so a foreign key to either table cannot come back; check the reference in your own code instead.
 
 **On SQLite, start one instance.** A second process started on the same file while the first is upgrading can exit with `database is locked`. Start it again once the first is serving: it finds the upgrade done.
 
@@ -130,7 +130,7 @@ SELECT d.did, c.nsid AS collection, r.rkey
   JOIN happyview_collections c ON c.id = r.collection_id;
 ```
 
-`body` holds the record's JSON. When `body_dict` is `NULL` or `0` it is plain text (`CAST(body AS TEXT)`); otherwise it is compressed with the dictionary of that id in `happyview_zstd_dicts`, and only HappyView reads it. Backups with `sqlite3 happyview.db ".backup ..."` work as before.
+`body` holds the record's JSON. When `body_dict` is `NULL` or `0` it is plain text (`CAST(body AS TEXT)`); otherwise it is compressed with the dictionary of that id in `happyview_zstd_dicts`, and only HappyView reads it. `sqlite3 happyview.db ".backup ..."` takes a complete backup, compressed bodies included.
 
 **JSON indexes on Postgres.** You can index a field of `record` on the table behind the view, and queries on the view use the index. Create it from `psql` or another client, since raw SQL from scripts and plugins cannot reach that table:
 
@@ -140,15 +140,15 @@ CREATE INDEX ON happyview_records_v2 ((record::jsonb->>'via'));
 SELECT uri FROM happyview_records WHERE record::jsonb->>'via' = 'example';
 ```
 
-Write the expression the same way in the index and the query. `record` is text, so cast it to `jsonb`: `record->>'via'` is an error, as it was on the old table.
+Write the expression the same way in the index and the query. `record` is text, so cast it to `jsonb`: `record->>'via'` without the cast is an error.
 
 ### Raw SQL on the record views
 
-Reads return the same columns as before: `uri`, `did`, `collection`, `rkey`, `record`, `cid`, `indexed_at`, `created_at` and `rev`. `json_extract(record, '$.field')` on SQLite and `record::jsonb->>'field'` on Postgres work as before. Timestamps read back as RFC 3339 in UTC with six fractional digits, such as `2026-01-02T03:04:05.123456+00:00`, whatever form they were written in, so a value can read back as different text from what was written. Compare timestamps as timestamps (`datetime(created_at)` on SQLite, `created_at::timestamptz` on Postgres) rather than as text.
+Reads return these columns: `uri`, `did`, `collection`, `rkey`, `record`, `cid`, `indexed_at`, `created_at` and `rev`. `json_extract(record, '$.field')` on SQLite and `record::jsonb->>'field'` on Postgres read a field of `record`. Timestamps read back as RFC 3339 in UTC with six fractional digits, such as `2026-01-02T03:04:05.123456+00:00`, whatever form they were written in, so a value can read back as different text from what was written. Compare timestamps as timestamps (`datetime(created_at)` on SQLite, `created_at::timestamptz` on Postgres) rather than as text.
 
 Writes go through triggers on the views, with these differences:
 
-- Upserts don't work. On SQLite, `INSERT … ON CONFLICT` on a view is refused. On Postgres, `ON CONFLICT` with a target, such as `ON CONFLICT (uri)`, is refused, and `ON CONFLICT DO NOTHING` without one inserts a new row but raises a duplicate-key error for an existing one instead of skipping it. A script tested only on fresh data can pass and fail later. Use `UPDATE`, or `DELETE` then `INSERT`. On SQLite, `INSERT OR REPLACE` works, and as before it drops the replaced record's refs.
+- Upserts don't work. On SQLite, `INSERT … ON CONFLICT` on a view is refused. On Postgres, `ON CONFLICT` with a target, such as `ON CONFLICT (uri)`, is refused. `ON CONFLICT DO NOTHING` without a target inserts a new row, but raises a duplicate-key error for an existing one instead of skipping it. A script tested only on fresh data can pass and fail later. Use `UPDATE`, or `DELETE` then `INSERT`. On SQLite, `INSERT OR REPLACE` works, and drops the replaced record's refs.
 - A `uri` you write must be `at://{did}/{collection}/{rkey}` of the same row. A ref's `source_uri` must be a stored record, and its `collection` must be that record's collection. Updating a ref that the upgrade copied with a different `collection` is refused unless you also set `collection` to its source record's.
 - `indexed_at` left out or `NULL` is stored as `NULL` on both backends. `NULL` marks a record HappyView wrote itself and has not yet seen on Jetstream, so set it when you write a record. `created_at` left out is the current time; on Postgres that is `clock_timestamp()` for each row, not the transaction's start time as `now()` would give.
 - A timestamp has to be RFC 3339 or SQLite's `datetime('now')` form. Anything else makes the write fail.
@@ -174,7 +174,7 @@ SELECT uri, record FROM happyview_records_by_collection
  LIMIT 50;
 ```
 
-That reads only the collection's newest rows, however large the database. For the next page, add `AND (created_at_us, id) < (?, ?)` with the last row's values. `hv_collection_id` answers `NULL` for a collection the database doesn't have, so the query returns nothing. Raw SQL may read this view and call the function; it may not read `happyview_collections`. `happyview_records` keeps its columns, so `SELECT *` and positional `INSERT`s on it work as before.
+That reads only the collection's newest rows. For the next page, add `AND (created_at_us, id) < (?, ?)` with the last row's values. `hv_collection_id` answers `NULL` for a collection the database doesn't have, so the query returns nothing. Raw SQL may read this view and call the function; it may not read `happyview_collections`. `happyview_records` has the columns listed under [Raw SQL on the record views](#raw-sql-on-the-record-views), so `SELECT *` and positional `INSERT`s work on it.
 
 #### When record storage offers a raw read route
 
@@ -185,7 +185,7 @@ When an instance keeps some collections in external [record storage](/docs/guide
 - A query must read only the two views, or neither. One that joins them with other tables is refused, as is a read of them that HappyView can't confirm is read-only, such as one with `FOR SHARE`. Split it into two queries.
 - While the storage is down, a routed query fails with `STORAGE_UNAVAILABLE`.
 - The views on the route show only the storage's records. Records of other collections held in this database can't be read through them.
-- Writes through the views run on this database as before and see only its rows, even a write that reads the views, such as `INSERT … SELECT`. Writes to the storage's collections are refused.
+- Writes through the views run on this database and see only its rows, even a write that reads the views, such as `INSERT … SELECT`. Writes to the storage's collections are refused.
 
 ## Docker Compose
 
