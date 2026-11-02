@@ -193,7 +193,12 @@ export default function handle(input: Event, ctx: RecordCtx) {
 To change what is stored instead, return a different object. It replaces the record in the index. The full table of return values is in [Script types and triggers](/docs/reference/scripts/types-and-triggers#record-scripts).
 
 :::caution[Record scripts run at least once]
-If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their record scripts run again. Write record scripts so that running one twice for the same record has the same result as running it once. A record script that only returns a modified record gives the same result when it runs twice. A record script with side effects, such as creating a job, writing to another repository or sending a notification, should first check that it hasn't already acted on this record and version. The record's `uri` and `cid` identify both. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+A record script can run more than once for the same change:
+
+- **A restart or reconnect.** If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their record scripts run again.
+- **A busy database.** The record script runs before HappyView stores the change. If the store then fails because the database can't be reached for a moment, for example because its connection pool is full, HappyView delivers the change again once the database answers, and the script runs again. This happens while the instance keeps running, with no restart. On an instance reading the network store, the changes after it in the same batch are delivered again too, even ones that were stored the first time.
+
+Write record scripts so that running one twice for the same record has the same result as running it once. A record script that only returns a modified record gives the same result when it runs twice. A record script with side effects, such as creating a job, writing to another repository or sending a notification, should first check that it hasn't already acted on this record and version. The record's `uri` and `cid` identify both. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 :::
 
 ## React to labels

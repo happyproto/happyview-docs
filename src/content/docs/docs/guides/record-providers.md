@@ -72,6 +72,8 @@ This is what HappyView gives a provider.
 
 HappyView runs the record script on every delivery, including an identical redelivery. Only what is served is idempotent, so a record script with side effects should expect to run twice.
 
+The record script runs before the record is written, so an event that comes back `IngestOutcome::Unavailable` has already run its script. Delivering it again runs the script a second time. Delivering the events after it in the same batch again runs their scripts again too, including the ones that applied. `ingest_batch` reports an outcome per event, in order, so a source can tell which events applied.
+
 ## The `RecordStorage` trait
 
 HappyView keeps its own record tables for every collection a storage does not claim. A storage claims collections and serves them.
