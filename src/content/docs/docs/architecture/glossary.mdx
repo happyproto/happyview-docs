@@ -163,7 +163,8 @@ HappyProto's command-line tool.
 ### Operator
 
 A person who signs in to an instance's dashboard or admin API to run it. The
-dashboard's **Users** page lists operators.
+dashboard's **Users** page lists operators, and the `users:*` permissions
+govern them; both are named for that page.
 
 ### User
 
@@ -315,14 +316,14 @@ HappyView has **54 permissions**. An operator holds any mix of them; the four bu
 | `records:delete` | Delete individual records from the index | Manager |
 | `records:delete-collection` | Bulk-delete all records in a collection | Full Access |
 | **Script Variables** | | |
-| `script-variables:create` | Add or update environment variables for scripts | Manager |
-| `script-variables:read` | View script environment variable keys and values | Viewer |
-| `script-variables:delete` | Remove script environment variables | Manager |
+| `script-variables:create` | Add or update script variables | Manager |
+| `script-variables:read` | View script variable keys, with values masked | Viewer |
+| `script-variables:delete` | Remove script variables | Manager |
 | **Users** | | |
-| `users:create` | Add new dashboard users | Full Access |
-| `users:read` | View the user list and their permissions | Viewer |
-| `users:update` | Modify user permissions | Full Access |
-| `users:delete` | Remove dashboard users | Full Access |
+| `users:create` | Add operators to the instance | Full Access |
+| `users:read` | View operators and their permissions | Viewer |
+| `users:update` | Change an operator's permissions | Full Access |
+| `users:delete` | Remove operators from the instance | Full Access |
 | **API Keys** | | |
 | `api-keys:create` | Generate new API keys for admin access | Maintainer |
 | `api-keys:read` | View existing API keys | Viewer |
