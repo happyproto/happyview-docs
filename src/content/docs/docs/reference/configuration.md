@@ -115,11 +115,23 @@ The three concurrency settings take effect on the next backfill. The backfill co
 
 An out-of-range script limit in the environment is logged and the default is used; one saved as an instance setting is refused when saved. See [Limits](/docs/reference/scripts/limits).
 
+## Space inspector
+
+The [space inspector](/docs/guides/spaces#moderating-spaces) lets operators with `spaces:inspect` read private space contents under a time-limited access grant. These variables come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SPACE_INSPECTOR_ENABLED` | `false` | `true`, in any case, turns the space inspector on. Instance setting `feature.space_inspector_enabled`, the **Enable Space Inspector** switch. |
+| `SPACE_INSPECTOR_MAX_GRANT_MINUTES` | `60` | The longest an access grant can last, in minutes. A value that isn't a whole number means `60`. Below `5` is raised to `5`, and above `525600` (one year) is lowered to it. Instance setting `space_inspector_max_grant_minutes`. |
+
+A grant asks for 60 minutes by default, or the maximum if that's shorter.
+
 ## Logging, retention and telemetry
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries, job logs and stored script metrics are kept. `0` keeps them. Instance setting `event_log_retention_days`. |
+| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries, job logs and stored script metrics are kept. `0` keeps them. [Protected events](/docs/guides/event-logs#protected-events) follow `SPACE_ACCESS_LOG_RETENTION_DAYS` instead. Instance setting `event_log_retention_days`. |
+| `SPACE_ACCESS_LOG_RETENTION_DAYS` | `365`, or `0` while `EVENT_LOG_RETENTION_DAYS` is `0` | Days [protected events](/docs/guides/event-logs#protected-events) are kept, and ended access grants with them. `0` keeps them. Events tied to a grant that still exists are kept whatever their age. Instance setting `space_access_log_retention_days`. |
 | `DEAD_LETTER_RETENTION_DAYS` | `30` | Days a resolved dead letter is kept. `0` keeps them. An unresolved one is never removed. |
 | `RECORD_TOMBSTONE_RETENTION_HOURS` | `72` | Hours a deleted record's tombstone is kept. `0` keeps them. |
 | `VERBOSE_EVENT_LOGGING` | `false` | `true` logs every record script run and skip. It writes a lot. Instance setting `verbose_event_logging`. |
@@ -147,12 +159,30 @@ These keys can be saved as instance settings, and then win over the environment.
 | `backfill_concurrent_pds`, `backfill_concurrent_dids_per_pds`, `backfill_concurrent_resolution` | `BACKFILL_CONCURRENT_*` |
 | `backfill_retention_days` | `BACKFILL_RETENTION_DAYS` |
 | `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` |
+| `space_access_log_retention_days` | `SPACE_ACCESS_LOG_RETENTION_DAYS` |
+| `feature.space_inspector_enabled`, `space_inspector_max_grant_minutes` | `SPACE_INSPECTOR_ENABLED`, `SPACE_INSPECTOR_MAX_GRANT_MINUTES` |
 | `script_instruction_limit`, `script_wall_clock_seconds` | `SCRIPT_INSTRUCTION_LIMIT`, `SCRIPT_WALL_CLOCK_SECONDS` |
 | `script_metrics_enabled` | `SCRIPT_METRICS_ENABLED` |
 | `verbose_event_logging` | `VERBOSE_EVENT_LOGGING` |
 | `feature.spaces_enabled` | `FEATURE_SPACES_ENABLED` |
 
-`GET /admin/settings` lists every setting with where its value came from: `database`, `env` or `project`. The logo, the XRPC proxy, rate-limit costs and telemetry are also stored as settings, through their own endpoints and dashboard pages.
+`GET /admin/settings` lists every setting with where its value came from: `database`, `env`, `project`, or `platform` for a [fixed setting](#settings-a-hosting-platform-fixes). The logo, the XRPC proxy, rate-limit costs and telemetry are also stored as settings, through their own endpoints and dashboard pages.
+
+### Settings a hosting platform fixes
+
+A hosting platform can fix instance settings so the operator can't change them. It sets `PLATFORM_LOCKED_SETTINGS` to a comma-separated list of setting keys, such as `space_access_log_retention_days,space_inspector_max_grant_minutes`.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `PLATFORM_LOCKED_SETTINGS` | none | Setting keys from the table above that the hosting platform fixes. |
+
+A fixed setting:
+
+- reads its environment variable, whatever is stored in the database;
+- answers `PUT` and `DELETE /admin/settings/{key}` with `409 Conflict`;
+- lists in `GET /admin/settings` with source `platform`, and any stored value for it is left out.
+
+Boot fails when a fixed setting's variable is unset. It also fails when a fixed `space_access_log_retention_days` or `space_inspector_max_grant_minutes` isn't a whole number above `0`. A key the running version doesn't have is logged as a warning and ignored.
 
 ## happyview.toml
 

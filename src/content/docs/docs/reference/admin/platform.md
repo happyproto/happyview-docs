@@ -26,6 +26,8 @@ The platform principal can:
 
 Every other admin endpoint refuses it with `403`.
 
+A platform can also fix instance settings with `PLATFORM_LOCKED_SETTINGS`, so the operator can't change them; see [Settings a hosting platform fixes](/docs/reference/configuration#settings-a-hosting-platform-fixes). On a HappyProto instance, the platform fixes `space_access_log_retention_days` and `space_inspector_max_grant_minutes`.
+
 ## Set the superadmin
 
 ```

@@ -37,7 +37,15 @@ Navigate to **Records** to browse all indexed atproto records. Pick a collection
 
 ### Spaces
 
-Navigate to **Spaces** to view the instance's [spaces](/docs/guides/spaces). The page needs `spaces:read`, and reading a space's records is written to the [event log](/docs/guides/event-logs#space-events).
+Navigate to **Spaces** to view the instance's [spaces](/docs/guides/spaces). The page needs `spaces:read`, and appears only while the [space inspector](/docs/guides/spaces#moderating-spaces) is on. It lists each space's **Name**, **Type**, **Creator** and **Created** date. To open one account, enter its DID and click **Open account**.
+
+A space's page shows its details, **Members** and **Collections**. With `spaces:inspect`, its **Records** card offers **Request access**. The **Request access** dialog asks for **Access to**, a **Reason** and a **Duration**, and **Grant access** opens the records. A banner then shows the reason and the time left, with **End access** to end it early.
+
+An account's page lists the spaces it is a member of or writes to. Its **Records** card works the same way, for that account's records in every space. Every grant and every read under it is written to the [event log](/docs/guides/event-logs#space-events).
+
+:::note[Pending on alpha]
+The space inspector pages come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet.
+:::
 
 ### Backfills
 
@@ -107,9 +115,14 @@ Configure instance-level settings:
 - **Data Retention**: how long a finished backfill's details are kept.
 - **Backfill Performance**: the concurrency of a backfill.
 - **Scripts**: **Instruction limit** and **Request wall clock (seconds)**.
-- **Event Logs**: their retention, verbose logging and, with `events:purge`, **Purge Event Logs**.
+- **Space Inspector**: **Enable Space Inspector**, and **Maximum Access Length (minutes)**, the longest access an operator can request. See [Moderating spaces](/docs/guides/spaces#moderating-spaces).
+- **Event Logs**: **Event Log Retention (days)**, **Space Access Log Retention (days)** for [protected events](/docs/guides/event-logs#protected-events), verbose logging and, with `events:purge`, **Purge Event Logs**.
 
-Most can also be set through the environment, and a dashboard value takes precedence. Each field shows where its value came from. The [Configuration reference](/docs/reference/configuration#instance-settings) lists the keys.
+Most can also be set through the environment, and a dashboard value takes precedence. Each field shows where its value came from. A field a [hosting platform fixes](/docs/reference/configuration#settings-a-hosting-platform-fixes) is marked "set by your hosting provider", and a save never sends it. **Maximum Access Length (minutes)** and **Space Access Log Retention (days)** are then read-only. The [Configuration reference](/docs/reference/configuration#instance-settings) lists the keys.
+
+:::note[Pending on alpha]
+The **Space Inspector** card, **Space Access Log Retention (days)** and the "set by your hosting provider" mark come from pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which hasn't merged into `alpha` yet.
+:::
 
 ### Database
 
@@ -142,6 +155,8 @@ Manage script variables, which every script receives as `ctx.env` at run time. T
 ### Event Logs
 
 View the [event log](/docs/guides/event-logs). Events include operator changes, lexicon uploads, permission changes, backfill starts, and more. Each entry shows the event type, severity, actor, subject, and timestamp.
+
+A `space.access_granted` event lists the **Reads under this grant**, with **Load more** for a long list.
 
 ### Experiments
 

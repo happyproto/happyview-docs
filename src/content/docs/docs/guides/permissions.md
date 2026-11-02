@@ -7,7 +7,7 @@ HappyView uses a granular permission system to control access to the admin API. 
 
 ## Permission list
 
-HappyView defines 53 permissions. The [permissions table](/docs/architecture/glossary#permissions) in the glossary lists each one, what it allows and the lowest template that grants it. It is generated from HappyView's own list, so it stays current.
+HappyView defines 54 permissions. The [permissions table](/docs/architecture/glossary#permissions) in the glossary lists each one, what it allows and the lowest template that grants it. It is generated from HappyView's own list, so it stays current.
 
 ## Permission templates
 
@@ -35,7 +35,17 @@ Adds: `lexicons:create`, `lexicons:delete`, `lexicons:publish`, `scripts:manage`
 
 ### Full Access template
 
-All 53 permissions. Equivalent to granting every permission individually (but still not superadmin).
+All 54 permissions. Equivalent to granting every permission individually (but still not superadmin).
+
+## Reading space contents
+
+`spaces:inspect` lets an operator request time-limited access to read the records and blobs in private spaces, through the [space inspector](/docs/guides/spaces#moderating-spaces). Only **Full Access** includes it. Give it to the operators who handle reports, one by one.
+
+`spaces:manage-records` is still in the **Manager** template, but it grants no access. Reading a space's contents needs `spaces:inspect` instead.
+
+:::note[Pending on alpha]
+`spaces:inspect` comes from pull request [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350), which hasn't merged into `alpha` yet. Until it does, HappyView has 53 permissions, and `spaces:manage-records` reads space records and blobs.
+:::
 
 ## Superadmin
 

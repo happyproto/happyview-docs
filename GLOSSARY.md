@@ -49,6 +49,12 @@ _Avoid_: the Operator template
 The privilege of holding every permission, which can't be restricted. Usually one operator holds it; a transfer moves it from one operator to another.
 _Avoid_: super user, owner, root
 
+**Space inspector**:
+The dashboard pages and admin routes an operator uses to read private space contents while handling a report. Off by default.
+
+**Access grant**:
+Time-limited permission for one operator to read one space's contents, or one account's records in every space, given with a reason.
+
 ## Data
 
 **Lexicon**:

@@ -117,7 +117,7 @@ curl http://127.0.0.1:3000/admin/settings -H "$AUTH"
 ]
 ```
 
-Stored values come first, sorted by key. They include every stored row, such as the `logo_data` and `logo_content_type` rows the logo upload writes. They are followed by values from the environment or `happyview.toml` for known keys with no stored value; a key with neither appears nowhere, even when it has a default. `source` is `database`, `env` or `project`.
+Stored values come first, sorted by key. They include every stored row, such as the `logo_data` and `logo_content_type` rows the logo upload writes. They are followed by values from the environment or `happyview.toml` for known keys with no stored value; a key with neither appears nowhere, even when it has a default. `source` is `database`, `env` or `project`, or `platform` for a setting a [hosting platform fixes](/docs/reference/configuration#settings-a-hosting-platform-fixes). A fixed setting's stored row isn't listed.
 
 ### Known settings
 
@@ -135,7 +135,10 @@ Stored values come first, sorted by key. They include every stored row, such as 
 | `verbose_event_logging` | `VERBOSE_EVENT_LOGGING` | `false` | Log every record index, record skip, and successful script run (record, label, and XRPC) to the event log. `"true"` in any case turns it on, and a change takes up to 30 seconds to apply. High write volume, so recommended only for debugging |
 | `feature.spaces_enabled` | `FEATURE_SPACES_ENABLED` | --- | Enables the experimental Permissioned Spaces API. When `"true"` (in any case), space endpoints are available. When absent or any other value, space endpoints return `404 FeatureDisabled` |
 | `feature.spaces_pds_migration` | --- | --- | When `"true"` (in any case), a user signing in with a `space:` scope granted gets a job enqueued to move the space repos HappyView keeps for them to their PDS |
-| `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` | `30` | Days to keep event log entries and job logs. `0` = keep indefinitely |
+| `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` | `30` | Days to keep event log entries and job logs. `0` = keep indefinitely. [Protected events](/docs/guides/event-logs#protected-events) follow `space_access_log_retention_days` |
+| `space_access_log_retention_days` | `SPACE_ACCESS_LOG_RETENTION_DAYS` | `365`, or `0` while `event_log_retention_days` is `0` | Days to keep protected events and ended access grants. `0` = keep indefinitely |
+| `feature.space_inspector_enabled` | `SPACE_INSPECTOR_ENABLED` | `false` | Turns the [space inspector](/docs/reference/admin/spaces#the-space-inspector) on when `"true"`, in any case. Pending on `alpha` in [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371) |
+| `space_inspector_max_grant_minutes` | `SPACE_INSPECTOR_MAX_GRANT_MINUTES` | `60` | The longest an access grant can last, from `5` to `525600`. Pending on `alpha` in [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) |
 | `script_instruction_limit` | `SCRIPT_INSTRUCTION_LIMIT` | `1000000` | Instruction budget for a script run. `PUT` refuses a value outside 1000 to 1000000000 with `400 Bad Request` |
 | `script_wall_clock_seconds` | `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Wall-clock limit for a request's script run, in seconds. `PUT` refuses a value outside 1 to 300 with `400 Bad Request` |
 | `script_metrics_enabled` | `SCRIPT_METRICS_ENABLED` | `true` | Record per-script run metrics for [`/admin/metrics`](/docs/reference/admin/metrics). `PUT` refuses anything but `"true"` or `"false"` with `400 Bad Request` |
@@ -216,7 +219,9 @@ curl -X PUT http://127.0.0.1:3000/admin/settings/app_name \
 
 The body is `{ "value": "..." }`. The value is always a string, so send `"true"`, not `true`. Any key is accepted; the table above lists the keys HappyView reads. `logo`, `xrpc-proxy` and `telemetry` are routes of their own, so `PUT /admin/settings/telemetry` reaches the [telemetry](/docs/reference/admin/telemetry) endpoint, not this one.
 
-**Response**: `204 No Content`. `400 Bad Request` when a script limit is out of range or `script_metrics_enabled` isn't `"true"` or `"false"`. A `telemetry.*` key returns `409 Conflict` where a hosting platform manages telemetry.
+**Response**: `204 No Content`. `400 Bad Request` when a script limit is out of range or `script_metrics_enabled` isn't `"true"` or `"false"`. A `telemetry.*` key returns `409 Conflict` where a hosting platform manages telemetry, and so does a key the platform fixes.
+
+A change to `event_log_retention_days`, `space_access_log_retention_days` or `feature.space_inspector_enabled` is audited. Its [protected event](/docs/guides/event-logs#protected-events) is saved together with the setting, and if the event can't be written, the setting isn't changed. A delete is audited the same way.
 
 ## Delete a setting
 
@@ -224,7 +229,7 @@ The body is `{ "value": "..." }`. The value is always a string, so send `"true"`
 DELETE /admin/settings/{key}
 ```
 
-Removes the override; the corresponding environment variable or `happyview.toml` value (if any) takes effect again. Returns `404 Not Found` if no value is stored for that key, and `409 Conflict` for a `telemetry.*` key where a hosting platform manages telemetry.
+Removes the override; the corresponding environment variable or `happyview.toml` value (if any) takes effect again. Returns `404 Not Found` if no value is stored for that key, and `409 Conflict` for a `telemetry.*` key where a hosting platform manages telemetry, or a key the platform fixes.
 
 **Response**: `204 No Content`
 
