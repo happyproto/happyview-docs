@@ -7,14 +7,14 @@ prerequisites:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page installs `hpy` and creates a project. You don't install HappyView itself: `hpy` downloads the version your project uses when you run it.
+This page installs `hpy` and creates a project. HappyView itself is not installed separately: `hpy` downloads the version a project names when it runs the project.
 
-`hpy` is in beta and HappyView v3 is in alpha. `hpy happyview create` picks the HappyView version for you, so you don't need to choose one.
+`hpy` is in beta and HappyView v3 is in alpha. `hpy happyview create` writes a HappyView version into the project it creates.
 
 ## Before you start
 
 - **macOS or Linux.** On Windows, use WSL and follow the Linux steps inside it: running a project locally isn't supported on Windows itself yet.
-- **An atproto account to develop with**, such as a Bluesky account. A separate test account is best, because a project running locally writes to that account's real PDS. [Running locally](/docs/getting-started/running-locally) explains why.
+- **An atproto account to develop with**, such as a Bluesky account. Use a test account rather than a personal one, because a project running locally writes to that account's real PDS ([Running locally](/docs/getting-started/running-locally#network)). [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days.
 
 ## Install hpy
 
@@ -62,7 +62,7 @@ hpy happyview create --name my-app
 
 It creates `my-app/` and downloads nothing yet.
 
-An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both; for now, Lua and no libraries is enough.
+An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both. The starter project needs only Lua.
 
 ## What you get
 
@@ -83,6 +83,8 @@ my-app/
 
 - `happyview.toml` names the HappyView version, the interpreters and libraries, and your instance's settings.
 - `happyview.lock` pins the exact plugin versions, so every machine runs the same ones.
+- `.env.example` lists script variables for `hpy happyview dev`. Copy it to `.env` and each `KEY=value` line is available to scripts as `ctx.env.KEY`. A deployed instance takes script variables from its own settings or environment instead.
+- `.gitignore` keeps `.env` and the local instance's `.happyview/` directory out of git.
 - `.luarc.json` points your editor at HappyView's types. A project with JavaScript or TypeScript gets a `tsconfig.json` instead or as well.
 - `src/lexicons/com/example/hello.json` is a query lexicon, and `hello.lua` beside it is the script that answers it. The script is in the first language you picked.
 

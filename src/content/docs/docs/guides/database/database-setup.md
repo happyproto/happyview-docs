@@ -7,7 +7,7 @@ HappyView supports two database backends: **SQLite** (default) and **PostgreSQL*
 
 ## SQLite (default)
 
-SQLite requires zero setup. HappyView creates the database file automatically on first startup.
+SQLite needs no separate database server. HappyView creates the database file on first startup.
 
 ```sh
 DATABASE_URL=sqlite://data/happyview.db?mode=rwc

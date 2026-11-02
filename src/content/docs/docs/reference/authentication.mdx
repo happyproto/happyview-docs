@@ -202,7 +202,7 @@ Bearer API keys (`hv_*`) are **not** accepted on XRPC endpoints. They are for ad
 
 Third-party apps authenticate users through the [DPoP key provisioning](#dpop-key-provisioning-for-third-party-apps) flow.
 
-The [JavaScript SDK](/docs/reference/sdk) handles this entire flow for you:
+The [JavaScript SDK](/docs/reference/sdk) implements this flow:
 
 ```typescript
 import { Client } from "@atproto/lex";
@@ -390,7 +390,7 @@ sequenceDiagram
 ```
 
 :::tip
-The [JavaScript SDK](/docs/reference/sdk) handles this entire flow for you. The raw HTTP flow below is useful for understanding the protocol or building an app in another language.
+The [JavaScript SDK](/docs/reference/sdk) implements this flow. The HTTP flow below is for apps in other languages, and for reference.
 :::
 
 ### API clients: confidential vs public

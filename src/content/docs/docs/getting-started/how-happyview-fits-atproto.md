@@ -1,23 +1,25 @@
 ---
 title: "How HappyView fits atproto"
-description: "The atproto pieces HappyView works with, one sentence each, and the path a record takes from a user's repository to your app."
+description: "The atproto terms these docs use, and the path a record takes from a user's repository to a HappyView instance."
 ---
 
-HappyView is an AppView: it reads records from the atproto network, keeps the ones your app cares about, and answers your app's questions about them. This page names the atproto pieces the rest of Getting started uses. You don't need more than this to build with HappyView.
+This page defines the atproto terms that Getting started uses, and traces how a record reaches a HappyView instance.
 
-## The pieces
+## Terms
 
-- **DID**: A permanent id for an account, such as `did:plc:ewvi7nxzyoun6zhxrhs64oiz`. A handle like `alice.bsky.social` (an account's username, not the `handle` function scripts define) points to one.
-- **PDS**: The server that holds an account's data (its Personal Data Server). Every write to an account goes to its PDS.
-- **Repository**: An account's data on its PDS: a set of records, each with a URI such as `at://did:plc:…/xyz.statusphere.status/3l2k…`.
-- **Record**: One piece of data in a repository, such as a status, a post or a like. Its shape is set by a lexicon.
-- **Lexicon**: A schema document. A record lexicon describes a kind of record; a query or procedure lexicon describes an endpoint.
-- **NSID**: A lexicon's id, written as a reversed domain plus a name: `xyz.statusphere.status`.
-- **Collection**: All the records of one record lexicon, named by its NSID. HappyView indexes collections.
-- **XRPC**: atproto's HTTP API style. An endpoint is called at `/xrpc/<NSID>`: a **query** with `GET`, a **procedure**, which changes something, with `POST`.
-- **Jetstream**: A live feed of record changes across the network, filtered by collection. HappyView listens to it for the collections it indexes.
-- **AppView**: A service that indexes records from many repositories and answers queries about them. A HappyView instance is one.
-- **DPoP**: A way of tying a user's sign-in tokens to a key the app holds, so a stolen token alone is useless. Your app uses it to call your instance as a signed-in user.
+| Term | Meaning |
+| --- | --- |
+| DID | An account's permanent identifier, such as `did:plc:ewvi7nxzyoun6zhxrhs64oiz`. A handle, such as `alice.bsky.social`, resolves to a DID. (This is unrelated to the `handle` function that scripts define.) |
+| PDS | Personal Data Server: the server that hosts an account's data. Every write to an account goes to its PDS. |
+| Repository | An account's data on its PDS: a set of records, each with a URI such as `at://did:plc:…/xyz.statusphere.status/3l2k…`. |
+| Record | One item in a repository, such as a status, a post or a like. A lexicon defines its shape. |
+| Lexicon | A schema document. A record lexicon describes a kind of record. A query or procedure lexicon describes an XRPC endpoint. |
+| NSID | Namespaced identifier: a reversed domain name followed by a name, such as `xyz.statusphere.status`. atproto uses NSIDs to name lexicons, record collections and XRPC methods. |
+| Collection | The records of one record lexicon, named by that lexicon's NSID. HappyView indexes by collection. |
+| XRPC | atproto's HTTP API convention. A method is called at `/xrpc/<NSID>`: a **query** with `GET`, and a **procedure**, which changes state, with `POST`. |
+| Jetstream | A live feed of record changes across the network, filterable by collection. HappyView subscribes to it for the collections it indexes. |
+| AppView | A service that indexes records from many repositories and answers queries over them. A HappyView instance is an AppView. |
+| DPoP | A mechanism that binds a user's OAuth tokens to a key the client holds, so a stolen token cannot be used on its own. An app uses it to call an instance as a signed-in user. |
 
 ## How a record reaches your app
 
@@ -38,7 +40,7 @@ flowchart TD
 3. Your app calls a **query** on your instance, and gets answers from the instance's index.
 4. Your app calls a **procedure** to change something. The instance writes to the user's PDS as that user, and indexes the result straight away.
 
-Your project decides each step: which collections are indexed, what each query returns, and what a procedure writes. That is what the rest of Getting started builds.
+A project configures each step: which collections are indexed, what each query returns and what each procedure writes. The rest of Getting started covers each in turn.
 
 ## Next steps
 

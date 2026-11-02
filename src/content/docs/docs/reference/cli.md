@@ -5,7 +5,7 @@ description: "Every command, flag, environment variable and exit code of hpy and
 
 Two command-line tools work with HappyView:
 
-- **`hpy`**, HappyProto's CLI, is what you use day to day: it creates projects, runs them locally, tests them and deploys them. Its `happyview` commands download and run the right `happyview` binary for you.
+- **`hpy`**, HappyProto's CLI, creates projects, runs them locally, tests them and deploys them. Its `happyview` commands download and run the `happyview` binary a project names.
 - **`happyview`** is HappyView itself, the program that serves an instance. You run it directly when you self-host an instance.
 
 ## hpy
