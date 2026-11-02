@@ -3,6 +3,9 @@ title: "Running locally"
 description: "hpy happyview dev: running a project as a local HappyView instance, what it reloads, where it keeps data, and its options."
 prerequisites:
   - /docs/getting-started/installation
+prev:
+  link: /docs/getting-started/installation/
+  label: Installation
 ---
 
 `hpy happyview dev [options]` runs a project as a local HappyView instance. It runs from the project's root directory, the one that holds `happyview.toml`.
