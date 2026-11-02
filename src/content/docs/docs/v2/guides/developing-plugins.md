@@ -73,7 +73,7 @@ Each plugin has a `manifest.json` that describes its metadata:
 | `GET /admin/plugins/{id}/secrets`       | Get configured secrets (masked)             |
 | `PUT /admin/plugins/{id}/secrets`       | Update plugin secrets                       |
 
-The dashboard's **Settings > Plugins** page calls `GET /admin/plugins/official` to populate the install browser, and `POST /admin/plugins/{id}/check-update` to display update badges on installed plugins.
+The dashboard's **Integrations > Plugins** page calls `GET /admin/plugins/official` to populate the install browser, and `POST /admin/plugins/{id}/check-update` to display update badges on installed plugins.
 
 ## Plugin Exports
 

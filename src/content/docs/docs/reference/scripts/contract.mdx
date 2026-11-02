@@ -105,6 +105,8 @@ export default async function handle(input: Input, ctx: { caller_did?: string })
   </TabItem>
 </Tabs>
 
+`happyview.db` and `happyview.http` in these examples are library plugins, not part of HappyView, so a script that loads one runs only where it is installed. Install each from **Integrations > Plugins** in the dashboard, or with `hpy happyview add happyview.db` in a project. Until then, a Lua script fails to load with `module 'happyview.db' not found -- is the 'happyview.db' library plugin installed?`. [Libraries](/docs/reference/scripts/libraries) lists them.
+
 ## `input` by script type
 
 | Trigger | `input` |

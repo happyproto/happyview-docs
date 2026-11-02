@@ -13,7 +13,7 @@ Official plugins for Steam, Xbox, itch.io, and other platforms are available in 
 
 ### Via Dashboard
 
-1. Go to **Settings > Plugins**
+1. Go to **Integrations > Plugins**
 2. Click **Add Plugin**
 3. Enter the URL to a plugin's `manifest.json` or `.wasm` file
 4. Review the plugin details and click **Install Plugin**
