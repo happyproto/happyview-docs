@@ -60,11 +60,11 @@ Develop with a test account, not a personal one. [pds.rip](https://pds.rip) issu
 | `.env` | Read on every script run. |
 | Plugins added with `hpy happyview add` | Take effect when `dev` is restarted. |
 
-A successful rebuild prints `built in <n> ms:` and what changed. A failed one prints each error with its file and line, then `build failed; still serving the previous build`, and the previous build keeps answering until the next successful one.
+A successful rebuild prints `built in <n> ms:` and what changed. A failed one prints each error with its file and line, then `build failed; still serving the previous build`.
 
 ## Dashboard
 
-The dashboard is at the `dashboard:` address `dev` prints. Sign in with the project's superadmin account, the DID given at [`create`](/docs/getting-started/installation#create-a-project). Sign-in goes through that account's PDS.
+The dashboard is at the `dashboard:` address `dev` prints. The project's superadmin is the account whose DID was given at [`create`](/docs/getting-started/installation#create-a-project). Sign-in goes through that account's PDS.
 
 A person who signs in to an instance's dashboard to manage it is an **operator**. **Permissions** set what each operator may do. The superadmin holds every permission.
 
@@ -92,7 +92,7 @@ Set it to `true` and restart `dev` to backfill locally. The setting applies only
 | --- | --- |
 | `--network local` | Runs against a local atproto network. See [Network](#network). |
 | `--reset` | With `--network local`, discards the local network's accounts, records and database first. |
-| `--subnet <CIDR>` | With `--network local`, the private IPv4 network to create it on, when the one derived from the project's path is taken. Kept until another is given. |
+| `--subnet <CIDR>` | With `--network local`, the private IPv4 network to create it on, when the one derived from the project's path is taken. The chosen subnet is kept until another is given. |
 | `--yes`, `-y` | Skips the confirmation `--network local` asks for. |
 | `--locked` | Fails instead of updating `happyview.lock` when it does not match `happyview.toml`. Intended for CI. |
 

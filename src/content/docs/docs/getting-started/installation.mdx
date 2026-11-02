@@ -56,13 +56,13 @@ hpy happyview create --name my-app
 | Prompt | What to answer |
 | --- | --- |
 | **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account holds the superadmin privilege on the local instance. If you've signed in with `hpy registry login`, that account's DID is offered. To find an account's DID, look its handle up at [pdsls.dev](https://pdsls.dev). |
-| **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected to start with. |
+| **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected by default. |
 | **Libraries** | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`. |
 | **App name** | Your app's name, shown in the dashboard. It defaults to the directory's name. |
 
 `create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
 
-An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both. The generated project uses only Lua.
+An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both.
 
 ## Generated files
 
@@ -82,7 +82,7 @@ my-app/
 ```
 
 - `happyview.toml` names the HappyView version, the interpreters and libraries, and your instance's settings.
-- `happyview.lock` pins the exact plugin versions, so every machine runs the same ones.
+- `happyview.lock` pins the exact plugin versions.
 - `.env.example` lists script variables for `hpy happyview dev`. Copy it to `.env` and each `KEY=value` line is available to scripts as `ctx.env.KEY`. A deployed instance takes script variables from its own settings or environment instead.
 - `.gitignore` keeps `.env` and the local instance's `.happyview/` directory out of git.
 - `.luarc.json` points an editor at HappyView's Lua types. A project with JavaScript or TypeScript also gets a `tsconfig.json`, which does the same for those languages.
