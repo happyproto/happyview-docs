@@ -373,7 +373,7 @@ Only the space's creator, an operator with superadmin, or a caller presenting a 
 
 ## Listing spaces
 
-`com.atproto.space.listSpaces` returns spaces where the authenticated user is a member.
+`com.atproto.space.listSpaces` returns spaces where the authenticated user is a member, or, for an operator with superadmin, where the account named by `did` is.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -470,6 +470,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20' 
 
 | Field    | Type    | Required | Default        | Description                  |
 | -------- | ------- | -------- | -------------- | ---------------------------- |
+| `did` | string (DID) | No | the caller | Lists another account's spaces. Only an operator with superadmin may name an account other than the caller; anyone else gets `403 Forbidden`. |
 | `spaceType` | string (NSID) | No | | Lists only spaces of this type. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 alpha; removal is not yet scheduled. |
 | `limit`  | integer | No       | 50             | Max spaces to return (1-100) |
 | `cursor` | string  | No       |                | Pagination cursor            |

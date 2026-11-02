@@ -229,7 +229,7 @@ curl -X POST http://127.0.0.1:3000/admin/lexicons \
 | `backfill`          | boolean | no       | Whether the first upload triggers a historical backfill (default `true`) |
 | `target_collection` | string  | no       | For query/procedure lexicons, the record collection they operate on   |
 | `action`            | string  | no       | For procedure lexicons, what the procedure does to its collection: `create`, `update`, `delete` or `upsert`. Left out, it's `upsert`, which decides by whether the input has a `uri`. Anything else is `400` |
-| `token_cost`        | integer | no       | Token cost for query/procedure endpoints (overrides instance default) |
+| `token_cost`        | integer | no       | Token cost for query/procedure endpoints. Overrides the instance default, which a new instance sets to 1 for queries, procedures and proxied calls |
 | `indexed`           | boolean | no       | For record lexicons, whether HappyView ingests the collection. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept. An unindexed lexicon starts no backfill |
 
 The `id` must be a valid [NSID](https://atproto.com/specs/nsid). It is the

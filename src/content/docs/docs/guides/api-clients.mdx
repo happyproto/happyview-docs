@@ -197,6 +197,8 @@ HappyView looks for the client key in this order:
 
 An authenticated request without a key is refused. A public query without one still runs, as an anonymous caller.
 
+A key counts as your app's only when the request proves it: a browser's `Origin` must match the client's `client_uri`, or, with no `Origin`, an `X-Client-Secret` must match one of the client's secrets. `allowed_origins` is not checked here; it applies to the `/oauth` calls. A request that proves neither is rate limited as anonymous ([API client identification](/docs/reference/authentication#xrpc-api-client-identification)).
+
 ### Unauthenticated queries
 
 For public queries that don't need a user identity:
@@ -373,6 +375,7 @@ import { HappyViewBrowserClient } from "@happyview/oauth-client-browser";
 
 const client = new HappyViewBrowserClient({
   instanceUrl: "https://happyview.example.com",
+  clientId: "https://app.example.com/oauth-client-metadata.json",
   clientKey: "hvc_your_client_key",
 });
 
@@ -395,7 +398,7 @@ if (result) {
 }
 ```
 
-For server-side Node.js apps, use the core [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) package with a confidential client. For type-safe XRPC calls, pair either client with [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent).
+For server-side Node.js apps, use [`@happyview/oauth-client-node`](/docs/reference/sdk/oauth-client-node). For type-safe XRPC calls, pair either client with [`@happyview/lex-agent`](/docs/reference/sdk/lex-agent).
 
 ### Manual DPoP flow
 

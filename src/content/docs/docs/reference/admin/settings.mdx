@@ -140,7 +140,7 @@ Stored values come first, sorted by key. They include every stored row, such as 
 | `feature.space_inspector_enabled` | `SPACE_INSPECTOR_ENABLED` | `false` | Turns the [space inspector](/docs/reference/admin/spaces#the-space-inspector) on when `"true"`, in any case. Pending on `alpha` in [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371) |
 | `space_inspector_max_grant_minutes` | `SPACE_INSPECTOR_MAX_GRANT_MINUTES` | `60` | The longest an access grant can last, from `5` to `525600`. Pending on `alpha` in [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) |
 | `script_instruction_limit` | `SCRIPT_INSTRUCTION_LIMIT` | `1000000` | Instruction budget for a script run. `PUT` refuses a value outside 1000 to 1000000000 with `400 Bad Request` |
-| `script_wall_clock_seconds` | `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Wall-clock limit for a request's script run, in seconds. `PUT` refuses a value outside 1 to 300 with `400 Bad Request` |
+| `script_wall_clock_seconds` | `SCRIPT_WALL_CLOCK_SECONDS` | `10` | Wall-clock limit for a query, procedure, record or label script run, in seconds. Jobs have none. `PUT` refuses a value outside 1 to 300 with `400 Bad Request` |
 | `script_metrics_enabled` | `SCRIPT_METRICS_ENABLED` | `true` | Record per-script run metrics for [`/admin/metrics`](/docs/reference/admin/metrics). `PUT` refuses anything but `"true"` or `"false"` with `400 Bad Request` |
 
 ## Upsert a setting

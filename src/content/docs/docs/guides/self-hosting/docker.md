@@ -153,7 +153,7 @@ Whatever you use, `PUBLIC_URL` must match the resulting public URL exactly. To s
 
 ## 5. Log in
 
-Open `PUBLIC_URL` in a browser. The image serves the dashboard at the root, and a fresh instance opens its setup wizard. The first handle to authenticate becomes an operator with the [superadmin](/docs/guides/permissions#superadmin) privilege and every permission, so use the handle you want to run the instance.
+Open `PUBLIC_URL` in a browser. The image serves the dashboard at the root, and a fresh instance opens its setup wizard. Unless `SUPERADMIN_DID` is set, the first handle to authenticate becomes an operator with the [superadmin](/docs/guides/permissions#superadmin) privilege and every permission, so use the handle you want to run the instance. When it is set, only that DID gets the privilege.
 
 An instance ships with no interpreter, so [install one](/docs/reference/scripts/languages#install-an-interpreter) before saving a script. Then [deploy a project](/docs/getting-started/deploying) to it.
 

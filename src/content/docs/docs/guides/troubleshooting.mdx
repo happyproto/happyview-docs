@@ -103,6 +103,14 @@ settings (System > General), or the `SCRIPT_INSTRUCTION_LIMIT` /
 `SCRIPT_WALL_CLOCK_SECONDS` environment variables. The settings win over the
 environment.
 
+### A project script never runs
+
+**You see** an endpoint or record event behave as if it had no script, though the project has a file for it. `happyview check` reports no error.
+
+**Why.** HappyView decides what a file is from its path. A script under `src/lexicons/` is a handler only when a lexicon file with the same name sits beside it, such as `getHello.lua` next to `getHello.json`. A script with no such sibling, because of a typo or a moved file, is built as a module that other scripts can `require`, and nothing reports it. A record script named for an action, such as `post.create.lua`, with no record lexicon beside it is an error instead.
+
+**Fix.** Rename or move the script so its name, without the extension, matches its lexicon file's. [Project structure](/docs/getting-started/project-structure) has the rules.
+
 ## Plugins
 
 ### A plugin is refused for `api_version` "1"

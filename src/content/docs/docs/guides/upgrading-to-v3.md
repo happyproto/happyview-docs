@@ -24,7 +24,7 @@ This guide covers the operator-facing changes. The script contract itself (the r
 | `db`, `http`, `Record` and the rest built into the host | Library plugins, installed like any other |
 | Plugin manifests at `api_version` `"1"` | `api_version` `"2"`, declaring capabilities |
 | Plugins installed from a URL and checked against a `sha256` you supply | Installed from a registry of `software.release` records and verified by CID |
-| Script limits | An instruction limit, a request wall clock and a per-run memory ceiling |
+| Script limits | An instruction limit, a wall clock and a per-run memory ceiling |
 | `happyview_records` and `happyview_record_refs` are tables | Views over a compact format, compressed on SQLite |
 
 ## Before you start

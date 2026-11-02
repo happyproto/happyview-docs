@@ -144,7 +144,7 @@ Some script types carry more:
 - `collection` is the lexicon's target collection for a query or procedure, and the record's collection for a record event.
 - `params` is a procedure's query-string parameters. Its body is `input`.
 - `delegate_did` is the account the caller is delegated to write for, when there is one.
-- A query or procedure on a space-scoped request also carries `space`: `{ uri, id, did, authority_did, spaceType, skey }`.
+- `space`, shaped `{ uri, id, did, authority_did, spaceType, skey }`, is part of `ctx`'s declared type, but no request fills it yet, so a script always sees none.
 - `job` is `{ id, progress(data), should_stop(), wait(seconds) }`. `progress` saves a progress snapshot that the dashboard shows. `should_stop` returns `true` once the job is being cancelled or paused; checking it is up to the script. `wait` sleeps for up to 3600 seconds. In JavaScript and TypeScript `wait` returns a promise, so write `await ctx.job.wait(5)`.
 
 A field that doesn't apply is absent rather than set to an empty value. In JavaScript, `"method" in ctx` is `false` for a record event.
