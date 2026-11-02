@@ -14,6 +14,7 @@ This applies to any script that handles creates: a `record.create:<nsid>` script
 - **Backfills.** A crawl reads each account's existing records and sends every one through the record script as a create, whether HappyView has seen it before or not. A replay sends each archived event with its own action, so its creates arrive again too. Running a backfill again, or backfilling a collection that is already indexed, delivers those creates again.
 - **Retries.** A record script that fails is run again, up to 4 attempts in total. Anything the script did before it failed, such as an HTTP call or a write, happens again on the next attempt.
 - **Dead-letter retries.** Retrying a dead-lettered event from the dashboard runs the script for that event again.
+- **A busy database.** The script runs before HappyView stores the record. If storing it fails because the database can't be reached for a moment, such as a full connection pool or a dropped connection, HappyView delivers the record again once the database answers, and the script runs again. The instance doesn't restart for this. On an instance reading the network store, the records after it in the same batch are delivered again too, and a network store backfill that hits this fails and starts again from the beginning of the collection. This applies to update and delete scripts as much as to create scripts.
 
 ## Write create scripts to be idempotent
 

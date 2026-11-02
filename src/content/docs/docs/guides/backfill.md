@@ -134,6 +134,8 @@ When a collection has a record script, the **Record scripts** row counts the rec
 
 On an instance reading the network store, a backfill of a collection the store holds shows **Network store** as its source. It has no crawl phases, and **In the network store** shows how many records the store holds for the collection. **Backfill details** offers **Pause** and **Resume** but no **Cancel** on these backfills, because the store restarts a cancelled or failed one within about a minute.
 
+A network store backfill fails if the instance's database can't store one of its records, for example because its connection pool is full. The store then starts a new backfill of the collection, which begins again from the first record, so record scripts run again for every record the failed backfill had already reached. Write record scripts to be safe to run twice. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+
 ### Data retention
 
 Per-account detail data is retained after job completion for later diagnosis. A background task runs daily and deletes the detail rows of jobs that finished more than 28 days ago, along with any accounts a cancelled or failed job left queued. The 28 days are configurable via **System > General**, or the `BACKFILL_RETENTION_DAYS` environment variable. Set to `0` to keep data indefinitely.
