@@ -7,6 +7,10 @@ HappyView is published under the [MIT License](https://github.com/gamesgamesgame
 
 This page lists what the repository's files and manifests declare. It is not legal advice.
 
+:::note[Pending]
+[happyview#401](https://github.com/gamesgamesgamesgamesgames/happyview/pull/401) changes the copyright holder in every license file to HappyProto, LLC, adds the missing `LICENSE.md` to `@happyview/oauth-client-node`, and states that contributions are licensed under the terms of the file or package they change. This page describes the files as they are on `alpha` until it merges.
+:::
+
 ## Components that declare a license
 
 The Rust crates under `crates/` and the published SDK packages under `packages/` each declare a license in their manifest.

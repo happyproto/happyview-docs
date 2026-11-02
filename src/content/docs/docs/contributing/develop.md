@@ -52,7 +52,7 @@ Git then runs a subset of CI's checks before each commit and push:
 | `pre-commit` | `cargo fmt -- --check` and `cargo clippy -- -D warnings` over the library and binaries, then Prettier on the staged files under `web/` |
 | `pre-push` | `cargo clippy --all-targets -- -D warnings`, which also lints the test code |
 
-The Prettier step restages the files it formats. It leaves alone any file that is staged and also modified in the working tree, and it is skipped while `web/node_modules/.bin/prettier` is missing, so run `npm ci` in `web/` on the host. The development stack installs the dashboard's dependencies inside its container, which doesn't count. The two clippy runs build into `target/clippy`, so clippy and `cargo test` don't invalidate each other's build cache.
+The Prettier step restages the files it formats. It leaves alone any file that is staged and also modified in the working tree, and it is skipped while `web/node_modules/.bin/prettier` is missing, so run `npm ci` in `web/` on the host. The development stack installs the dashboard's dependencies in a container volume, which doesn't create the host's `web/node_modules`. The two clippy runs build into `target/clippy`, so clippy and `cargo test` don't invalidate each other's build cache.
 
 ## Run the development stack
 
@@ -163,10 +163,10 @@ cp ~/.cloudflared/<tunnel-id>.json .cloudflared/
 
 Then set `TUNNEL_HOSTNAME=happyview-dev.example.com` in `.env` and leave `CLOUDFLARE_TUNNEL_TOKEN` blank, since a token takes precedence.
 
-Git ignores everything in `.cloudflared/` except its `.gitignore`. The credentials file can run only that one tunnel, but treat it as a secret.
+Git ignores everything in `.cloudflared/` except its `.gitignore`. The credentials file runs only that one tunnel (see Cloudflare's [tunnel permissions](https://developers.cloudflare.com/tunnel/features/locally-managed-tunnels/tunnel-permissions/)), but treat it as a secret.
 
 :::caution[One tunnel per person]
-Two machines running the same tunnel both become its connectors, and Cloudflare splits requests between them. Everyone who works on HappyView needs their own tunnel and hostname, so don't share credentials files or tokens. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free certificate covers `*.example.com` but not `alice.dev.example.com`.
+Two machines running the same tunnel both become its [replicas](https://developers.cloudflare.com/tunnel/configuration/#replicas-and-high-availability), and Cloudflare sends each request to whichever one it picks, usually the closer. Everyone who works on HappyView needs their own tunnel and hostname, so don't share credentials files or tokens. On a shared domain, use a single-level subdomain such as `happyview-alice.example.com`: Cloudflare's free [Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/limitations/) certificate covers `*.example.com` but not `alice.dev.example.com`.
 :::
 
 #### Without a tunnel
@@ -180,7 +180,7 @@ docker compose up happyview web caddy
 The instance still waits 30 seconds for a tunnel URL, then uses `PUBLIC_URL` from `.env`. To skip the wait, comment out the `TUNNEL_URL_FILE` line on the `happyview` service in `docker-compose.yml`.
 
 :::caution[Use 127.0.0.1, not localhost]
-Without a tunnel, the instance is an atproto OAuth loopback client, which is registered with `127.0.0.1`. With `PUBLIC_URL=http://localhost:3000`, OAuth sign-in fails because the redirect URI doesn't match the loopback client ID.
+Without a tunnel, the instance signs users in as an atproto OAuth loopback client, whose redirect URI must use `127.0.0.1` under atproto's [localhost client rules](https://atproto.com/specs/oauth#localhost-client-development). With `PUBLIC_URL=http://localhost:3000`, OAuth sign-in fails.
 :::
 
 ### The other Compose files

@@ -3,7 +3,7 @@ title: "Release"
 description: "How CI turns a merge into a HappyView release: version numbers, binaries, container images and the SDK packages."
 ---
 
-HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha`, or a manual CI run with `server` selected, that changes the server or its build files and passes the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. Maintainers act only to [build native binaries by hand](#build-native-binaries-by-hand) or to rerun a failed dispatch. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
+HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files. A manual CI run with `server` selected also releases. Either must pass the release-gating checks. The release gets a version computed from its commit messages, a GitHub release, container images and native binaries. Maintainers act only to [build native binaries by hand](#build-native-binaries-by-hand) or to rerun a failed dispatch. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
 
 Each branch runs the workflow files it carries. Everything below the release lines describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
 
@@ -19,7 +19,7 @@ Each release branch is a release line.
 
 Every build is also tagged with its commit's short SHA. A prerelease never moves `<major>.<minor>`, `<major>` or `latest`.
 
-`main` is updated from `beta` (see [Choose the base branch](/docs/contributing/develop#choose-the-base-branch)). After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`, so the two don't diverge.
+`main` is updated from `beta` (see [Choose the base branch](/docs/contributing/develop#choose-the-base-branch)). After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`.
 
 ## How a version is chosen
 
@@ -27,7 +27,7 @@ Every build is also tagged with its commit's short SHA. A prerelease never moves
 
 The `release` job in `.github/workflows/ci.yml` runs semantic-release once these jobs have passed: `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability`. It also waits on the rest of the CI jobs, such as `coverage`, `audit` and the SDK tests, whose failures don't stop it. If any job it waits on was cancelled, it doesn't run, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
 
-semantic-release creates the tag (`v<version>`) and the GitHub release. semantic-release records which branch each tag was released on in a git note, and the job fetches the notes before it runs.
+semantic-release creates the tag (`v<version>`) and the GitHub release. semantic-release stores each tag's prerelease name (`beta` or `alpha`, and none for `main`) in a git note, and the job fetches the notes before it runs.
 
 `Cargo.toml` keeps version `0.1.0` in the repository. Each release build writes the tag's version into `Cargo.toml` and `Cargo.lock` first, with `scripts/stamp-version.sh`, so the binary reports the released version.
 
@@ -37,7 +37,7 @@ After `release` cuts a version, three things run from it.
 
 | Job | Publishes |
 | --- | --- |
-| `build` | A container image for `linux/amd64` and `linux/arm64`, pushed to `ghcr.io/gamesgamesgamesgamesgames/happyview` with the tags in [Release lines](#release-lines) |
+| `build` | A container image for `linux/amd64` and `linux/arm64`, pushed to `ghcr.io/gamesgamesgamesgamesgames/happyview` with the version, `<major>.<minor>`, `<major>` and short-SHA tags, the middle two for stable versions only |
 | `tag-latest` | Stable versions only: points `latest` at the finished multi-architecture image |
 | `dispatch-native-release` | Starts the `Release` workflow, `.github/workflows/release.yml`, for the new tag |
 
@@ -77,4 +77,4 @@ The three packages that depend on `@happyview/oauth-client` wait for its release
 
 ## Pull request builds
 
-Pull request builds aren't releases, and they publish nothing on a release channel. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and for a pull request into `alpha` it also skips a draft. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
+Pull request builds aren't releases, and they publish nothing on a release line. When a pull request changes the server, CI's `pr-build` job builds the Linux binaries and a container image for each architecture. It skips a pull request whose head branch is `beta` or `alpha`, and it also skips a draft pull request. The `PR images` workflow then pushes the image to `ghcr.io/gamesgamesgamesgamesgames/happyview:pr-<number>` and comments on the pull request with how to pull it. That workflow runs from the default branch and never runs the pull request's code, so it works for a pull request from a fork.
