@@ -19,7 +19,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `HOST` | `0.0.0.0` | Address to listen on. |
 | `PORT` | `3000` | Port to listen on. An unreadable value means `3000`. `happyview.toml`: `[dev] port`, under `dev` only. |
 | `BASE_PATH` | none | Serve under a path prefix, such as `/happyview`. A trailing `/` is trimmed; `/` alone means none. A value that doesn't start with `/` stops boot. |
-| `STATIC_DIR` | the built-in dashboard | Serve the dashboard from this directory instead. |
+| `STATIC_DIR` | the dashboard compiled into a release binary (the `embedded-dashboard` feature); `./web/out` otherwise | Serve the dashboard from this directory instead. |
 | `HAPPYVIEW_PROJECT` | none | A project directory to build and serve at boot. A directory that doesn't exist stops boot. |
 | `HAPPYVIEW_USER_AGENT` | `HappyView/<version> (+<PUBLIC_URL>)` | The `User-Agent` on outbound requests. |
 | `APP_NAME` | none | Your app's name, shown on OAuth consent screens and linked-repo pages. `happyview.toml`: `[instance] app_name`. Instance setting `app_name`. |

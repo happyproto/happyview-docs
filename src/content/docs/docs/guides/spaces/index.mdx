@@ -105,7 +105,7 @@ curl -X PUT http://127.0.0.1:3000/admin/settings/feature.spaces_enabled \
 </TabItem>
 </Tabs>
 
-While the setting is off, every space endpoint returns a `404` error with `FeatureDisabled` as the error code.
+While the setting is off, every space endpoint returns a `404` error with `FeatureDisabled` as the error code, and a script's `happyview.spaces` call fails with `SPACES_DISABLED`. Changing the setting needs the `settings:manage` permission. While no value is stored, the `FEATURE_SPACES_ENABLED` environment variable supplies it.
 
 ## Endpoints
 

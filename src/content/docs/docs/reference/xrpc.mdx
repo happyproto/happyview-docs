@@ -40,7 +40,7 @@ These endpoints are always available regardless of which lexicons are loaded.
 | --- | --- | --- | --- |
 | `dev.happyview.delegation.linkAccount` | procedure | `did` | `201` with `{ did }` |
 | `dev.happyview.delegation.unlinkAccount` | procedure | `did` | `200` with `{}` |
-| `dev.happyview.delegation.addDelegate` | procedure | `accountDid`, `userDid`, `role` | `201` with `{}` |
+| `dev.happyview.delegation.addDelegate` | procedure | `accountDid`, `userDid`, `role` (`admin` or `member`) | `201` with `{}` |
 | `dev.happyview.delegation.removeDelegate` | procedure | `accountDid`, `userDid` | `200` with `{}` |
 | `dev.happyview.delegation.listAccounts` | query | none | `200` with `{ accounts }` |
 | `dev.happyview.delegation.getAccount` | query | `did` | `200` with `{ did, role, linkedBy, createdAt }` |
