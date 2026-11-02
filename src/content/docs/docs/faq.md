@@ -5,7 +5,7 @@ description: "Answers to common questions about HappyView."
 
 ## What is HappyView?
 
-HappyView is an open-source AppView for atproto. Lexicons define the collections it indexes and the XRPC endpoints it serves, and scripts define what those endpoints do. See the [Introduction](/docs).
+HappyView is an open-source AppView for atproto. See the [Introduction](/docs).
 
 ## Can I host HappyView myself?
 
@@ -25,7 +25,7 @@ Not yet. Rust, Go and Zig are planned; see the [Roadmap](/docs/roadmap).
 
 ## What can a script do?
 
-[Scripts](/docs/getting-started/scripts) describes what a script receives and what it can load.
+See [Scripts](/docs/getting-started/scripts).
 
 ## Which database does HappyView use?
 

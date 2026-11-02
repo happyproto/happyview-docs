@@ -1,9 +1,9 @@
 ---
 title: "Quickstart"
-description: "The shortest path from installing hpy to a working endpoint."
+description: "Install hpy, create a project and call its starter query on a local instance."
 ---
 
-These steps install `hpy`, create a project and call its starter query on a local instance. [Installation](/docs/getting-started/installation) and [Running locally](/docs/getting-started/running-locally) explain each step in full.
+These steps install `hpy`, create a project and call its starter query on a local instance. [Installation](/docs/getting-started/installation) and [Running locally](/docs/getting-started/running-locally) explain the first three steps in more detail.
 
 You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account to develop with. Use a test account: the local instance writes to that account's real PDS. [pds.rip](https://pds.rip) issues sandbox accounts.
 

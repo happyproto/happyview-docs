@@ -3,7 +3,7 @@ title: "Roadmap"
 description: "What is planned for HappyView."
 ---
 
-This page lists work that is planned for HappyView but not yet available. The roadmap changes as work ships or plans move, and no item here has a release date.
+This page lists work that is planned for HappyView but not yet available. No item here has a release date.
 
 ## Planned
 
