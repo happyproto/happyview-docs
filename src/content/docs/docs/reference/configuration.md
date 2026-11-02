@@ -110,7 +110,7 @@ The three concurrency settings take effect on the next backfill. The backfill co
 | `JOB_WORKER_CONCURRENCY` | `1` | Background jobs run at once, up to `32`. |
 | `HOSTNAME` | `happyview` | Names this instance's job worker in each job's `claimed_by`. |
 | `HAPPYVIEW_INSTANCE_ID` | `HOSTNAME`, then the system's hostname, then a random id | Names this process in stored script metrics, trimmed and cut to 128 characters. Give each instance sharing a database its own. |
-| `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script Performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
+| `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
 | `FEATURE_SPACES_ENABLED` | `false` | `true` turns on [atproto spaces](/docs/guides/spaces), which are off by default. Instance setting `feature.spaces_enabled`. |
 
 An out-of-range script limit in the environment is logged and the default is used; one saved as an instance setting is refused when saved. See [Limits](/docs/reference/scripts/limits).
