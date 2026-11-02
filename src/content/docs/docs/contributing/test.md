@@ -24,7 +24,7 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 | `Spaces interop` workflow | No | [Interop tests](#interop-tests) |
 | `DCO` | Yes | [Sign off every commit](/docs/contributing/develop#sign-off-every-commit) |
 
-Some checks that aren't required to merge, such as `playwright` and `portability`, still gate a release. [The release gate](/docs/contributing/release#the-release-gate) lists it.
+Some checks that aren't required to merge still gate a release: on `alpha`, `e2e-tests-sqlite`, `lua-differential`, `playwright` and `portability` do. [The release gate](/docs/contributing/release#the-release-gate) lists the gate for each branch.
 
 CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
@@ -127,7 +127,7 @@ A few targets read a plugin fixture directly rather than through the prerequisit
 bash scripts/build-plugin-fixtures.sh
 ```
 
-A fresh worktree has no fixture artefacts until you do.
+A fresh worktree has no built fixtures until you do.
 
 In a worktree created inside the main checkout, such as under `.worktrees/`, the build can fail with "current package believes it's in a workspace when it's not". Cargo walks up from the fixture to the parent checkout's `Cargo.toml`, whose `workspace.exclude` may lack a fixture your branch added. Create the worktree outside the checkout, with `git worktree add ../my-branch -b my-branch`, or bring the parent checkout's `Cargo.toml` up to date with your branch.
 
@@ -166,7 +166,7 @@ TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test c
 
 ## Interop tests
 
-The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them on a pull request or push that changes the spaces code, the interop tests or their Compose files, against the PDS images pinned in `interop/images.env`. Each PDS has its own Compose file and ignored test targets:
+The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them, against the PDS images pinned in `interop/images.env`, on a pull request or a push to `main`, `beta` or `alpha` that changes the spaces code, the interop tests or their Compose files. It also tests each new upstream PDS image on its own, so a failure there can come from the upstream change rather than yours. Each PDS has its own Compose file and ignored test targets:
 
 | PDS | Compose file | Test target |
 | --- | --- | --- |
@@ -203,7 +203,15 @@ npm test
 NEXT_PUBLIC_BASE_PATH=/__HAPPYVIEW_BP__ npm run build
 ```
 
-The `frontend` job then builds the server's library tests with the `embedded-dashboard` feature and runs the `dashboard::` tests with `web/out` moved aside. Those tests then pass only if the dashboard is compiled into the binary rather than read from disk.
+The `frontend` job also checks that the release binary carries the dashboard. It builds the library tests with the `embedded-dashboard` feature, moves `web/out` aside, and runs the `dashboard::` tests, which pass only if the dashboard is compiled in. From the repository root, after the build above:
+
+```sh
+bin=$(cargo test --release --features embedded-dashboard --lib --no-run --message-format=json \
+  | jq -r 'select(.profile.test == true and .target.kind[0] == "lib") | .executable' | tail -1)
+mv web/out web/out.aside
+"$bin" dashboard::
+mv web/out.aside web/out
+```
 
 ## Browser tests
 
