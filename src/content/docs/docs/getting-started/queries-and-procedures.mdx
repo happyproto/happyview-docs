@@ -133,7 +133,7 @@ curl 'http://127.0.0.1:3000/xrpc/xyz.statusphere.listStatuses?limit=5'
 
 The response is `{"records": [ … ], "cursor": "…"}`. A response has a `cursor` only when there may be more.
 
-A query with no script answers only `?uri=<at-uri>`, and any other call gets a `501`; see [Method has no script](/docs/reference/xrpc#method-has-no-script). The next `hpy` release adds `hpy happyview scaffold`, which writes this script, and the procedure script below, beside each query or procedure lexicon that has none.
+A query with no script answers only `?uri=<at-uri>`, and any other call gets a `501`; see [Method has no script](/docs/reference/xrpc#method-has-no-script). `hpy happyview scaffold`, in hpy 1.0.0-alpha.27 and later on the alpha channel, writes this script, and the procedure script below, beside each query or procedure lexicon that has none. The beta channel gets it with its next release.
 
 ## A query with a script
 
