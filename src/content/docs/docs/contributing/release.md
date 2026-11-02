@@ -3,9 +3,9 @@ title: "Release"
 description: "How CI turns a merge into a HappyView release: version numbers, binaries, container images and the SDK packages."
 ---
 
-HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files, and a manual CI run with `server` selected. Either must pass the release gate: `alpha`'s is listed in [How a version is chosen](#how-a-version-is-chosen), and [beta and main](#on-beta-and-main) have a smaller one. The release gets a version computed from its commit messages, a GitHub release, container images and, except for some alpha versions, native binaries. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
+HappyView releases are cut by CI. CI releases a push to `main`, `beta` or `alpha` that changes the server or its build files, and a manual CI run with `server` selected. Both must pass the [release gate](#the-release-gate). The release gets a version computed from its commit messages, a GitHub release, container images and, except for some alpha versions, native binaries. The release notes are on the [changelog](/docs/changelog), which is generated from the GitHub releases.
 
-Each branch runs the workflow files it carries. From [How a version is chosen](#how-a-version-is-chosen) to [Pull request builds](#pull-request-builds), the page describes the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
+Each branch runs the workflow files it carries. The sections from [How a version is chosen](#how-a-version-is-chosen) to [Pull request builds](#pull-request-builds) describe the pipeline on `alpha`, the v3 line. [On beta and main](#on-beta-and-main) lists how the v2 branches differ.
 
 ## Release lines
 
@@ -19,13 +19,22 @@ Every build is also tagged with its commit's short SHA. A prerelease never moves
 
 `main` is updated from `beta` (see [Choose the base branch](/docs/contributing/develop#choose-the-base-branch)). After CI succeeds on `main`, the `Merge main to beta` workflow merges `main` back into `beta`.
 
+## The release gate
+
+The `release` job in `.github/workflows/ci.yml` cuts a version only when these jobs have passed:
+
+| Branch | Jobs that must pass |
+| --- | --- |
+| `alpha` | `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability` |
+| `beta` and `main` | `unit-tests`, `e2e-tests`, `frontend`, `playwright` and `lint` |
+
+On `alpha`, the job also waits on the rest of the CI jobs, such as `coverage`, `audit` and the SDK tests, whose failures don't stop it. If any job it waits on was cancelled, it doesn't run, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
+
 ## How a version is chosen
 
 [semantic-release](https://semantic-release.gitbook.io/) reads the commit messages since the branch's last release and picks the next version: `fix:` gives a patch, `feat:` a minor version, and a breaking change a major one. A push whose commits warrant no release cuts nothing. This is why commits follow [Conventional Commits](/docs/contributing/develop#use-conventional-commits).
 
-The `release` job in `.github/workflows/ci.yml` runs semantic-release once these jobs have passed: `unit-tests`, `e2e-tests`, `e2e-tests-sqlite`, `lua-differential`, `frontend`, `playwright`, `lint` and `portability`. It also waits on the rest of the CI jobs, such as `coverage`, `audit` and the SDK tests, whose failures don't stop it. The semantic-release version is pinned in `ci.yml`. If any job it waits on was cancelled, the job doesn't run, so a run whose tests a newer push cancelled can't cut a version. Once started, a release job is never cancelled.
-
-semantic-release creates the tag (`v<version>`) and the GitHub release. It records each tag's prerelease name (`beta` or `alpha`, and none for `main`) in a git note. The job fetches the notes before it runs, because without them the version counter would restart from the newest tag on `main`.
+The `release` job runs a semantic-release version pinned in `ci.yml`. semantic-release creates the tag (`v<version>`) and the GitHub release. It records each tag's prerelease name (`beta` or `alpha`, and none for `main`) in a git note. The job fetches the notes before it runs, because without them the version counter would restart from the newest tag on `main`.
 
 `Cargo.toml` keeps version `0.1.0` in the repository. Each release build writes the tag's version into `Cargo.toml` and `Cargo.lock` first, with `scripts/stamp-version.sh`, so the binary reports the released version.
 
@@ -43,7 +52,7 @@ The `Release` workflow builds the native binaries with [cargo-dist](https://axod
 
 ### Native binaries for alpha
 
-An alpha version gets native binaries at most once every 20 hours. When another alpha native build succeeded or is still running within that window, `dispatch-native-release` skips the build and writes the command that would run it to the job summary. The tag and the container images are published for every alpha version regardless. Beta and stable versions always get native binaries.
+An alpha version gets native binaries at most once every 20 hours. When another alpha native build, including one started by hand, succeeded or is still running within that window, `dispatch-native-release` skips the build and writes the command that would run it to the job summary. The tag and the container images are published for every alpha version regardless. Beta and stable versions always get native binaries.
 
 ### Build native binaries by hand
 
@@ -61,7 +70,7 @@ If `dispatch-native-release` itself failed after the tag was created, rerun that
 
 The five JavaScript SDK packages release from the same three branches, with versions of their own: `@happyview/oauth-client`, `@happyview/oauth-client-browser`, `@happyview/oauth-client-node`, `@happyview/lex-agent` and `@happyview/nsid`.
 
-A package releases when its `test-<package>` job passes on a push that changes its files, or on a manual CI run with that package selected. The same guard against cancelled jobs applies. `@happyview/oauth-client-browser`, `@happyview/oauth-client-node` and `@happyview/lex-agent` also release on changes to `packages/oauth-client/`, and `@happyview/nsid` on changes to the `happyview-nsid` crate. Each package runs semantic-release from its own directory and publishes to npm under the dist-tag `latest` from `main`, or the branch name from `beta` and `alpha`.
+A package releases when its `test-<package>` job passes on a push that changes its files, or on a manual CI run with that package selected. The release gate's guard against cancelled jobs applies to it too. `@happyview/oauth-client-browser`, `@happyview/oauth-client-node` and `@happyview/lex-agent` also release on changes to `packages/oauth-client/`, and `@happyview/nsid` on changes to the `happyview-nsid` crate. Each package runs semantic-release from its own directory and publishes to npm under the dist-tag `latest` from `main`, or the branch name from `beta` and `alpha`.
 
 The three packages that depend on `@happyview/oauth-client` wait for its release when it changed. Before they publish, `scripts/resolve-workspace-deps.sh` replaces their `workspace:` ranges with the newest version of each dependency published under the branch's dist-tag. When that dist-tag has no version, it tries each earlier branch's dist-tag in turn: from `alpha`, that is `beta` and then `latest`.
 
@@ -73,6 +82,9 @@ Pull request builds aren't releases, and they publish nothing on a release line.
 
 `beta` and `main` carry the workflow of the v2 line. Its differences from the pipeline above:
 
-- `release` waits on `unit-tests`, `e2e-tests`, `frontend`, `playwright` and `lint`. It has no guard against cancelled jobs, doesn't fetch the git notes first, and runs whichever semantic-release version `npx` resolves.
-- The `build` job attaches two native binaries to the GitHub release, `happyview-linux-amd64` and `happyview-linux-arm64`. There is no `Release` workflow, no cargo-dist build and no `scripts/stamp-version.sh`.
+- The server's release runs on changes to fewer paths: changes under `scripts/` and `.github/workflows/` don't trigger it.
+- `release` waits only on the five jobs in [The release gate](#the-release-gate). It has no guard against cancelled jobs, doesn't fetch the git notes first, and runs whichever semantic-release version `npx` resolves.
+- The Dockerfile writes the version into `Cargo.toml` itself; there is no `scripts/stamp-version.sh`.
+- The `build` job attaches two native binaries to the GitHub release, `happyview-linux-amd64` and `happyview-linux-arm64`. There is no `Release` workflow and no cargo-dist build.
+- Each SDK package's release job waits only on its own test job, and on `release-oauth-client` for the three packages that depend on it. It has no guard against cancelled jobs.
 - CI runs in full on draft pull requests, and `pr-build` builds their images too.

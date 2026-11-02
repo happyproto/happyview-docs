@@ -24,7 +24,7 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 | `Spaces interop` workflow | No | [Interop tests](#interop-tests) |
 | `DCO` | Yes | [Sign off every commit](/docs/contributing/develop#sign-off-every-commit) |
 
-Some checks that aren't required to merge, such as `playwright` and `portability`, still gate a release. [How a version is chosen](/docs/contributing/release#how-a-version-is-chosen) lists the gate.
+Some checks that aren't required to merge, such as `playwright` and `portability`, still gate a release. [The release gate](/docs/contributing/release#the-release-gate) lists it.
 
 CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
