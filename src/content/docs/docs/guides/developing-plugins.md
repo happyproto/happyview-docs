@@ -13,21 +13,23 @@ Each plugin has a `manifest.json` that describes its metadata:
 
 ```json
 {
-  "id": "steam",
-  "name": "Steam",
+  "id": "example-search",
+  "name": "Example Search",
   "version": "1.0.0",
   "api_version": "2",
-  "description": "Import your Steam game library and playtime data.",
-  "icon_url": "https://example.com/steam-icon.png",
-  "auth_type": "openid",
-  "wasm_file": "steam.wasm",
+  "plugin_type": "library",
+  "namespace": "example.search",
+  "description": "Full-text search through an external search service.",
+  "icon_url": "https://example.com/search-icon.png",
+  "wasm_file": "example-search.wasm",
   "capabilities": ["secrets:read", "network:request"],
-  "allowed_hosts": ["api.steampowered.com"],
+  "allowed_hosts": ["search.example.com"],
+  "dependencies": [],
   "required_secrets": [
     {
-      "key": "PLUGIN_STEAM_API_KEY",
-      "name": "Steam Web API Key",
-      "description": "Get your API key at steamcommunity.com/dev/apikey"
+      "key": "PLUGIN_EXAMPLE_SEARCH_API_KEY",
+      "name": "Search API key",
+      "description": "The key the search service issued for this instance."
     }
   ]
 }
@@ -41,15 +43,18 @@ Each plugin has a `manifest.json` that describes its metadata:
 | `api_version`      | Plugin API version. Must be `"2"`; the loader refuses anything older (see [Plugin types](#plugin-types)) |
 | `description`      | Brief description shown during install                |
 | `icon_url`         | Optional icon URL                                     |
-| `auth_type`        | Authentication type: `oauth2` (the default), `openid`, or `api_key` |
+| `plugin_type`      | `auth` (the default), `library` or `interpreter`; see [Plugin types](#plugin-types) |
+| `namespace`        | A library's name in `require`; see [Library plugins](#library-plugins) |
 | `wasm_file`        | WASM binary filename (default: `plugin.wasm`)         |
 | `capabilities`     | Every capability the module's imports need; see [Capabilities](#capabilities) |
 | `allowed_hosts`    | The hosts `network:request` may reach                 |
 | `required_secrets` | Array of secrets the plugin needs                     |
+| `dependencies`     | Other libraries this library calls; see [Dependencies](#dependencies) |
+| `auth_type`        | An auth plugin's authentication type: `oauth2` (the default), `openid`, or `api_key` |
 
-Each `required_secrets` key is a full environment variable name: `PLUGIN_`, then the plugin's `id` upper-cased with every non-alphanumeric character replaced by `_`, then the secret's own name. A plugin with the id `auth-steam` asks for `PLUGIN_AUTH_STEAM_API_KEY`. The plugin itself reads the part after that prefix: `host_get_secret("API_KEY")`.
+Each `required_secrets` key is a full environment variable name: `PLUGIN_`, then the plugin's `id` upper-cased with every non-alphanumeric character replaced by `_`, then the secret's own name. A plugin with the id `example-search` asks for `PLUGIN_EXAMPLE_SEARCH_API_KEY`. The plugin itself reads the part after that prefix: `host_get_secret("API_KEY")`.
 
-The fields above are the `auth` baseline. [Plugin types](#plugin-types) below covers the fields a `library` or `interpreter` manifest adds: `plugin_type`, `dependencies`, `namespace`, and an interpreter's `language_id` and `extensions`. [Plugin SDK](/docs/reference/plugin-sdk#the-manifest) lists every field, `publisher` included.
+[Plugin types](#plugin-types) below covers what each type requires, including an interpreter's `language_id` and `extensions`. [Plugin SDK](/docs/reference/plugin-sdk#the-manifest) lists every field, `publisher` included.
 
 ## Plugin types
 

@@ -1,6 +1,6 @@
 ---
 title: "Changelog"
-description: "What changed in HappyView's permissioned spaces, release by release."
+description: "What changed in HappyView's atproto spaces, release by release."
 ---
 
 ## v2.17 beta and v3 alpha: Space moderation and access checks
@@ -251,7 +251,7 @@ Major restructuring to align with [atproto Proposal 0016](https://github.com/blu
 
 _Released 2026-05-05_
 
-Initial release of Permissioned Spaces behind the `feature.spaces_enabled` experimental flag.
+Initial release of atproto spaces, off by default behind the `feature.spaces_enabled` experimental flag.
 
 ### Features
 

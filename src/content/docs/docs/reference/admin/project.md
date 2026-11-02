@@ -3,7 +3,7 @@ title: "Project"
 description: "Admin API endpoints for deploying a project bundle to an instance and reading which one it serves."
 ---
 
-Admin API endpoints for deploying a project: the `happyview.toml`, `src/` and compiled modules `hpy deploy` sends. A deploy is built by the same loader that builds `HAPPYVIEW_PROJECT` at boot, so a bundle that deploys is one that would boot. Both endpoints need `project:deploy`.
+Admin API endpoints for deploying a project: the `happyview.toml` and `src/` that `hpy deploy` sends. A deploy is built by the same loader that builds `HAPPYVIEW_PROJECT` at boot, so a bundle that deploys is one that would boot. Both endpoints need `project:deploy`.
 
 ```sh
 # All examples assume $TOKEN is an API key (hv_...)
@@ -26,7 +26,7 @@ The body is a tar.gz (`Content-Type: application/gzip`) of paths relative to the
 
 - `happyview.toml`
 - files under `src/`; tests are accepted and never served
-- `.happyview/build/<name>.wasm` for each `[modules.<name>]`
+- `.happyview/build/<name>.wasm`, reserved for compiled script modules, which are planned and not yet available
 
 Anything else, an absolute path, a backslash, a `..` component, a link, or a path given twice is refused with `422` and nothing is applied. So is a bundle that expands past 200 MiB or holds more than 10,000 entries. A body over 50 MiB is refused with `413`.
 
@@ -76,7 +76,7 @@ curl -X PUT "http://localhost:3000/admin/project" \
 | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `lexicons`         | NSID                                                                                                                 |
 | `scripts`          | Trigger id, for every kind of trigger                                                                                |
-| `modules`          | Project path for a shared source module (`src/lib/format.lua`), name for a compiled `[modules.<name>]` (`rank`)   |
+| `modules`          | Project path for a shared source module (`src/lib/format.lua`)   |
 | `network_lexicons` | NSID in `[network_lexicons] include`. Never `changed`; a removed one is no longer declared and stays as a dashboard row |
 | `labelers`         | DID in `[labels] subscribe`, on the same terms                                                                      |
 

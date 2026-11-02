@@ -93,7 +93,8 @@ interface Script {
   // the trigger rules have tightened. The script still runs and can be
   // edited, but it can't be recreated once deleted.
   recreatable: boolean;
-  // Present only for a compiled module's handler, which has no editable body.
+  // Present only for a compiled script module's handler, which has no
+  // editable body. Compiled script modules are planned and not yet available.
   module?: {
     module: string;
     path: string;

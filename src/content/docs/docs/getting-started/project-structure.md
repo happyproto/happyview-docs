@@ -74,7 +74,6 @@ backfill = false                # only for hpy happyview dev
 | `[labels]` | `subscribe`: labeler DIDs to subscribe to | Applied |
 | `[dev]` | `port`, `backfill` | Ignored, with a warning when set |
 | `[jetstream]` | `protocol`, `compression` | Ignored, with a warning when set |
-| `[modules."<name>"]` | A compiled Rust script module | Applied |
 
 An unknown key anywhere is an error, as is a `[lexicons."<NSID>"]` that names no lexicon in `src/lexicons/`.
 

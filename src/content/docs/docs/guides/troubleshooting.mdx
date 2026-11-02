@@ -116,8 +116,8 @@ environment.
 For a plugin that was already installed, startup logs an error with the same
 text, and the plugin isn't loaded. The log line starts `Failed to load plugin`,
 and how it continues depends on how the plugin was installed. **The instance still
-starts**, so anything that depended on the plugin (account linking through an
-auth plugin, say) stops working without any other error.
+starts**, so anything that depended on the plugin (a script that loads a library,
+say) stops working without any other error.
 
 **Why.** v3 loads only plugins whose manifest declares `api_version` `"2"` and
 lists its capabilities. It checks that list against what the plugin's module

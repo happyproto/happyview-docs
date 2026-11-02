@@ -145,9 +145,9 @@ auth plugins need an api_version: "2" manifest declaring capabilities
 
 There is no fallback for any plugin type, auth included. A v2-era manifest also has to declare its `capabilities`, and the loader cross-checks that declaration against the compiled module's import section. A plugin that imports something its manifest does not cover is refused before it runs.
 
-The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it (account linking through an auth plugin, say) stops working until you replace it. Check your boot log after the upgrade.
+The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it, such as a script that loads a library, stops working until you replace it. Check your boot log after the upgrade.
 
-The official auth plugins (Steam, Xbox, Microsoft and itch.io) are published in the registry alongside the interpreters and libraries, on the same `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
+The official plugins are published in the registry on the `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
 ## 5. Script limits now apply
 

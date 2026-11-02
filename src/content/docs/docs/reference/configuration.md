@@ -111,7 +111,7 @@ The three concurrency settings take effect on the next backfill. The backfill co
 | `HOSTNAME` | `happyview` | Names this instance's job worker in each job's `claimed_by`. |
 | `HAPPYVIEW_INSTANCE_ID` | `HOSTNAME`, then the system's hostname, then a random id | Names this process in stored script metrics, trimmed and cut to 128 characters. Give each instance sharing a database its own. |
 | `SCRIPT_METRICS_ENABLED` | `true` | `true` or `false`. Whether scripts' timings are recorded for the [**Script Performance**](/docs/reference/admin/metrics) page. Instance setting `script_metrics_enabled`. |
-| `FEATURE_SPACES_ENABLED` | `false` | `true` turns on [spaces](/docs/guides/spaces). Instance setting `feature.spaces_enabled`. |
+| `FEATURE_SPACES_ENABLED` | `false` | `true` turns on [atproto spaces](/docs/guides/spaces), which are off by default. Instance setting `feature.spaces_enabled`. |
 
 An out-of-range script limit in the environment is logged and the default is used; one saved as an instance setting is refused when saved. See [Limits](/docs/reference/scripts/limits).
 
@@ -208,8 +208,5 @@ A project's `happyview.toml`. Every table is optional, and an unknown key anywhe
 | `[lexicons."<NSID>"] token_cost` | integer | the cost set for the lexicon's type | How much of an API client's rate-limit budget one call to this endpoint uses. |
 | `[scripts."<trigger>"] description` | string | none | Shown with the script in the dashboard. |
 | `[scripts."<trigger>"] outbound_xrpcs` | list of strings | the methods found in the script's source | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
-| `[modules."<name>"] language` | string | required | `rust`. |
-| `[modules."<name>"] path` | path | required | The module's crate, relative to the project and inside it. |
-| `[modules."<name>"] capabilities` | list of capabilities | empty | What the module is granted. |
 
 A deploy ignores `[happyview]`, `[instance]`, `[interpreters]`, `[libraries]`, `[dev]` and `[jetstream]`; see [Deploying](/docs/getting-started/deploying).

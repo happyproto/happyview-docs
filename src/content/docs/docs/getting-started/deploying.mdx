@@ -60,7 +60,7 @@ hpy happyview deploy
 `hpy` shows the same preview, with each plugin's capabilities under its step, and asks you to confirm (`--yes` skips the question). Confirming accepts those capabilities for you. Then it:
 
 1. installs the interpreters and libraries your `happyview.lock` names, at exactly those versions;
-2. sends your project: `happyview.toml`, everything under `src/`, and each `[modules]` build;
+2. sends your project: `happyview.toml` and everything under `src/`;
 3. starts the backfills your lexicons ask for.
 
 The instance builds the project before it switches over. If the build fails, nothing changes: the project that was already there keeps serving, and the deploy prints the problems.
