@@ -293,6 +293,6 @@ Releases also ship these maintenance tools:
 
 | Binary | What it does |
 | --- | --- |
-| `happyview-codemod` | Rewrites v2 Lua scripts for v3. `--file <path> --kind <kind>`, `--stdin --kind <kind>`, or `--database-url <url> [--script <id>] [--apply] [--allow-markers]`, where `<kind>` is `procedure`, `query`, `record`, `label` or `job`. Exits `0` when clean, `1` on an error, `2` when a script has notes to finish by hand. See [Migrating scripts](/docs/guides/migrating-scripts). |
+| `happyview-codemod` | Rewrites v2 Lua scripts for v3. `--file <path> --kind <kind> [--collection <nsid>]`, `--stdin --kind <kind> [--collection <nsid>]`, or `--database-url <url> [--script <id>] [--apply] [--allow-markers]`, where `<kind>` is `procedure`, `query`, `record`, `label` or `job`. `--collection` is the NSID a v2 query or procedure's `target_collection` named; database mode looks it up per script. Exits `0` when clean, `1` on an error, `2` when a script has notes to finish by hand. See [Migrating scripts](/docs/guides/migrating-scripts). |
 | `migrate-space-cids [--dry-run]` | Repairs space record CIDs written by older releases. It runs automatically at startup; run it by hand only to inspect. Needs `DATABASE_URL` and `TOKEN_ENCRYPTION_KEY`. |
 | `migrate-lua-sql [--dry-run] [--report] [directory]` | Converts Postgres SQL strings in `.lua` files to SQLite syntax, for moving a v2 instance between databases. |

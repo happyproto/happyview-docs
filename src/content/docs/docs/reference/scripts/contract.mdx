@@ -134,14 +134,14 @@ Some script types carry more:
 
 | Script type | Extra `ctx` fields |
 | --- | --- |
-| Query | `method`, `collection` |
-| Procedure | `method`, `collection`, `params`, `delegate_did` |
+| Query | `method` |
+| Procedure | `method`, `params`, `delegate_did` |
 | Record event | `collection` |
 | Label | none |
 | Job | `job` |
 
 - `method` is the XRPC method NSID.
-- `collection` is the lexicon's target collection for a query or procedure, and the record's collection for a record event.
+- `collection` is the record's collection, for a record event only. A query or procedure names the collection it reads or writes in the script itself, such as `db.records("com.example.note")` or `record.create("com.example.note", input)`; see [Queries and procedures need a script](/docs/reference/lexicons#queries-and-procedures-need-a-script).
 - `params` is a procedure's query-string parameters. Its body is `input`.
 - `delegate_did` is the account the caller is delegated to write for, when there is one.
 - `space`, shaped `{ uri, id, did, authority_did, spaceType, skey }`, is part of `ctx`'s declared type, but no request fills it yet, so a script always sees none.

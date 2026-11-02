@@ -5,7 +5,7 @@ description: A procedure script that saves the request body as a record on the c
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-The simplest write: save the request body as a record and return its URI.
+Save the request body as a record and return its URI.
 
 **Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-record`.
 
@@ -16,7 +16,7 @@ The simplest write: save the request body as a record and return its URI.
 local record = require("happyview.record")
 
 function handle(input, ctx)
-  return record.create(ctx.collection, input)
+  return record.create("com.example.post", input)
 end
 ```
 
@@ -27,7 +27,7 @@ end
 import record from "happyview.record";
 
 export default function handle(input, ctx) {
-  return record.create(ctx.collection, input);
+  return record.create("com.example.post", input);
 }
 ```
 
@@ -37,8 +37,8 @@ export default function handle(input, ctx) {
 ```ts
 import record from "happyview.record";
 
-export default function handle(input: Record<string, unknown>, ctx: { collection: string }) {
-  return record.create(ctx.collection, input);
+export default function handle(input: Record<string, unknown>) {
+  return record.create("com.example.post", input);
 }
 ```
 
@@ -47,7 +47,7 @@ export default function handle(input: Record<string, unknown>, ctx: { collection
 
 ## How it works
 
-1. `record.create` writes the record to the caller's PDS in the lexicon's target collection.
+1. `record.create` writes the record to the caller's PDS, in the collection the script names.
 2. The write is also put into HappyView's index straight away, without waiting for the network to echo it.
 3. `create` returns `{ uri, cid }`, which becomes the response.
 

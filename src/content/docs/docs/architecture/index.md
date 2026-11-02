@@ -65,9 +65,11 @@ sequenceDiagram
         L->>D: happyview.db / happyview.sql
         D-->>L: Results
         L-->>X: Response
+    else No script, uri param
+        X->>D: Get the one record
+        D-->>X: Record
     else No script
-        X->>D: List target_collection,<br/>or get by uri
-        D-->>X: Results
+        X-->>C: 501 MethodNotImplemented
     end
     X-->>C: JSON response
 ```
@@ -95,7 +97,7 @@ sequenceDiagram
     H->>H: Resolve the<br/>script, if any
 ```
 
-A write then goes to the caller's PDS the same way with a script or without one, and `handle_procedure()` answers the app with the script's return value or the PDS's response.
+With a script, a write goes through `happyview.record` to the caller's PDS, and `handle_procedure()` answers the app with the script's return value. Without one, it answers `501` and writes nothing.
 
 ```mermaid
 sequenceDiagram
@@ -106,18 +108,14 @@ sequenceDiagram
     participant P as User PDS
     participant D as Record store
 
-    alt Script bound to the procedure
-        H->>L: Run in its interpreter
-        L->>S: happyview.record<br/>create, put or delete
-    else No script
-        H->>S: The lexicon's action
-    end
+    H->>L: Run in its interpreter
+    L->>S: happyview.record<br/>create, put or delete
     S->>P: createRecord, putRecord<br/>or deleteRecord
     P-->>S: PDS response
     S->>D: Write or delete<br/>the local copy
 ```
 
-Without a script, the lexicon's `action` picks the write. The default, `upsert`, puts when the input has a `uri` field and creates otherwise. The PDS session is DPoP for an app's user and OAuth for the dashboard.
+The PDS session is DPoP for an app's user and OAuth for the dashboard.
 
 ### Admin endpoints
 
@@ -288,8 +286,6 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `revision`          | integer     | Incremented on upsert                           |
 | `lexicon_json`      | text (JSON) | Raw lexicon definition                          |
 | `backfill`          | boolean     | Whether to backfill on upload                   |
-| `target_collection` | text        | For queries/procedures: which record collection |
-| `action`            | text        | For procedures: `create`, `update`, `delete` or `upsert` |
 | `source`            | text        | `manual` or `network`                           |
 | `authority_did`     | text        | For a network lexicon: its authority's DID      |
 | `last_fetched_at`   | timestamp | For a network lexicon: when it was last fetched |

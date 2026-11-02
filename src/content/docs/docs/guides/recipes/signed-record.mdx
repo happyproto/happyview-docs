@@ -25,7 +25,7 @@ function handle(input, ctx)
     body.signature = sig
   end
 
-  local ref = record.create(ctx.collection, body)
+  local ref = record.create("xyz.example.post", body)
   return { uri = ref.uri, cid = ref.cid, signature = body.signature }
 end
 ```
@@ -47,7 +47,7 @@ export default async function handle(input, ctx) {
     // No signature: the record is saved without one.
   }
 
-  const ref = await record.create(ctx.collection, body);
+  const ref = await record.create("xyz.example.post", body);
   return { uri: ref.uri, cid: ref.cid, signature: body.signature };
 }
 ```
@@ -60,7 +60,7 @@ import time from "internal.time";
 import record from "happyview.record";
 import atproto from "happyview.atproto";
 
-export default async function handle(input: { text: string }, ctx: { collection: string }) {
+export default async function handle(input: { text: string }) {
   const body: Record<string, unknown> = {
     text: input.text,
     createdAt: time.to_iso8601(time.now()),
@@ -72,7 +72,7 @@ export default async function handle(input: { text: string }, ctx: { collection:
     // No signature: the record is saved without one.
   }
 
-  const ref = await record.create(ctx.collection, body);
+  const ref = await record.create("xyz.example.post", body);
   return { uri: ref.uri, cid: ref.cid, signature: body.signature };
 }
 ```

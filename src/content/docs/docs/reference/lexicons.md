@@ -8,8 +8,8 @@ description: "How HappyView treats each kind of lexicon, where lexicons come fro
 | Type          | Effect                                                                                                                                   |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `record`      | Adds the collection to the Jetstream subscription filter and indexes records into the database. Supports [record scripts](/docs/getting-started/reacting-to-records) |
-| `query`       | Registers a `GET /xrpc/{nsid}` endpoint that queries indexed records                                                                     |
-| `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint that proxies writes to the user's PDS                                                           |
+| `query`       | Registers a `GET /xrpc/{nsid}` endpoint, served by its script                                                                            |
+| `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint, served by its script                                                                           |
 | `definitions` | Stored but does not generate routes or subscriptions                                                                                     |
 | `space`       | Defines a permissioned space type. Generates no routes                                                                                   |
 | `permission-set` | Generates no routes. HappyView reads it to expand `include:` OAuth scopes                                                             |
@@ -17,17 +17,21 @@ description: "How HappyView treats each kind of lexicon, where lexicons come fro
 
 A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint.
 
-## Target collection
+## Queries and procedures need a script
 
-Query and procedure lexicons don't store data themselves. They operate on records stored by a record lexicon. The `target_collection` field tells HappyView which record collection to read from or write to. Without it, a query or procedure with no script has no collection to work on.
+Query and procedure lexicons don't store data themselves, and they don't name a collection. The script attached to the method does the work, and it names the collection it reads or writes as a literal NSID:
 
-For example, a query lexicon `xyz.statusphere.listStatuses` would set `target_collection` to `xyz.statusphere.status` to read from that record collection.
+```lua
+local db = require("happyview.db")
 
-In a project, set it under `[lexicons."<NSID>"]` in `happyview.toml`. When uploading, the [admin API](/docs/reference/admin/lexicons#upload--upsert-a-lexicon) takes it as a field.
+function handle(input, ctx)
+  return db.records("xyz.statusphere.status"):limit(20):run()
+end
+```
 
-:::note
-The `target_collection` is available in scripts as `ctx.collection`, but it is not required if your endpoint has a script.
-:::
+`ctx.collection` is set only for record events, so a query or procedure script can't read its collection from `ctx`.
+
+A query with no script answers only `?uri=<at-uri>`, with that one indexed record as `{"record": {...}}`. Any other call to it, and every call to a procedure with no script, answers `501` with a `MethodNotImplemented` body naming the trigger to add a script for, such as `xrpc.query:xyz.statusphere.listStatuses`. See [Method has no script](/docs/reference/xrpc#method-has-no-script).
 
 ## Backfill flag
 
@@ -84,7 +88,7 @@ On every startup, HappyView re-fetches all network lexicons from their respectiv
 
 ## XRPC routing for unknown methods
 
-When a caller requests `/xrpc/{method}` and the instance has a lexicon for that NSID, the request is handled by the lexicon's script (or HappyView's default behavior if no script is attached). Otherwise the request falls to the XRPC proxy, which **System > XRPC Proxy** in the dashboard configures with two settings ([XRPC proxy](/docs/reference/admin/xrpc-proxy)):
+When a caller requests `/xrpc/{method}` and the instance has a lexicon for that NSID, the request is handled by the lexicon's script (or answers `501` if no script is attached; see [Queries and procedures need a script](#queries-and-procedures-need-a-script)). Otherwise the request falls to the XRPC proxy, which **System > XRPC Proxy** in the dashboard configures with two settings ([XRPC proxy](/docs/reference/admin/xrpc-proxy)):
 
 - **Mode** decides whether a method may be proxied at all: `open` (the default), `allowlist`, `blocklist` or `disabled`. A method the mode refuses gets `403` with `NSID not allowed by proxy policy`.
 - **Routing** decides where it goes: `authority` (the default) or `serviceproxy`, which forwards to the caller's own PDS as the caller.

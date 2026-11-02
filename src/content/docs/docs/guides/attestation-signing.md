@@ -55,7 +55,7 @@ function handle(input, ctx)
   local sig = atproto.sign(body)
   body.signatures = { sig }
 
-  local ref = record.create(ctx.collection, body)
+  local ref = record.create("com.example.post", body)
   return { uri = ref.uri, cid = ref.cid, signature = sig }
 end
 ```
