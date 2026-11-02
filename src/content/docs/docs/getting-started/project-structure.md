@@ -91,7 +91,7 @@ While you develop, scripts read `.env` as `ctx.env`, so keep API keys and other 
 
 ## `.happyview/`
 
-Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets, built modules and editor types. It's in `.gitignore`. Delete it to start your local instance over.
+Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets and editor types. It's in `.gitignore`. Delete it to start your local instance over.
 
 ## Next steps
 
