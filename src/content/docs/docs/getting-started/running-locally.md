@@ -1,97 +1,103 @@
 ---
 title: "Running locally"
-description: "Run your project on your own machine with hpy happyview dev, call its endpoint, and see each change without a restart."
+description: "hpy happyview dev: running a project as a local HappyView instance, what it reloads, where it keeps data, and its options."
 prerequisites:
   - /docs/getting-started/installation
 ---
 
-This page runs the project you created as a local instance, calls its endpoint, and changes it while it runs.
+`hpy happyview dev [options]` runs a project as a local HappyView instance. It runs from the project's root directory, the one that holds `happyview.toml`.
 
-## Start it
-
-Move into the project and start it:
+## Example
 
 ```sh
 cd my-app
 hpy happyview dev
 ```
 
-The first run takes longer. `hpy` downloads the HappyView version your project names into `~/.cache/hpy/`, checks it against its published checksum, and fetches the interpreters and libraries `happyview.lock` lists. Later runs reuse them.
-
-When it's ready, it prints where it's serving:
+When the instance is ready, `dev` prints its address and the dashboard's:
 
 ```text
 happyview dev: serving /home/you/my-app at http://127.0.0.1:3000
 dashboard: http://127.0.0.1:3000/dashboard/
 ```
 
-The local instance keeps its data in `.happyview/`: a SQLite database, the plugins it loaded, and secrets it generated on the first run. Nothing else is needed: no Docker, no database server.
-
-:::caution[Writes go to the real network]
-By default a local instance is part of the real atproto network. It reads records from Jetstream, and when your app writes a record through it, the record goes to that user's real PDS. Develop with a test account, not the one you use day to day. `dev` prints the same warning when it starts.
-:::
-
-## Call your endpoint
-
-The project's `src/lexicons/com/example/hello.json` is a query lexicon, so it answers at `/xrpc/com.example.hello`:
+The starter project's query lexicon, `src/lexicons/com/example/hello.json`, answers at `/xrpc/com.example.hello`:
 
 ```sh
 curl 'http://127.0.0.1:3000/xrpc/com.example.hello?name=Ada'
 ```
 
-```json
+```text
 {"message":"Hello, Ada!"}
 ```
 
-## Change it while it runs
+## Downloads
 
-Open `src/lexicons/com/example/hello.lua` (or `.js` or `.ts`, if you picked another language), change the greeting, and save. `dev` rebuilds the project and prints what changed:
+On the first run, `hpy` downloads the HappyView version the project names into `~/.cache/hpy/` and verifies it against its published checksum. It also fetches the interpreters and libraries listed in `happyview.lock`. Later runs reuse the downloads.
 
-```text
-built in 12 ms: …
-```
+## Data directory
 
-Call the endpoint again and the new version answers. You don't restart anything.
+The local instance stores its state in `.happyview/` in the project: a SQLite database, the plugins it loaded, and the secrets it generated on its first run. The project's `.gitignore` excludes it.
 
-If a change breaks the build, `dev` prints the problem with its file and line, and says `build failed; still serving the previous build`. Fix the file and save again.
+## Network
 
-What reloads on its own, and what needs a restart:
+By default the local instance is on the real atproto network. It reads records from Jetstream, and a record written through it goes to the user's real PDS.
 
-| You change | What happens |
+:::caution[Writes reach real accounts]
+Develop with a test account, not a personal one. [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days. `dev` prints the same warning when it starts.
+:::
+
+`hpy happyview dev --network local` runs the project against an atproto network on the local machine instead. Writes stay on that network. It requires Docker with Compose v2 and Deno 2.8 or later, on macOS or Linux. The instance is then at `https://happyview.atmosbox.internal`. `--reset` discards that network's accounts, records and database, and starts it again.
+
+## Reloading
+
+`dev` watches the project and applies changes as follows:
+
+| Changed | Effect |
 | --- | --- |
-| Anything under `src/` | Rebuilt on save |
-| `happyview.toml` | Reloaded on save. A few settings, such as the port, print `restart required to apply` instead |
-| `.env` | Read again on every script run, so the next request sees it |
-| Plugins, after `hpy happyview add` | Not noticed until you restart `dev` |
+| A file under `src/` | The project is rebuilt on save. |
+| `happyview.toml` | Reloaded on save. A setting read only at startup, such as the port, the database URL or `PUBLIC_URL`, prints `restart required to apply` instead. |
+| `.env` | Read on every script run. |
+| Plugins added with `hpy happyview add` | Take effect when `dev` is restarted. |
 
-## Open the dashboard
+A successful rebuild prints `built in <n> ms:` and what changed. A failed one prints each error with its file and line, then `build failed; still serving the previous build`.
 
-Open the `dashboard:` link `dev` printed and sign in with the account whose DID you gave `create` as the superadmin. You sign in through that account's own PDS, as you would to any atproto app.
+## Dashboard
 
-A person who signs in to an instance's dashboard to run it is an **operator**. What each operator may do is set by **permissions**, and your account has the **superadmin** privilege: every permission, on your local instance.
+The dashboard is at the `dashboard:` address `dev` prints. The project's superadmin is the account whose DID was given at [`create`](/docs/getting-started/installation#create-a-project). Sign-in goes through that account's PDS.
 
-While you develop, the dashboard is where you watch what your project does. **Data > Records** shows indexed records and **System > Event Logs** your scripts' log lines. **Data > Jobs** and **Data > Dead Letters** show background work and failed runs.
+A person who signs in to an instance's dashboard to manage it is an **operator**. **Permissions** set what each operator may do. The superadmin holds every permission.
 
-## Backfill is off locally
+These dashboard pages show a running project's activity:
 
-A local instance doesn't backfill: it indexes records as they arrive and doesn't fetch the ones written before it started. `create` writes this into `happyview.toml`:
+- **Data > Records**: indexed records.
+- **System > Event Logs**: scripts' log lines.
+- **Data > Jobs**: background jobs.
+- **Data > Dead Letters**: failed script runs.
+
+## Backfill
+
+A local instance does not backfill by default: it indexes records as they arrive, and does not fetch records written before it started. `create` writes this setting into `happyview.toml`:
 
 ```toml
 [dev]
 backfill = false
 ```
 
-Set it to `true` and restart `dev` to backfill while you develop. It applies only locally: a deployed instance backfills whatever its lexicons ask for. [Lexicons](/docs/getting-started/lexicons) shows how a lexicon asks for one.
+Set it to `true` and restart `dev` to backfill locally. The setting applies only to `dev`; a deployed instance backfills the collections its lexicons ask for. [Lexicons](/docs/getting-started/lexicons) shows how a lexicon asks for a backfill.
 
-## Without the real network
+## Options
 
-`hpy happyview dev --network local` runs your project against a whole atproto network on your machine instead, so nothing you do reaches real accounts. It needs Docker (with Compose v2) and Deno 2.8 or later, on macOS or Linux. Your instance is then at `https://happyview.atmosbox.internal`. `--reset` starts that network over with no data.
+| Option | Effect |
+| --- | --- |
+| `--network local` | Runs against a local atproto network. See [Network](#network). |
+| `--reset` | With `--network local`, discards the local network's accounts, records and database first. |
+| `--subnet <CIDR>` | With `--network local`, the private IPv4 network to create it on, when the one derived from the project's path is taken. The chosen subnet is kept until another is given. |
+| `--yes`, `-y` | Skips the confirmation `--network local` asks for. |
+| `--locked` | Fails instead of updating `happyview.lock` when it does not match `happyview.toml`. Intended for CI. |
 
-## Other flags
-
-- `--locked` fails instead of updating `happyview.lock` when it doesn't match `happyview.toml`. CI uses it.
-- `PORT=4000 hpy happyview dev`, or `port = 4000` under `[dev]` in `happyview.toml`, serves on another port. The environment variable wins.
+The instance serves on port 3000. To use another port, set the `PORT` environment variable or `port` under `[dev]` in `happyview.toml`. The environment variable takes precedence.
 
 ## Next steps
 
-- [Project structure](/docs/getting-started/project-structure): what every file in the project does.
+- [Project structure](/docs/getting-started/project-structure): every file in a project.

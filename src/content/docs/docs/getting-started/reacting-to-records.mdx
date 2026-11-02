@@ -10,9 +10,9 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 This page shows you how to run your own code each time a record in one of your collections changes, or a labeler applies a label to it.
 
-You'll add a record script to your project, watch it run, extend it to handle updates and deletes, and then add a label script. The examples use the `xyz.statusphere.status` collection. Use any record collection your project defines.
+This page adds a record script, shows its log output, extends it to handle updates and deletes, and then adds a label script. The examples use the `xyz.statusphere.status` collection. Use any record collection your project defines.
 
-You need a project made with `hpy happyview create`, running under `hpy happyview dev`. `hpy happyview dev` picks up each file when you save it, so you don't need to restart it.
+You need a project made with `hpy happyview create`, running under `hpy happyview dev`. `dev` rebuilds the project when a file is saved.
 
 ## Pick a collection
 
@@ -96,15 +96,15 @@ A script that returns nothing tells HappyView to skip the record, so it is never
 
 A file that breaks the layout fails the build, and `hpy happyview dev` prints why. For example, `status.create.lua` with no `status.json` next to it is an error. `hpy happyview check` runs the same build without serving the project.
 
-## See it run
+## Script output
 
 A record script runs for records that arrive from the network. It doesn't run for an XRPC request. By default, `hpy happyview dev` reads the real network, so a status posted from a Statusphere app reaches your script.
 
 To watch it, open your local dashboard and go to **System > Event Logs**. Set **Category** to **Script**. Each `log.info` call appears as a `script.log` event whose subject is the script's trigger, `record.create:xyz.statusphere.status`. `info`, `warn` and `error` lines are recorded here. `debug` lines aren't recorded as events.
 
-To see every script run as well as the lines your script logs, start `hpy happyview dev` with `VERBOSE_EVENT_LOGGING=true` in its environment. HappyView then logs a `script.executed` event for each run. Verbose logging writes a lot, so turn it off again when you're done. The **Verbose Event Logging** switch under **System > General** sets the same thing, and wins over the variable.
+To see every script run as well as the lines your script logs, start `hpy happyview dev` with `VERBOSE_EVENT_LOGGING=true` in its environment. HappyView then logs a `script.executed` event for each run. That is one event per run, so turn it off after testing. The **Verbose Event Logging** switch under **System > General** sets the same thing, and wins over the variable.
 
-If the script fails, HappyView tries it up to 4 times in all, then writes the event to **Data > Dead Letters**. The record is still indexed, so a broken script never stops indexing.
+If the script fails, HappyView tries it up to 4 times in all, then writes the event to **Data > Dead Letters**. The record is still indexed.
 
 To run the script on a record you choose, without waiting for the network, fire a record create at it from a test. See [Testing](/docs/getting-started/testing).
 
@@ -193,7 +193,7 @@ export default function handle(input: Event, ctx: RecordCtx) {
 To change what is stored instead, return a different object. It replaces the record in the index. The full table of return values is in [Script types and triggers](/docs/reference/scripts/types-and-triggers#record-scripts).
 
 :::caution[Record scripts run at least once]
-If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their record scripts run again. Write record scripts so that running one twice for the same record has the same result as running it once. A record script that only returns a modified record is already safe. A record script with side effects, such as creating a job, writing to another repository or sending a notification, should first check that it hasn't already acted on this record and version. The record's `uri` and `cid` identify both. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+If HappyView restarts, or the record source reconnects, while a batch of changes is being processed, the changes in that batch can be delivered again, and their record scripts run again. Write record scripts so that running one twice for the same record has the same result as running it once. A record script that only returns a modified record gives the same result when it runs twice. A record script with side effects, such as creating a job, writing to another repository or sending a notification, should first check that it hasn't already acted on this record and version. The record's `uri` and `cid` identify both. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 :::
 
 ## React to labels
@@ -222,7 +222,7 @@ A label script lives in `src/labels/`, named by the label's subject:
 
 `input` carries the label: `src` (the labeler's DID), `uri` (the subject), `val` (the label value), `neg` (`true` when the label is being removed), `cts` (when it was created) and, if it expires, `exp`.
 
-This script keeps only the label values you care about. Returning nothing drops a label. Returning an object merges its fields over the label, so `return input` keeps it unchanged.
+This script keeps only the label values it lists. Returning nothing drops a label. Returning an object merges its fields over the label, so `return input` keeps it unchanged.
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">

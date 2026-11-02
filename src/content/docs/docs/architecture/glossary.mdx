@@ -92,8 +92,8 @@ stops HappyView reading the registry.
 
 A registry install is checked by CID: HappyView fetches the plugin's manifest
 and module from the registry, refuses any bytes whose CID doesn't match, and
-fetches them again at every startup and reload. Updates only ever come from
-the publisher you installed from.
+fetches them again at every startup and reload. An update is offered only from
+the publisher the plugin was installed from.
 
 ### Channel
 
@@ -220,7 +220,9 @@ A schema document describing a record type, a query or a procedure. A
 
 ### NSID
 
-A lexicon's id, such as `xyz.statusphere.status`.
+Namespaced identifier: a reversed domain name followed by a name, such as
+`xyz.statusphere.status`. atproto uses NSIDs to name lexicons, record
+collections and XRPC methods.
 
 ### Project lexicon
 

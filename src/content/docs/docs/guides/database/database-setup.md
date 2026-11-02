@@ -7,7 +7,7 @@ HappyView supports two database backends: **SQLite** (default) and **PostgreSQL*
 
 ## SQLite (default)
 
-SQLite requires zero setup. HappyView creates the database file automatically on first startup.
+SQLite stores the database in one file, which HappyView creates on first startup.
 
 ```sh
 DATABASE_URL=sqlite://data/happyview.db?mode=rwc
@@ -19,11 +19,11 @@ The `?mode=rwc` parameter tells SQLite to create the file if it does not exist. 
 
 - Getting started or local development
 - Small to medium instances
-- One instance on one machine, where simplicity is preferred
+- One instance on one machine
 
 ## PostgreSQL (optional)
 
-For larger instances or when you need concurrent write scalability, use Postgres. Stacks in the HappyView repository run version 17.
+Use Postgres when many users write at the same time. Stacks in the HappyView repository run version 17.
 
 ```sh
 DATABASE_URL=postgres://happyview:happyview@localhost/happyview
@@ -41,7 +41,7 @@ HappyView runs migrations automatically on startup for both backends.
 
 - High write concurrency from many simultaneous users
 - You need Postgres-specific features (e.g., advanced JSON queries in scripts)
-- You already have a Postgres infrastructure
+- A Postgres server is already in operation
 
 ## Migrations at startup
 
@@ -49,7 +49,7 @@ HappyView applies any pending migrations every time it starts, before it serves 
 
 **SQLite** builds an index inside the migration's transaction, which holds the database's write lock. On a records table of several gigabytes, expect a boot that takes minutes rather than seconds, during which HappyView is not serving. Plan for free disk of roughly two to three times the size of the new index while it runs. The build sorts every row, spilling to temporary storage, and writes the index into the write-ahead log. The next checkpoint copies the log into the database file before truncating it. Let it finish: stopping the process rolls the migration back, and the next boot starts the build over.
 
-**Postgres** builds these indexes with `CREATE INDEX CONCURRENTLY`, which keeps reads and writes flowing while it builds but still has to scan the whole table. If a build fails partway, Postgres leaves an invalid index behind. HappyView drops it on the next boot and builds it again, so a restart is the fix.
+**Postgres** builds these indexes with `CREATE INDEX CONCURRENTLY`, which keeps reads and writes flowing while it builds but still has to scan the whole table. If a build fails partway, Postgres leaves an invalid index behind. HappyView drops it on the next boot and builds it again, so restarting HappyView recovers.
 
 **Multiple replicas on Postgres.** HappyView takes a database-wide lock while it migrates. A replica that starts while another holds it waits for that migration to finish, which takes as long as the slowest index build. When an upgrade carries a migration like this, roll it out to one replica first and start the rest once it is serving. Replicas still on an older release take the lock differently, and one that starts during a concurrent index build can deadlock with it. Postgres then aborts one side or the other, and that can be the upgraded replica's index build. That build leaves an invalid index, which HappyView drops and rebuilds from scratch on its next boot. An orchestrator that keeps restarting old replicas can therefore keep the build from ever finishing. While the first upgraded replica migrates, scale to that single replica, or at least keep replicas on the older release from starting, then bring the rest up once it is serving.
 
@@ -70,7 +70,7 @@ A synthetic set of a million records built from the same posts gave the same pro
 
 This section applies to a database coming from v2. A new v3 database starts in the compact format.
 
-**Take a backup before you upgrade. The only way back to the previous release is to restore that backup.** The upgrade drops the old tables once it has checked the copy. See [Backups](/docs/guides/self-hosting/production#backups).
+**Take a backup before you upgrade.** Restoring it is the only way to return to the previous release. The upgrade drops the old tables once it has checked the copy. See [Backups](/docs/guides/self-hosting/production#backups).
 
 Make sure there is enough free disk:
 
@@ -103,7 +103,7 @@ The upgrade runs once, after the migrations and before HappyView serves requests
 2. It compares every record and every ref with the copy: the body byte for byte, the CID, the rev and the timestamps, and the number of records in each collection. If anything differs, it drops nothing, discards the copy and stops with an error naming up to five differences. Fix those rows or restore the backup, then start again; the copy starts over.
 3. It replaces the old tables with the views and drops them, in the same transaction as the comparison. On SQLite it then returns the freed pages to the filesystem. The log reports `record store upgrade complete` with the number of records and refs.
 
-On an Apple M4 Max laptop, the 67,437-post set took 3 seconds on SQLite and 43 seconds on Postgres 17. The million-record set took 102 seconds on SQLite, 65 of them returning the freed pages, and 224 seconds on Postgres. Expect a slower disk to take longer.
+On an Apple M4 Max laptop, the 67,437-post set took 3 seconds on SQLite and 43 seconds on Postgres 17. The million-record set took 102 seconds on SQLite, 65 of them returning the freed pages, and 224 seconds on Postgres.
 
 A record whose `uri` is not `at://{did}/{collection}/{rkey}` stops the upgrade with an error naming it. Nothing is dropped. Fix or delete that row, then start again.
 

@@ -23,7 +23,7 @@ HappyView has two distinct authentication surfaces:
 
 An XRPC request identifies itself with a registered API client. The client key is HappyView's way of knowing which app is calling, and the rate-limit bucket a request proven to come from that app is charged to. An authenticated request without one returns `401 Unauthorized`: a DPoP request with `DPoP auth requires X-Client-Key header`, a dashboard session with `Missing client identification`. An anonymous query without one still runs, and every such request shares one `anonymous` rate-limit bucket.
 
-Register a client in the dashboard (**Access > API Clients**, then **Create API Client**) or via `POST /admin/api-clients`. You'll get back an `hvc_…` client key and, for a confidential client, an `hvs_…` client secret. A public client has no secret. **The secret is only shown once**, so capture it immediately.
+Register a client in the dashboard (**Access > API Clients**, then **Create API Client**) or via `POST /admin/api-clients`. The response contains an `hvc_…` client key and, for a confidential client, an `hvs_…` client secret. A public client has no secret. **The secret is shown only once.**
 
 HappyView resolves the client key from the first of:
 
@@ -39,7 +39,7 @@ The client key is public, so naming one doesn't prove the request comes from tha
 
 A request that names a key HappyView doesn't know, sends an `Origin` that doesn't match, sends a wrong secret, or sends neither isn't rejected. HappyView logs a warning and rate limits it as an anonymous request, so it is never charged to the named client's bucket.
 
-Don't share client secrets, and treat each one like a password.
+A client secret is a credential. Do not share it.
 
 ### Calling a query
 
@@ -188,7 +188,7 @@ curl 'https://happyview.example.com/xrpc/com.example.feed.getHot' \
 
 ### Authenticating users for procedures
 
-Queries that don't care who is calling need nothing more than the client key. Procedures, and queries whose scripts read the caller's DID, need a real atproto OAuth session.
+A query that does not use the caller's identity needs no user authentication. Procedures, and queries whose scripts read the caller's DID, need an atproto OAuth session.
 
 XRPC routes accept several auth methods, resolved in this order:
 
@@ -202,7 +202,7 @@ Bearer API keys (`hv_*`) are **not** accepted on XRPC endpoints. They are for ad
 
 Third-party apps authenticate users through the [DPoP key provisioning](#dpop-key-provisioning-for-third-party-apps) flow.
 
-The [JavaScript SDK](/docs/reference/sdk) handles this entire flow for you:
+The [JavaScript SDK](/docs/reference/sdk) implements this flow:
 
 ```typescript
 import { Client } from "@atproto/lex";
@@ -335,11 +335,11 @@ The admin API refuses every service auth JWT, with `403`.
 
 ### Admin access and the first user
 
-On a new instance, the `happyview_users` table is empty. The first authenticated request to any admin endpoint makes that person an operator with the superadmin privilege and every permission. This includes logging in to the dashboard: it makes admin API calls on your behalf, so the first person to log in becomes that operator.
+On a new instance, the `happyview_users` table is empty. The first authenticated request to any admin endpoint makes that person an operator with the superadmin privilege and every permission. This includes signing in to the dashboard, which makes admin API calls for the signed-in user, so the first user to sign in becomes that operator.
 
-Setting [`SUPERADMIN_DID`](/docs/reference/configuration#secrets-and-sign-in) turns this off. That DID is given the privilege at boot, and nobody else gets it by signing in first.
+When [`SUPERADMIN_DID`](/docs/reference/configuration#secrets-and-sign-in) is set, this does not happen: that DID is given the privilege at boot, and signing in first confers nothing.
 
-To add more operators after that, use `POST /admin/users` or the [dashboard](/docs/guides/dashboard). You can assign permissions individually or use a template (`viewer`, `maintainer`, `manager`, `full_access`). See [Users](/docs/reference/admin/users) for details.
+To add more operators after that, use `POST /admin/users` or the [dashboard](/docs/guides/dashboard). Permissions are assigned individually or from a template (`viewer`, `maintainer`, `manager`, `full_access`). See [Users](/docs/reference/admin/users) for details.
 
 ## Proxying procedures to the user's PDS
 
@@ -349,7 +349,7 @@ A request that only carries an `X-Client-Key` header, with no DPoP token, can ca
 
 ## DPoP key provisioning for third-party apps
 
-Third-party apps that want HappyView to make PDS writes on behalf of their users use the **DPoP key provisioning** flow. This avoids browser-based redirects through HappyView's domain, which can be blocked by Firefox's Bounce Tracker Protection.
+Third-party apps that want HappyView to make PDS writes on behalf of their users use the **DPoP key provisioning** flow. The flow uses no browser redirect through HappyView's domain, so browser bounce-tracking protections, such as Firefox's, do not affect it.
 
 For each device, the app gets a DPoP keypair from HappyView, uses that keypair during its own OAuth flow with the user's PDS, then registers the resulting tokens back with HappyView. Each device gets its own keypair and session, so a user can be signed in on multiple devices simultaneously. From that point on, XRPC requests authenticated with `Authorization: DPoP <access_token>` plus a `DPoP` proof header and `X-Client-Key` will have HappyView proxy writes using the stored session that matches the request's DPoP key.
 
@@ -390,7 +390,7 @@ sequenceDiagram
 ```
 
 :::tip
-The [JavaScript SDK](/docs/reference/sdk) handles this entire flow for you. The raw HTTP flow below is useful for understanding the protocol or building an app in another language.
+The [JavaScript SDK](/docs/reference/sdk) implements this flow. The HTTP flow below is for apps in other languages, and for reference.
 :::
 
 ### API clients: confidential vs public
@@ -641,7 +641,7 @@ Authorization: DPoP <access_token>
 DPoP: <proof_jwt>
 ```
 
-DPoP auth is accepted here from any client, confidential or public, as on `/xrpc/*` calls. A confidential client using DPoP doesn't have to fall back to its secret to log out.
+DPoP auth is accepted here from any client, confidential or public, as on `/xrpc/*` calls.
 
 Either way, HappyView revokes the session at the user's authorization server before deleting it, and returns `204 No Content`. Revocation is best effort: a PDS that is down can't make a logout fail.
 
