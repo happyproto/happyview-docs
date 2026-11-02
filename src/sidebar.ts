@@ -1,6 +1,6 @@
-// The v3 sidebar. Getting started is in learning order; every other group is
-// ordered for scanning. A page that isn't listed here builds, but is reachable
-// only by link, so add new pages here.
+// The v3 sidebar. Getting started and the tutorial are in learning order;
+// every other group is ordered for scanning. A page that isn't listed here
+// builds, but is reachable only by link, so add new pages here.
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
 
 type Sidebar = NonNullable<StarlightUserConfig['sidebar']>;
@@ -8,12 +8,17 @@ type Sidebar = NonNullable<StarlightUserConfig['sidebar']>;
 const d = (slug: string) => (slug ? `docs/${slug}` : 'docs');
 
 export const v3Sidebar: Sidebar = [
-  d(''),
   {
     label: 'Getting started',
     items: [
-      d('getting-started/how-happyview-fits-atproto'),
+      { label: 'Overview', slug: d('') },
       d('getting-started/installation'),
+      { label: 'Run your own instance', slug: d('guides/self-hosting/docker') },
+    ],
+  },
+  {
+    label: 'Tutorial: build an app',
+    items: [
       d('getting-started/running-locally'),
       d('getting-started/project-structure'),
       d('getting-started/lexicons'),
@@ -32,111 +37,82 @@ export const v3Sidebar: Sidebar = [
     items: [
       { label: 'Overview', slug: d('guides') },
       {
-        label: 'Data',
+        label: 'Build an app',
         collapsed: true,
         items: [
           d('guides/backfill'),
-          d('guides/record-providers'),
           d('guides/labelers'),
           d('guides/publishing-lexicons'),
           d('guides/linked-repos'),
           d('guides/attestation-signing'),
-          {
-            label: 'Spaces',
-            badge: { text: 'Experimental', variant: 'caution' },
-            collapsed: true,
-            items: [
-              d('guides/spaces'),
-              d('guides/spaces/managing-spaces'),
-              d('guides/spaces/members'),
-              d('guides/spaces/invites'),
-              d('guides/spaces/records'),
-              d('guides/spaces/credentials'),
-              d('guides/spaces/notifications'),
-              d('guides/spaces/changelog'),
-            ],
-          },
-        ],
-      },
-      {
-        label: 'Apps and access',
-        collapsed: true,
-        items: [
-          d('guides/api-clients'),
-          d('guides/api-keys'),
-          d('guides/permissions'),
-          d('guides/service-identity'),
-        ],
-      },
-      {
-        label: 'Scripts',
-        collapsed: true,
-        items: [
-          d('guides/migrating-scripts'),
           d('guides/type-generation'),
         ],
       },
       {
-        label: 'Recipes',
+        label: 'Use spaces',
+        badge: { text: 'Experimental', variant: 'caution' },
         collapsed: true,
         items: [
-          d('guides/recipes/get-record'),
-          d('guides/recipes/paginated-list'),
-          d('guides/recipes/list-or-fetch'),
-          d('guides/recipes/expanded-query'),
-          d('guides/recipes/create-record'),
-          d('guides/recipes/upsert-record'),
-          d('guides/recipes/update-or-delete'),
-          d('guides/recipes/batch-save'),
-          d('guides/recipes/complex-mutations'),
-          d('guides/recipes/cascading-delete'),
-          d('guides/recipes/sidecar-records'),
-          d('guides/recipes/signed-record'),
-          d('guides/recipes/signed-record-verify'),
-          d('guides/recipes/record-webhook'),
-          d('guides/recipes/job'),
-          d('guides/recipes/algolia-sync'),
-          d('guides/recipes/meilisearch-sync'),
+          d('guides/spaces'),
+          d('guides/spaces/managing-spaces'),
+          d('guides/spaces/members'),
+          d('guides/spaces/invites'),
+          d('guides/spaces/records'),
+          d('guides/spaces/credentials'),
+          d('guides/spaces/notifications'),
+          d('guides/spaces/changelog'),
         ],
       },
       {
-        label: 'Plugins',
+        label: 'Client apps',
+        collapsed: true,
+        items: [d('guides/api-clients')],
+      },
+      {
+        label: 'Run an instance',
+        collapsed: true,
+        items: [
+          {
+            label: 'Self-hosting',
+            collapsed: true,
+            items: [
+              d('guides/self-hosting/docker'),
+              d('guides/self-hosting/binary'),
+              d('guides/self-hosting/from-source'),
+              d('guides/self-hosting/production'),
+            ],
+          },
+          d('guides/configuration'),
+          d('guides/dashboard'),
+          {
+            label: 'Database',
+            collapsed: true,
+            items: [
+              d('guides/database/database-setup'),
+              d('guides/database/sqlite-to-postgres-migration'),
+              d('guides/database/postgres-to-sqlite-migration'),
+            ],
+          },
+          d('guides/permissions'),
+          d('guides/api-keys'),
+          d('guides/service-identity'),
+          d('guides/hardening'),
+          d('guides/event-logs'),
+          d('guides/telemetry'),
+          d('guides/record-providers'),
+        ],
+      },
+      {
+        label: 'Write plugins',
         collapsed: true,
         items: [d('guides/plugins'), d('guides/developing-plugins')],
       },
     ],
   },
   {
-    label: 'Operating',
+    label: 'Concepts',
     collapsed: true,
-    items: [
-      {
-        label: 'Self-hosting',
-        collapsed: true,
-        items: [
-          d('guides/self-hosting/docker'),
-          d('guides/self-hosting/binary'),
-          d('guides/self-hosting/from-source'),
-          d('guides/self-hosting/production'),
-        ],
-      },
-      d('guides/configuration'),
-      d('guides/dashboard'),
-      {
-        label: 'Database',
-        collapsed: true,
-        items: [
-          d('guides/database/database-setup'),
-          d('guides/database/sqlite-to-postgres-migration'),
-          d('guides/database/postgres-to-sqlite-migration'),
-        ],
-      },
-      d('guides/hardening'),
-      d('guides/event-logs'),
-      d('guides/telemetry'),
-      d('guides/troubleshooting'),
-      d('guides/upgrading-to-v3'),
-    ],
+    items: [d('getting-started/how-happyview-fits-atproto'), d('architecture/glossary')],
   },
   {
     label: 'Reference',
@@ -184,8 +160,38 @@ export const v3Sidebar: Sidebar = [
     ],
   },
   {
-    label: 'Architecture',
-    items: [{ label: 'Overview', slug: d('architecture') }, d('architecture/glossary')],
+    label: 'Examples',
+    collapsed: true,
+    items: [
+      d('guides/recipes/get-record'),
+      d('guides/recipes/paginated-list'),
+      d('guides/recipes/list-or-fetch'),
+      d('guides/recipes/expanded-query'),
+      d('guides/recipes/create-record'),
+      d('guides/recipes/upsert-record'),
+      d('guides/recipes/update-or-delete'),
+      d('guides/recipes/batch-save'),
+      d('guides/recipes/complex-mutations'),
+      d('guides/recipes/cascading-delete'),
+      d('guides/recipes/sidecar-records'),
+      d('guides/recipes/signed-record'),
+      d('guides/recipes/signed-record-verify'),
+      d('guides/recipes/record-webhook'),
+      d('guides/recipes/job'),
+      d('guides/recipes/algolia-sync'),
+      d('guides/recipes/meilisearch-sync'),
+    ],
+  },
+  d('guides/troubleshooting'),
+  {
+    label: 'Migration',
+    collapsed: true,
+    items: [d('guides/upgrading-to-v3'), d('guides/migrating-scripts')],
   },
   d('changelog'),
+  {
+    label: 'Contributing',
+    collapsed: true,
+    items: [{ label: 'Architecture', slug: d('architecture') }],
+  },
 ];

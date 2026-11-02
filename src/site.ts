@@ -6,8 +6,8 @@ export const repo = {
 
 export const nav = [
   { label: 'Docs', href: '/docs/' },
+  { label: 'Download', href: '/docs/getting-started/installation/' },
   { label: 'Blog', href: '/blog/' },
-  { label: 'Changelog', href: '/docs/changelog/' },
 ];
 
 export const footer = {

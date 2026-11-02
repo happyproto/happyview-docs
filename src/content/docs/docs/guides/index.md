@@ -3,11 +3,12 @@ title: Guides
 description: Task-by-task guides for building on HappyView and running it.
 ---
 
-Getting started walks through each part of HappyView once, in order. These guides go further into one task each.
+The tutorial walks through each part of HappyView once, in order. These guides go further into one task each.
 
-- **Data:** [backfill](/docs/guides/backfill), [record providers](/docs/guides/record-providers), [labelers](/docs/guides/labelers), [publishing lexicons](/docs/guides/publishing-lexicons), [linked repos](/docs/guides/linked-repos), [attestation signing](/docs/guides/attestation-signing) and [spaces](/docs/guides/spaces).
-- **Apps and access:** [API clients](/docs/guides/api-clients), [API keys](/docs/guides/api-keys), [permissions](/docs/guides/permissions) and [service identity](/docs/guides/service-identity).
-- **Scripts:** [Scripts](/docs/getting-started/scripts), [migrating v2 scripts](/docs/guides/migrating-scripts), [type generation](/docs/guides/type-generation) and the [recipes](/docs/guides/recipes/get-record).
-- **Plugins:** [installing plugins](/docs/guides/plugins) and [developing plugins](/docs/guides/developing-plugins).
+- **Build an app:** [backfill](/docs/guides/backfill), [labelers](/docs/guides/labelers), [publishing lexicons](/docs/guides/publishing-lexicons), [linked repos](/docs/guides/linked-repos), [attestation signing](/docs/guides/attestation-signing) and [type generation](/docs/guides/type-generation).
+- **Use spaces:** [atproto spaces](/docs/guides/spaces), from managing spaces to write notifications.
+- **Client apps:** [API clients](/docs/guides/api-clients).
+- **Run an instance:** [self-hosting](/docs/guides/self-hosting/docker), [configuration](/docs/guides/configuration), [the dashboard](/docs/guides/dashboard), [the database](/docs/guides/database/database-setup), [permissions](/docs/guides/permissions), [API keys](/docs/guides/api-keys), [service identity](/docs/guides/service-identity), [hardening](/docs/guides/hardening), [event logs](/docs/guides/event-logs), [telemetry](/docs/guides/telemetry) and [record providers](/docs/guides/record-providers).
+- **Write plugins:** [installing plugins](/docs/guides/plugins) and [developing plugins](/docs/guides/developing-plugins).
 
-Running an instance has its own section, Operating: [self-hosting](/docs/guides/self-hosting/docker), [configuration](/docs/guides/configuration), [the dashboard](/docs/guides/dashboard), [the database](/docs/guides/database/database-setup), [hardening](/docs/guides/hardening), [event logs](/docs/guides/event-logs), [telemetry](/docs/guides/telemetry), [troubleshooting](/docs/guides/troubleshooting) and [upgrading to v3](/docs/guides/upgrading-to-v3).
+Worked examples are under [Examples](/docs/guides/recipes/get-record). [Troubleshooting](/docs/guides/troubleshooting) and [migration](/docs/guides/upgrading-to-v3) have sections of their own.
