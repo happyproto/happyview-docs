@@ -108,7 +108,7 @@ The Lexicons page shows each lexicon's status in its **Published** column. **Des
 
 ## Auto-publish
 
-With auto-publish on, HappyView publishes any matching lexicon that is `unpublished`, `moved`, or `outdated`. A `withdrawn` lexicon is skipped. It runs after the instance starts, after you upload a lexicon, and after you create, change or delete a rule. A project deploy doesn't start a run, so a lexicon a deploy adds is published at the next of those, or by hand. There's no polling loop, so a failed publish is retried at the next of those, or when you publish by hand.
+With auto-publish on, HappyView publishes any matching lexicon that is `unpublished`, `moved`, or `outdated`. A `withdrawn` lexicon is skipped. It runs after the instance starts, after you upload a lexicon, after a project deploy, and after you create, change or delete a rule. There's no polling loop, so a failed publish is retried at the next of those, or when you publish by hand.
 
 Only one run happens at a time. A trigger that arrives mid-run doesn't start a second run: it marks the work pending and the running pass goes round once more, so a change made during a run isn't missed.
 
