@@ -5,7 +5,7 @@ description: "Admin API endpoints for listing, setting and deleting the script v
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Script variables are key/value pairs available to scripts as `ctx.env`.
+Script variables are key/value pairs available to scripts as `ctx.env`. Use them for secrets such as API tokens: values are encrypted at rest with `TOKEN_ENCRYPTION_KEY` and never returned by the API. On an instance without that key they're stored unencrypted, and the first boot with one encrypts them.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -54,7 +54,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/script-variables
 ```
 
-Requires `script-variables:read`. Returns the variables ordered by key. Values are never returned, only a masked `preview`: the value's first four characters followed by `****`, or only asterisks for a value of four characters or fewer.
+Requires `script-variables:read`. Returns the variables ordered by key. Values are never returned. `preview` is always `****`, whatever the value. `unreadable` is `true` for a value this instance's `TOKEN_ENCRYPTION_KEY` can't decrypt, usually because the key changed; scripts see such a variable as unset, and setting it again replaces it.
 
 **Response**: `200 OK`
 
@@ -62,7 +62,8 @@ Requires `script-variables:read`. Returns the variables ordered by key. Values a
 [
   {
     "key": "API_TOKEN",
-    "preview": "sk_l****",
+    "preview": "****",
+    "unreadable": false,
     "created_at": "2026-03-01T00:00:00Z",
     "updated_at": "2026-03-01T00:00:00Z"
   }

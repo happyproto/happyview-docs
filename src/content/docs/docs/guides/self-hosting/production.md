@@ -17,13 +17,13 @@ Never commit the secret to source control. Store it in your platform's secret ma
 
 ## Token encryption key
 
-Set `TOKEN_ENCRYPTION_KEY` to a base64-encoded 32-byte key. It encrypts stored OAuth tokens, DPoP keys and [plugin](/docs/guides/plugins) secrets at rest using AES-256-GCM:
+Set `TOKEN_ENCRYPTION_KEY` to a base64-encoded 32-byte key. It encrypts at rest, using AES-256-GCM, the OAuth sessions and tokens HappyView stores, DPoP keys, [plugin](/docs/guides/plugins) secrets, [script variables](/docs/reference/admin/script-variables) and the [attestation](/docs/guides/attestation-signing) signing key:
 
 ```sh
 openssl rand -base64 32
 ```
 
-Without a valid key, app sign-in, spaces and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Changing the key makes everything already encrypted unreadable.
+Without a valid key, app sign-in, spaces and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Sessions, script variables and the attestation key are stored unencrypted until a key is set; the first boot with one encrypts them. Changing the key makes everything already encrypted unreadable.
 
 ## TLS and `PUBLIC_URL`
 

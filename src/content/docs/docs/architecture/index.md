@@ -337,7 +337,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | Column         | Type        | Description                                  |
 | -------------- | ----------- | -------------------------------------------- |
 | `did`          | text (PK)   | User's atproto DID                       |
-| `session_data` | text        | Serialized OAuth session (managed by atrium) |
+| `session_data` | text        | Serialized OAuth session (managed by atrium), encrypted when `encrypted` is 1 |
+| `encrypted`    | integer     | 1 when `session_data` is encrypted with `TOKEN_ENCRYPTION_KEY` |
 | `signing_kid`  | text        | The client key that established the session  |
 | `created_at`   | timestamp |                                              |
 | `updated_at`   | timestamp |                                              |
@@ -347,7 +348,8 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | Column       | Type        | Description                                  |
 | ------------ | ----------- | -------------------------------------------- |
 | `state_key`  | text (PK)   | OAuth state parameter                        |
-| `state_data` | text        | Serialized state (managed by atrium)         |
+| `state_data` | text        | Serialized state (managed by atrium), encrypted when `encrypted` is 1 |
+| `encrypted`  | integer     | 1 when `state_data` is encrypted with `TOKEN_ENCRYPTION_KEY` |
 | `created_at` | timestamp |                                              |
 
 ### `instance_settings`
@@ -375,9 +377,19 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | Column       | Type        | Description                                  |
 | ------------ | ----------- | -------------------------------------------- |
 | `key`        | text (PK)   | Variable name                                |
-| `value`      | text        | Variable value                               |
+| `value`      | text        | Variable value, encrypted when `encrypted` is 1 |
+| `encrypted`  | integer     | 1 when `value` is encrypted with `TOKEN_ENCRYPTION_KEY` |
 | `created_at` | timestamp |                                              |
 | `updated_at` | timestamp |                                              |
+
+### `attestation_key`
+
+| Column        | Type      | Description                                            |
+| ------------- | --------- | ------------------------------------------------------ |
+| `id`          | integer (PK) | Always 1: one key per instance                      |
+| `private_key` | text      | The attestation signing key, encrypted when `encrypted` is 1 |
+| `encrypted`   | integer   | 1 when `private_key` is encrypted with `TOKEN_ENCRYPTION_KEY` |
+| `created_at`  | timestamp |                                                        |
 
 ### `spaces`
 

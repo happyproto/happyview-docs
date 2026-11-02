@@ -117,7 +117,6 @@ Returns the current service identity configuration, or `null` if no identity has
 | ---------------------- | ----------- | ------------------------------------------------- |
 | `mode`                 | string      | Identity mode (see below)                         |
 | `did`                  | string/null | The service DID                                   |
-| `signing_key_enc`      | string/null | Encrypted signing key (used by `did_web` and `did_plc`) |
 | `attached_account_did` | string/null | Linked account DID (present for `attach_account`) |
 | `setup_complete`       | boolean     | Whether identity setup has been completed         |
 | `created_at`           | string      | ISO 8601 timestamp                                |
@@ -222,6 +221,6 @@ curl -X PUT http://127.0.0.1:3000/admin/service-identity \
 | `rotation_key_enc`     | string | No       | Encrypted rotation key (for `did_plc`)                   |
 | `attached_account_did` | string | No       | Account DID to attach (for `attach_account`)             |
 
-`PUT` replaces the whole identity. Omitted fields are cleared, and `setup_complete` is reset to `false`. An unknown `mode` is `400 Bad Request`.
+`PUT` replaces the identity, and `setup_complete` is reset to `false`. Keys aren't returned by `GET`, so when `mode` stays the same an omitted `signing_key_enc` or `rotation_key_enc` keeps the stored key. Changing `mode` clears any key the request omits, as it clears every other omitted field. An unknown `mode` is `400 Bad Request`.
 
 **Response**: `204 No Content`

@@ -16,7 +16,7 @@ The repo DID is included in the signed data, so a signature for one user's recor
 
 ## Setup
 
-Attestation signing is enabled by default. HappyView generates a keypair on first startup and persists it to the `happyview_instance_settings` database table. No configuration is required.
+Attestation signing is enabled by default. HappyView generates a keypair on first startup and stores it in the `happyview_attestation_key` table, encrypted with `TOKEN_ENCRYPTION_KEY` when the instance has one. No configuration is required.
 
 To use an explicit key instead, set the `ATTESTATION_PRIVATE_KEY` environment variable:
 
@@ -33,10 +33,10 @@ A generated key takes the default `$type`, and a key ID derived from your `PUBLI
 HappyView checks for signing configuration in this order:
 
 1. **Environment variables:** if `ATTESTATION_PRIVATE_KEY` is set, it's used
-2. **Database:** if previously generated keys exist in `happyview_instance_settings`, they're loaded
+2. **Database:** if a previously generated key is stored, it's loaded. A key an earlier version kept in instance settings moves to `happyview_attestation_key` at boot, unchanged, so signatures it made still verify
 3. **Auto-generation:** a new key is generated and persisted to the database
 
-If key loading fails for any reason, signing is disabled and both `sign` and `verify_signature` raise `NO_SIGNER`.
+A stored key is never replaced: if it can't be read, for example because `TOKEN_ENCRYPTION_KEY` changed, no new key is generated. If key loading fails for any reason, signing is disabled and both `sign` and `verify_signature` raise `NO_SIGNER`.
 
 ## Using in scripts
 
