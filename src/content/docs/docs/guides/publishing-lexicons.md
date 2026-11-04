@@ -38,7 +38,7 @@ Each rule sends lexicons to one of two places.
 
 ### The instance's account
 
-Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **Attached account** mode (see [Service Identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
+Choose **Instance account** to publish into the account attached to your instance. This target only exists when the instance identity is in **Attached account** mode (see [Service identity](/docs/reference/admin/service-identity)). With `did:web`, `did:plc`, or an identity that isn't exposed, there's no repo to write to, and the target is shown as unavailable with that reason.
 
 Publishing uses the attached account's sign-in, which has to include permission to write schema records. Accounts attached during setup, or re-authenticated from **System > Service Identity**, are asked for it. If its session lacks that permission, or the account last signed in through the ordinary dashboard login, the target shows as unavailable and says to re-authenticate. Press **Re-authenticate** on the Service Identity page once and approve the request. If the session has expired, or the PDS refuses the write, publishing fails with a message asking you to do the same.
 
@@ -88,7 +88,7 @@ So with `*` pointing at the instance and `com.example1.*` pointing at repo A, a 
 
 ### If a linked repo is removed
 
-Deleting a linked repo doesn't delete the rules that used it, and those rules don't fall through to a broader one. Their lexicons show as **target unavailable** until you point the rule at something else. Publishing them somewhere you never chose would be worse than not publishing them.
+Deleting a linked repo doesn't delete the rules that used it, and those rules don't fall through to a broader one. Their lexicons show as **target unavailable** until you point the rule at something else.
 
 ## Status
 
@@ -114,7 +114,7 @@ Only one run happens at a time. A trigger that arrives mid-run doesn't start a s
 
 ## Unpublishing
 
-**Nothing ever unpublishes automatically.** Deleting a lexicon, deleting a rule, or pointing a rule somewhere else leaves published records where they are. A published schema is a public contract that other apps resolve, and removing one can break them.
+Nothing **ever** unpublishes automatically. Deleting a lexicon, deleting a rule, or pointing a rule somewhere else leaves published records where they are. A published schema is a public contract that other apps resolve, and removing one can break them.
 
 To remove a record, use **Unpublish**. A record whose lexicon you've since deleted is listed under **Published records without a lexicon** on the publishing page, with its own **Unpublish** button. Unpublishing deletes the record from the account it was published to, using whichever credential holds that DID: the attached account, or the linked repo bound to it. If nothing HappyView holds can act as that account any more, unpublishing is refused and names the DID.
 
@@ -122,7 +122,7 @@ Unpublishing also withdraws the lexicon from auto-publish: its status becomes `w
 
 ## Permissions
 
-Reading the publishing page needs `lexicons:read`. Creating, changing, or deleting rules, and publishing or unpublishing, needs `lexicons:publish`. Pointing a rule at a linked repo also needs `linked-repos:read`; without it, the page shows linked-repo destinations only as "A linked repo".
+Reading the publishing page needs `lexicons:read`. Creating, changing, or deleting rules, and publishing or unpublishing, needs `lexicons:publish`. Pointing a rule at a linked repo also needs `linked-repos:read`; without it, the page shows linked-repo targets only as "A linked repo".
 
 The **Manager** template includes `lexicons:publish`, but only operators created from it hold it. Other operators without superadmin don't get it automatically: grant it to them explicitly from **Access > Users**. An operator with superadmin can always publish.
 
@@ -130,5 +130,5 @@ The **Manager** template includes `lexicons:publish`, but only operators created
 
 - [Publishing admin API](/docs/reference/admin/lexicon-publishing): Drive all of this headlessly
 - [Lexicons](/docs/getting-started/lexicons): Uploading lexicons and how NSIDs resolve
-- [Linked Repos](/docs/guides/linked-repos): Granting access to another account's repo
+- [Linked repos](/docs/guides/linked-repos): Granting access to another account's repo
 - [Permissions](/docs/guides/permissions): The full permission list

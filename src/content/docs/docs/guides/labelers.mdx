@@ -5,7 +5,7 @@ description: Subscribe your instance to atproto labelers and use the labels they
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Labelers are external services that apply content labels to records. They operate out-of-band: labeler data does not appear in repos or flow through relays. HappyView can subscribe to labelers and store the labels they emit, which the admin dashboard shows on records and scripts can read.
+HappyView can subscribe to labelers and store the labels they emit, which the admin dashboard shows on records and scripts can read. Labelers are external services that apply content labels to records. They operate out-of-band: labeler data does not appear in repos or flow through relays.
 
 ## How labelers work
 
@@ -294,9 +294,9 @@ Labels are also available in the records API response and in scripts via `get_la
 
 ## Using labels in your app
 
-Labeler subscriptions give your app content moderation signals without building your own moderation system. A query script can exclude or down-rank flagged content: it checks labels with `get_labels` and filters results before returning them.
+A query script can exclude or down-rank flagged content: it checks labels with `get_labels` and filters results before returning them.
 
-You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers or one you operate yourself for domain-specific moderation, such as labeling game content by age rating.
+You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers and one you run yourself, for example to label game content by age rating.
 
 ## Permissions
 

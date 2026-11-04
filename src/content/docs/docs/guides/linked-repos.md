@@ -20,15 +20,15 @@ In the dashboard, go to **Access > Linked Repos** and choose **Link a repo** to 
 The **Handle or DID** is optional, but it decides who is allowed to complete the authorization:
 
 - If a handle or DID is set, the grant is **pinned**: that is the only account that can be connected.
-- If a handle or DID is **not set**, the grant is **open**. Whoever follows the invite gets to decide which account is linked.
+- If a handle or DID is not set, the grant is **open**. Whoever follows the invite gets to decide which account is linked.
 
-Set the identifier unless you have a reason not to, so that someone who gets hold of the link can't connect a different account.
+Set the identifier unless you have a reason not to, so that someone who gets hold of the invite link can't connect a different account.
 
 The **Reason** explains why you're asking for access. It's shown to whoever opens the invite link, who uses it to decide whether to complete the authorization.
 
 The **Scopes** are what the authorization asks for. Request only the ones your scripts need.
 
-Scopes are **immutable**. To change what a grant can do, delete it and create a new one.
+Scopes are immutable. To change what a grant can do, delete it and create a new one.
 
 ## Authorizing
 
@@ -38,15 +38,15 @@ If the grant names a handle or DID, **Authorize now** takes you straight to the 
 
 ### By invite link
 
-**Create link** mints an invite and shows its URL, with a button to copy it. On an existing grant, **Create a new invite link** in its detail panel mints one and copies it to your clipboard. Send the URL to whoever has credentials for the repo.
+**Create link** mints an invite and shows its URL, with a button to copy it. On an existing grant, **Create a new invite link** in its detail panel mints one and copies it to your clipboard. Send the invite link to whoever has credentials for the repo.
 
-The URL is shown **once** and can't be recovered. If you lose it, revoke the invite and mint another. The **Invite links** column counts each grant's outstanding invites, and the grant's detail panel lists them with their expiry. Revoke one there if you sent it to the wrong person. An invite expires after seven days unless the [admin API](/docs/reference/admin/linked-repos) set another lifetime.
+The URL is shown once and can't be recovered. If you lose it, revoke the invite and mint another. The **Invite links** column counts each grant's outstanding invites, and the grant's detail panel lists them with their expiry. Revoke one there if you sent it to the wrong person. An invite expires after seven days unless the [admin API](/docs/reference/admin/linked-repos) set another lifetime.
 
 An invite stays usable until it expires or a repo is linked, so someone who closes the tab at the consent screen can use the same link again. Once a repo is linked, every outstanding invite for that grant is cleared.
 
 ### What the recipient sees
 
-The recipient of an invite link **is not required** to be added to your HappyView instance, and they never see your dashboard. They get a page naming your instance, your stated reason, and the access being requested in plain language. It then asks for their handle, or for a pinned grant, confirms which account the link is for. After approving at their own PDS they land on a result page confirming what was linked and reminding them they can revoke it from their own account settings at any time.
+The recipient of an invite link doesn't need to be added to your HappyView instance, and they never see your dashboard. They get a page naming your instance, your stated reason, and the access being requested in plain language. It then asks for their handle, or for a pinned grant, confirms which account the link is for. After approving at their own PDS they land on a result page confirming what was linked and reminding them they can revoke it from their own account settings at any time.
 
 ## Grant status
 
@@ -60,7 +60,7 @@ A background worker refreshes each active grant's session periodically, so a rar
 
 ## Using a linked repo from a script
 
-`happyview.linked_repos` acts as the linked repo rather than the caller, so it works from every script context: procedures, queries, record scripts, label scripts, and job scripts.
+`happyview.linked_repos` acts as the linked repo, so it works from every script context: procedures, queries, record scripts, label scripts, and job scripts. For example, this script writes through the linked repo `did:plc:abc123`:
 
 ```lua
 local linked_repos = require("happyview.linked_repos")
@@ -77,7 +77,7 @@ function handle(input, ctx)
 end
 ```
 
-`create_record`, `put_record`, `delete_record` and `upload_blob` check scopes locally, before any network call. If a grant lacks the scope one needs, the call fails immediately with a message naming the grant and the missing scope, so you never have to work backwards from an opaque 403.
+`create_record`, `put_record`, `delete_record` and `upload_blob` check scopes locally, before any network call. If a grant lacks the scope one needs, the call fails immediately with a message naming the grant and the missing scope.
 
 Every method re-reads the grant from the database. If a grant is revoked or flips to `needs_reauth` while a long-running script is working, the next call it makes is refused.
 
@@ -95,7 +95,7 @@ Any script can use any linked repo. Scripts are already operator-authored code w
 | `linked-repos:create` | Create grants, start authorizations, mint and revoke invites |
 | `linked-repos:delete` | Delete a grant and its stored session                        |
 
-Revoking an invite uses `linked-repos:create` rather than `linked-repos:delete`, because minting and revoking are part of the same lifecycle: whoever can send a link should be able to delete it. `linked-repos:delete` is reserved for destroying a grant and the session behind it.
+Revoking an invite uses `linked-repos:create` rather than `linked-repos:delete`, because minting and revoking are part of the same lifecycle: whoever can send an invite link should be able to revoke it. `linked-repos:delete` is reserved for destroying a grant and the session behind it.
 
 ## Removing a linked repo
 

@@ -43,7 +43,7 @@ Account takedowns, deletions and account resyncs are applied as of when they hap
 
 The account sweep covers only the archive's newest hours because Jetstream compacts the rest. Compaction (every 4 hours by default) removes the creates and updates that a deleted account or an account resync supersedes, so the records sweep already skips them. Sweeping account events over the whole archive would download many gigabytes for little gain. HappyView asks the archive for its segment list (`listSegments`), finds the first segment that ends within `BACKFILL_REPLAY_MARKER_TAIL_HOURS` (12 by default, three compaction intervals) of the newest one, and starts the account sweep just before it. The job logs where it starts. If the archive doesn't list its segments, or the request fails, the job sweeps the whole archive instead. A resumed job keeps the start it chose.
 
-The 12-hour account sweep has a known cost. Compaction keeps the records of taken-down and suspended accounts. If an account was taken down or suspended before those 12 hours, its records are replayed and stay indexed. A reactivation from before then doesn't lift a takedown HappyView recorded earlier. Records HappyView held before the job, from an earlier crawl or from before a gap in the live stream, aren't removed by an account deletion or account resync from before then either. Set `BACKFILL_REPLAY_MARKER_TAIL_HOURS=0` to sweep account events over the whole archive. Do that for a self-hosted Jetstream with compaction turned off, where nothing is compacted away.
+The 12-hour account sweep has a known cost. Compaction keeps the records of taken-down and suspended accounts. If an account was taken down or suspended before those 12 hours, its records are replayed and stay indexed. A reactivation from before then doesn't lift a takedown HappyView recorded earlier. Records HappyView held before the job, from an earlier crawl or from before a gap in the live stream, aren't removed by an account deletion or account resync from before then either. If you run a self-hosted Jetstream with compaction turned off, set `BACKFILL_REPLAY_MARKER_TAIL_HOURS=0` to sweep account events over the whole archive, since nothing there is compacted away.
 
 Each record goes through the same checks as a crawled one: the record script runs, and the record's CID is checked against its body. A record that fails the check is skipped and logged.
 
@@ -90,7 +90,7 @@ Running and paused jobs can be cancelled via `POST /admin/backfill/{id}/cancel` 
 1. The endpoint sets the job status to `cancelling`.
 2. The worker checks for cancellation between relay pages, about every 10 DIDs during resolution, and after each account during fetching. When it detects the `cancelling` status, it stops work and sets the final status to `cancelled`.
 
-There may be a short delay between clicking **Cancel** and the job fully stopping, depending on what the worker is doing at that moment.
+The job stops at the worker's next check, so it keeps running briefly after you click **Cancel**.
 
 ## Resuming after restart
 

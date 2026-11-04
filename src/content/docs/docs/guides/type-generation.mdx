@@ -7,6 +7,8 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 `happyview types <root>` writes declaration files for the project at `<root>`, so your editor's own language server can complete and check what a script sees. That covers each `happyview.*` library, a script's input and return value from its lexicon, `ctx`, and records by NSID.
 
+Pass the project root, and optionally where to write and which interpreter to load:
+
 ```bash
 happyview types .                          # into .happyview/types/
 happyview types . --out ./types            # somewhere else
