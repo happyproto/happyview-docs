@@ -294,9 +294,9 @@ Labels are also available in the records API response and in scripts via `get_la
 
 ## Using labels in your app
 
-Labeler subscriptions give your app content moderation signals without building your own moderation system. A query script can exclude or down-rank flagged content: it checks labels with `get_labels` and filters results before returning them.
+A query script can exclude or down-rank flagged content: it checks labels with `get_labels` and filters results before returning them.
 
-You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers or one you operate yourself for domain-specific moderation, such as labeling game content by age rating.
+You can subscribe to any labeler that implements the atproto labeler spec, including community-run labelers and one you run yourself, for example to label game content by age rating.
 
 ## Permissions
 

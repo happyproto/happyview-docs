@@ -90,7 +90,7 @@ Running and paused jobs can be cancelled via `POST /admin/backfill/{id}/cancel` 
 1. The endpoint sets the job status to `cancelling`.
 2. The worker checks for cancellation between relay pages, about every 10 DIDs during resolution, and after each account during fetching. When it detects the `cancelling` status, it stops work and sets the final status to `cancelled`.
 
-There may be a short delay between clicking **Cancel** and the job fully stopping, depending on what the worker is doing at that moment.
+The job stops at the worker's next check, so it keeps running briefly after you click **Cancel**.
 
 ## Resuming after restart
 

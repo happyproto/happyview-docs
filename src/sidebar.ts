@@ -50,7 +50,7 @@ export const v3Sidebar: Sidebar = [
         ],
       },
       {
-        label: 'Use spaces',
+        label: 'Use atproto spaces',
         badge: { text: 'Experimental', variant: 'caution' },
         collapsed: true,
         items: [

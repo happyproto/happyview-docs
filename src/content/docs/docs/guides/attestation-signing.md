@@ -101,7 +101,7 @@ function handle(input, ctx)
 end
 ```
 
-`verify_signature` returns `false` only when it checked the signature and it didn't match. It **raises** `UNVERIFIABLE` when it couldn't check: signature bytes that aren't valid base64, a missing field, or a record that won't encode. Keep those apart. A script that treats "couldn't check" as `false` reports a fault in its own verification path as a forged record, which is a serious thing to tell a user about their own data.
+`verify_signature` returns `false` only when it checked the signature and it didn't match. It raises `UNVERIFIABLE` when it couldn't check: signature bytes that aren't valid base64, a missing field, or a record that won't encode. Keep those apart. A script that treats "couldn't check" as `false` reports a fault in its own verification path as a forged record.
 
 ### Checking availability
 
@@ -129,22 +129,19 @@ Signatures are stored as objects in the record's `signatures` array:
 `sign` exposes the instance's signing key to scripts. Treat it as a
 privileged capability:
 
-- **It signs exactly what you give it.** A signature only proves *"this HappyView
-  instance signed this content"*. It does **not** prove the content is authentic,
+- It signs exactly what you give it. A signature only proves *"this HappyView
+  instance signed this content"*. It doesn't prove the content is authentic,
   is present in anyone's repo, or was authored by any particular DID. Only sign
-  content you have already verified.
-- **It's available to any script with a caller**, including a record script
+  content you have already verified, for example by having the script confirm the
+  record's `did` and content against the source before it calls `sign`.
+- It's available to any script with a caller, including a record script
   triggered by an arbitrary network record, where the caller is the record's
   repo DID. Don't sign untrusted input (a network record, a request parameter)
   unless you intend the instance to vouch for it.
-- **Installing `happyview.atproto` grants `attest:sign`. Creating scripts requires
-  the `scripts:manage` permission, and deploying a project requires `project:deploy`.**
+- Installing `happyview.atproto` grants `attest:sign`. Creating scripts requires
+  the `scripts:manage` permission, and deploying a project requires `project:deploy`.
   The signing key is therefore only reachable by operators you have trusted with one
   of those permissions, so grant them accordingly, and review scripts that call `sign`.
-
-If you need signatures scoped to a specific verified subject, have the script
-verify the subject itself (e.g. confirm the record's `did` and content against the
-source) before calling `sign`.
 
 ## Next steps
 
