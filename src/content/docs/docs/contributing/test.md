@@ -3,7 +3,7 @@ title: "Test"
 description: "Run HappyView's test suites and CI checks locally, from unit tests to the browser tests."
 ---
 
-This page lists the checks CI runs on a HappyView pull request and the local commands that correspond to each one. Run them from the root of a checkout set up as in [Develop](/docs/contributing/develop). This page covers testing HappyView itself; to test an app built on HappyView, see [Testing](/docs/getting-started/testing).
+Run these checks from the root of a checkout set up as in [Develop](/docs/contributing/develop). To test an app built on HappyView instead, see [Testing](/docs/getting-started/testing).
 
 ## Checks and their local commands
 
@@ -166,7 +166,7 @@ TEST_DATABASE_URL=postgres://happyview:happyview@localhost:5433/happyview_test c
 
 ## Interop tests
 
-The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them against the PDS images pinned in `interop/images.env`. It runs on a pull request or a push to `main`, `beta` or `alpha` that changes the spaces code, the interop tests or their Compose files; the full path list is in the workflow's `on` block. It also tests each new upstream PDS image on its own, so a failure there can come from the upstream change rather than yours. Each PDS has its own Compose file and ignored test targets:
+The atproto spaces interop tests run HappyView against other PDS implementations. The `Spaces interop` workflow runs them against the PDS images pinned in `interop/images.env`. It runs on a pull request or a push to `main`, `beta` or `alpha` that changes the atproto spaces code, the interop tests or their Compose files; the full path list is in the workflow's `on` block. It also tests each new upstream PDS image on its own, so a failure there can come from the upstream change rather than yours. Each PDS has its own Compose file and ignored test targets:
 
 | PDS | Compose file | Test target |
 | --- | --- | --- |
@@ -227,8 +227,9 @@ cd web && npx playwright install chromium && npx playwright test
 ```
 
 :::caution[Two setup steps the run depends on]
-- **The interpreter.** The stack bind-mounts `tests/fixtures/lua-plugin`, which `fetch-lua-plugin.sh` fills. Without it Docker mounts an empty directory, every script save is refused, and `globalSetup` stops the run.
-- **A fresh volume.** `down -v` matters because the database init script runs only when the volume is new. On a reused volume the PDS and PLC containers crash-loop, and the first-run setup specs find setup already done.
+The stack bind-mounts `tests/fixtures/lua-plugin`, which `fetch-lua-plugin.sh` fills. Without it Docker mounts an empty directory, every script save is refused, and `globalSetup` stops the run.
+
+Run `down -v` first, because the database init script runs only when the volume is new. On a reused volume the PDS and PLC containers crash-loop, and the first-run setup specs find setup already done.
 :::
 
 ## Portability
