@@ -5,7 +5,7 @@ description: A procedure script that loads a record, applies several changes and
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Load an existing record, apply multiple transformations, and save it back.
+Load an existing record, apply several changes, and save it back.
 
 **Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
 
@@ -154,8 +154,10 @@ export default async function handle(input: Input) {
 
 ## How it works
 
-1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, which you can change in place. A missing `uri` or record returns a structured error. `UriRequired` and `RecordNotFound` must be declared under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400; an undeclared one is sent as a 200.
-2. Apply transformations directly on the body's fields:
+1. Load the existing record with `db.get`. The envelope's `record` field is the stored body, which you can change in place. If `uri` or the record is missing, return `UriRequired` or `RecordNotFound`.
+
+   Declare both under `defs.main.errors` in the lexicon, as in `"errors": [{ "name": "RecordNotFound" }]`, for the response to be a 400. An undeclared one is sent as a 200.
+2. Apply the changes directly on the body's fields:
    - **Increment a counter**: use `or 0` (Lua) or `?? 0` (JavaScript and TypeScript) for the first time, when the field is absent.
    - **Merge tags**: add each of `input.tags` that isn't already in `r.tags`, then trim the list to its last 10. In Lua, `r.tags` is created only when the request sends at least one tag, because an empty Lua table is written as a JSON object, not an array.
    - **Normalize a string**: trim whitespace with `string.gsub` (Lua) or `trim` (JavaScript and TypeScript).

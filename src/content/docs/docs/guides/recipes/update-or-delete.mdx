@@ -5,7 +5,7 @@ description: A procedure script that creates, updates or deletes a record depend
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-A single endpoint that handles create, update, and delete based on the input fields.
+A single procedure that creates, updates or deletes a record, depending on the `uri` and `delete` input fields.
 
 **Trigger:** `xrpc.procedure:<nsid>`. **Needs:** `happyview-db`, `happyview-record`.
 
@@ -412,7 +412,3 @@ curl -X POST http://127.0.0.1:3000/xrpc/xyz.statusphere.setRecord \
 
 </TabItem>
 </Tabs>
-
-## Use case
-
-This pattern puts create, update and delete behind one procedure, so your app needs fewer endpoints. The `uri` and `delete` fields in the input pick the action.

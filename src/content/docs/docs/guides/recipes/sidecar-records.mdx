@@ -225,12 +225,10 @@ The response includes URIs for both the post and its metadata:
 
 ## Use case
 
-Use sidecar records to associate related data across collections without embedding everything in a single record. Because they share an rkey, you can derive one URI from the other:
+Use sidecar records to keep a primary record small and store related data, such as metadata, reactions or settings, in another collection under the same rkey. Because they share an rkey, you can derive one URI from the other:
 
 ```
 at:// did:plc:abc /xyz.statusphere.post         /3abc123
 at:// did:plc:abc /xyz.statusphere.postMetadata /3abc123
                                                  ^^^^^^^ same rkey
 ```
-
-This is a common atproto pattern for keeping a primary record lean while storing auxiliary data (metadata, reactions, settings) in a companion collection.
