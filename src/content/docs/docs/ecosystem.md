@@ -1,9 +1,7 @@
 ---
 title: "Ecosystem"
-description: "Plugins, SDKs and tools that work with HappyView."
+description: "Plugins, JavaScript packages, Rust crates and tools for HappyView."
 ---
-
-This page lists the official plugins, packages and tools built for HappyView, with the page or repository that documents each one.
 
 ## Plugins
 
@@ -13,11 +11,9 @@ The official plugins are built in the [plugins repository](https://github.com/ha
 
 An interpreter plugin runs scripts in one language. [Languages](/docs/reference/scripts/languages) covers choosing and installing them.
 
-| Plugin | What it is |
-| --- | --- |
-| `happyview-lua` | Runs scripts in Lua 5.4. |
-| `happyview-javascript` | Runs scripts in JavaScript on the QuickJS-ng engine. |
-| `happyview-typescript` | Runs scripts in TypeScript, compiled with SWC and run on QuickJS-ng. |
+- `happyview-lua` runs scripts in Lua 5.4.
+- `happyview-javascript` runs scripts in JavaScript on the QuickJS-ng engine.
+- `happyview-typescript` runs scripts in TypeScript, compiled with SWC and run on QuickJS-ng.
 
 ### Libraries
 
@@ -63,6 +59,4 @@ These crates are in the `crates/` directory of the [HappyView repository](https:
 
 ## Tools
 
-| Tool | What it is | Docs |
-| --- | --- | --- |
-| `hpy` | HappyProto's CLI. It creates, runs, tests and deploys HappyView projects, and publishes plugins to the registry. | [CLI](/docs/reference/cli), [repository](https://github.com/happyproto/cli) |
+`hpy` is HappyProto's CLI. It creates, runs, tests and deploys HappyView projects, and publishes plugins to the registry. See [CLI](/docs/reference/cli) and its [repository](https://github.com/happyproto/cli).
