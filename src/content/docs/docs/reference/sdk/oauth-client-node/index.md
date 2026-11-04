@@ -274,7 +274,7 @@ Or from the session itself:
 await session.signOut();
 ```
 
-The stored session is always cleared, even if HappyView refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
+The stored session is always cleared, even if HappyView refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local session is cleared.
 
 To clear a session locally without contacting HappyView:
 

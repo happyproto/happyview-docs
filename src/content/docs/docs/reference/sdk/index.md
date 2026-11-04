@@ -15,15 +15,11 @@ HappyView provides JavaScript packages for building third-party apps that authen
 
 ## Choosing a package
 
-**Starting a new app?** Use `@happyview/lex-agent` with `@atproto/lex`. It gives you type-safe XRPC calls through a `Client` that routes requests to your HappyView instance with DPoP authentication.
-
-**Already using `@atproto/api`?** `HappyViewSession` works directly as a session manager for `@atproto/api`'s `Agent`: pass it to `new Agent(session)`. See [Using with @atproto/api](/docs/reference/sdk/oauth-client-browser#using-with-atprotoapi).
-
-**Already using `@atproto/oauth-client-browser`?** Switch to `@happyview/oauth-client-browser`. Its `HappyViewBrowserClient` has the same shape of API, and runs the atproto OAuth flow itself with HappyView's DPoP key provisioning and session registration added.
-
-**Building a server-side (Node.js) app?** Use `@happyview/oauth-client-node`. It handles handle resolution, DID resolution, PDS discovery, and the full OAuth flow server-side. Matches the API surface of `@atproto/oauth-client-node`.
-
-**Building something more custom?** Use `@happyview/oauth-client` directly and provide your own `StorageAdapter`.
+- For a new app, use `@happyview/lex-agent` with `@atproto/lex`. It gives you type-safe XRPC calls through a `Client` that routes requests to your HappyView instance with DPoP authentication.
+- If you already use `@atproto/api`, `HappyViewSession` works directly as a session manager for `@atproto/api`'s `Agent`: pass it to `new Agent(session)`. See [Using with @atproto/api](/docs/reference/sdk/oauth-client-browser#using-with-atprotoapi).
+- If you already use `@atproto/oauth-client-browser`, switch to `@happyview/oauth-client-browser`. Its `HappyViewBrowserClient` matches the API of `@atproto/oauth-client-browser`, and runs the atproto OAuth flow itself with HappyView's DPoP key provisioning and session registration added.
+- For a server-side (Node.js) app, use `@happyview/oauth-client-node`. It handles handle resolution, DID resolution, PDS discovery, and the full OAuth flow server-side, and matches the API of `@atproto/oauth-client-node`.
+- For anything more custom, use `@happyview/oauth-client` directly and provide your own `StorageAdapter`.
 
 ## How it works
 
@@ -32,7 +28,7 @@ Third-party apps authenticate using HappyView's [DPoP key provisioning](/docs/re
 1. The SDK requests a DPoP keypair from the HappyView instance.
 2. Your app runs a standard atproto OAuth flow with the user's PDS using that keypair.
 3. The SDK registers the resulting tokens with HappyView.
-4. All subsequent XRPC requests are authenticated with DPoP proofs. HappyView handles its own lexicons locally and passes any other method to its [XRPC proxy](/docs/reference/lexicons#xrpc-routing-for-unknown-methods), which forwards it to the user's PDS as the user only when the instance's proxy routing is `serviceproxy`.
+4. All subsequent XRPC requests are authenticated with DPoP proofs. HappyView handles its own lexicons locally and passes any other method to its [XRPC proxy](/docs/reference/lexicons#xrpc-routing-for-unknown-methods). The proxy forwards it to the user's PDS as the user only when the instance's proxy routing is `serviceproxy`.
 
 If your app is a confidential atproto OAuth client, step 2 also needs a signed `private_key_jwt` assertion for its PAR and token-exchange requests. `@happyview/oauth-client`'s `getClientAssertion()` mints one. See [Client assertions](/docs/reference/sdk/oauth-client#client-assertions).
 
