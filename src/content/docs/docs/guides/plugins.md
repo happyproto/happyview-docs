@@ -3,7 +3,7 @@ title: Plugins
 description: Install plugins from the registry, a URL, environment variables or the file system, and configure their secrets.
 ---
 
-Plugins are WebAssembly modules that add to what HappyView can do. Interpreters run scripts in one language, libraries are what a script loads with `require("happyview.*")`, and auth plugins link a user's account on another platform.
+Plugins are WebAssembly modules that HappyView loads. Interpreters run scripts in one language, and libraries are what a script loads with `require("happyview.*")`.
 
 The official plugins are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
