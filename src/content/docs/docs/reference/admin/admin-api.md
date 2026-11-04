@@ -78,7 +78,7 @@ AUTH="Authorization: Bearer $TOKEN"
 | [Records](/docs/reference/admin/records) | List, delete and reconcile indexed records |
 | [Project](/docs/reference/admin/project) | Deploy a project and read what's deployed |
 | [Linked repos](/docs/reference/admin/linked-repos) | Grant, invite and revoke access to repositories an instance can write to |
-| [Spaces](/docs/reference/admin/spaces) | Browse spaces for moderation, and read their contents under a time-limited access grant |
+| [Spaces](/docs/reference/admin/spaces) | Browse atproto spaces for moderation, and read their contents under a time-limited access grant |
 | [Instance settings](/docs/reference/admin/settings) | Configure app name, logo, policy URLs, and concurrency settings |
 | [XRPC proxy](/docs/reference/admin/xrpc-proxy) | Decide whether and where unknown XRPC methods are proxied |
 | [Telemetry](/docs/reference/admin/telemetry) | Telemetry consent, previews and sending |

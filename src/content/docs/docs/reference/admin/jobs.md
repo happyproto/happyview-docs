@@ -50,7 +50,7 @@ Returns a paginated list of jobs, newest first.
 }
 ```
 
-`cursor` is the last job's `created_at` when there are more jobs, and `null` otherwise. A `status` that names no status answers an empty list.
+`cursor` is the last job's `created_at` when there are more jobs, and `null` otherwise. A `status` that names no status returns an empty list.
 
 ## Get job
 
@@ -176,7 +176,7 @@ Returns the lines a job's script logged with `internal.logging`, oldest first. L
 }
 ```
 
-`cursor` is set when there are more lines. A job with no lines, or an id that names no job, answers an empty list.
+`cursor` is set when there are more lines. A job with no lines, or an id that names no job, returns an empty list.
 
 ## Job object
 

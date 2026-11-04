@@ -7,7 +7,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 API clients identify third-party apps that call HappyView's XRPC endpoints. A caller names its client with an `X-Client-Key` header or a `client_key` query param. The client key is HappyView's rate-limit bucket: an anonymous request with no key shares one `anonymous` bucket, and an authenticated request with no key gets `401 Unauthorized`.
 
-One API client represents your app as a whole. Create one client for your app and use the same client key across all instances. Users authenticate separately via OAuth: the client key identifies _your app_, not _who is using it_.
+Create one API client for your app and use its client key in every instance. The client key identifies the app. Users sign in separately via OAuth.
 
 Each client has an `hvc_`-prefixed client key. A confidential client also has one or more `hvs_`-prefixed client secrets ([Client secrets](#client-secrets)). A secret is returned only when it's created, and only its SHA-256 hash is stored. Server-to-server callers pass a secret as `X-Client-Secret`. Browser callers use the `Origin` header, which is matched against the client's `client_uri`. A request that matches neither is logged and handled as anonymous rather than rejected, and is not charged to the client's rate limit bucket. The same holds for a key HappyView doesn't know. A request made through the client's own session needs neither check. See [XRPC API client identification](/docs/reference/authentication#xrpc-api-client-identification) for the client-side view, and the [API keys guide](/docs/guides/api-keys) for how admin API keys differ from API clients.
 
@@ -777,11 +777,11 @@ curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e
 
 ## AT Protocol client authentication keys
 
-A client can delegate its AT Protocol OAuth signing key to HappyView, so HappyView authenticates to users' PDSes as a **confidential** client on its behalf. Confidential clients get far longer session lifetimes than public ones (the authorization server's policy: 2 years rather than 2 weeks on a conforming PDS).
+A client can delegate its AT Protocol OAuth signing key to HappyView, so HappyView authenticates to users' PDSes as a confidential client on its behalf. Confidential clients get far longer session lifetimes than public ones (the authorization server's policy: 2 years rather than 2 weeks on a conforming PDS).
 
 Delegating takes two steps: provision a key here, then publish the fields it returns in the client metadata document served at the client's Client ID URL. Until both are done the client stays public, which is the default and requires no action.
 
-Whether the client is *confidential* is not a flag HappyView sets. The authorization server concludes it by fetching the app's published document. These endpoints only provision the key and report what that document currently says.
+The authorization server decides whether the client is confidential by fetching the app's published document. HappyView has no setting for it. These endpoints provision the key and report what that document currently says.
 
 ### Provision the key
 
@@ -881,7 +881,7 @@ GET /admin/api-clients/{id}/auth-keys
 
 Requires `api-clients:view`. Every key the client holds, ordered `pending`, `current`, `retiring`, then `revoked`, each with a live `session_count` and an `activates_at` (when a pending key becomes current, otherwise `null`).
 
-Distinct from `GET .../auth-key`, which reports only the current key. An operator revoking a leaked key needs to see the **retiring** one and how many sessions revoking it will destroy. Revoked keys are listed so a revoke is visibly done.
+Unlike `GET .../auth-key`, which reports only the current key, this lists the retiring key and how many sessions revoking it would end, which you need when revoking a leaked key. Revoked keys stay in the list, so you can confirm a revoke took effect.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -971,7 +971,7 @@ Requires `api-clients:edit`. Re-fetches the client's published metadata and repo
 POST /admin/api-clients/{id}/auth-key/rotate
 ```
 
-Requires `api-clients:edit`. Mints a new key, staged the same way as the [instance key](/docs/reference/admin/oauth-keys#rotate-the-key). By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating again without `immediate` while a key is pending returns that pending key, and a client with no current key gets its new key as `current` at once. **Nothing is logged out**: a retiring key stays in the published JWKS and keeps signing refreshes for the sessions established with it.
+Requires `api-clients:edit`. Mints a new key, staged the same way as the [instance key](/docs/reference/admin/oauth-keys#rotate-the-key). By default it is published as `pending` and becomes `current` after 75 minutes, when the previous key becomes `retiring`. Send `{ "immediate": true }` to switch at once; authorization servers that cached the old key set may refuse the new key until their cache expires. Rotating again without `immediate` while a key is pending returns that pending key, and a client with no current key gets its new key as `current` at once. Rotation logs nobody out: a retiring key stays in the published JWKS and keeps signing refreshes for the sessions established with it.
 
 | Field       | Type    | Required | Description                                          |
 | ----------- | ------- | -------- | ---------------------------------------------------- |
@@ -996,7 +996,7 @@ DELETE /admin/api-clients/{id}/auth-key/{kid}
 
 Requires `api-clients:edit`. Removes the key from the published JWKS immediately and strands every session pinned to it, and those users must re-authenticate.
 
-This is the response to a **leaked or compromised key**, not routine cleanup. Rotation alone does not contain a leak: the rotated-out key stays published and valid, which is what keeps existing sessions working. A retiring key with no remaining sessions is revoked automatically.
+Use this when a key has leaked or been compromised. Rotation doesn't contain a leak: the rotated-out key stays published and valid, which is what keeps existing sessions working. A retiring key with no remaining sessions is revoked automatically.
 
 | Status | Meaning |
 | ------ | ------- |
@@ -1071,7 +1071,7 @@ curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e
 DELETE /admin/api-clients/{id}/auth-keys
 ```
 
-Requires `api-clients:edit`. Revokes **every** key this client holds and leaves its JWKS empty, un-delegating it completely. Unlike the per-key revoke above, this one does take the `current` key, because it removes the whole keyset.
+Requires `api-clients:edit`. Revokes every key this client holds and leaves its JWKS empty, un-delegating it completely. Unlike the per-key revoke above, this one does take the `current` key, because it removes the whole keyset.
 
 :::caution[Remove the published fields too, or the app breaks]
 This does not downgrade the app to a public client. If its published document still advertises `token_endpoint_auth_method: "private_key_jwt"`, `token_endpoint_auth_signing_alg` and this `jwks_uri`, an authorization server will fetch an empty key set and reject the client outright, and `POST /oauth/client-assertion` will return `400`. The app stays broken until those three fields are removed from its published metadata too, so coordinate both halves.
@@ -1141,7 +1141,7 @@ curl -X DELETE http://127.0.0.1:3000/admin/api-clients/7c9e6679-7425-40de-944b-e
 { "revoked": 2, "sessions_destroyed": 15 }
 ```
 
-### Respond to a leaked client key
+### Respond to a leaked authentication key
 
 1. Rotate with `POST .../auth-key/rotate` and `{ "immediate": true }`. The leaked key becomes `retiring`, a fresh key takes over, and the client keeps working.
 2. Call `GET .../auth-keys` and confirm the leaked key is `retiring`. Its `session_count` is how many sessions step 3 ends.

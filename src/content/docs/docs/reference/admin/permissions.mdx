@@ -54,7 +54,7 @@ AUTH="Authorization: Bearer $TOKEN"
 GET /admin/permissions
 ```
 
-Returns all available permission definitions and permission templates. When the Spaces feature flag is disabled, spaces-related permissions and template entries are excluded.
+Returns all available permission definitions and permission templates. atproto spaces are off by default. While the feature flag (`feature.spaces_enabled`) is disabled, the response excludes the `spaces:*` permissions and template entries.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
