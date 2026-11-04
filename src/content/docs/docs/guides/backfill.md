@@ -132,9 +132,15 @@ When a collection has a record script, the **Record scripts** row counts the rec
 
 ### Network store backfills
 
-On an instance reading the network store, a backfill of a collection the store holds shows **Network store** as its source. It has no crawl phases, and **In the network store** shows how many records the store holds for the collection. **Backfill details** offers **Pause** and **Resume** but no **Cancel** on these backfills, because the store restarts a cancelled or failed one within about a minute.
+On an instance reading the network store, a backfill of a collection the store holds shows **Network store** as its source. It has no crawl phases, and **In the network store** shows how many records the store holds for the collection. **Backfill details** offers **Pause** and **Resume** but no **Cancel** on these backfills, because the store restarts a cancelled or failed one, within about a minute unless it failed because the database keeps refusing its records (below).
 
-A network store backfill fails if the instance's database can't store one of its records, for example because its connection pool is full. The store then starts a new backfill of the collection, which begins again from the first record, so record scripts run again for every record the failed backfill had already reached. Write record scripts to be safe to run twice. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+If the instance's database can't store some of a network store backfill's records, for example because its connection pool is full, the backfill keeps running. It asks the database again after 1 second, then twice as long each time up to 30 seconds. Once the database answers, the backfill sends again only the records it couldn't store. A database that doesn't answer is waited for as long as it takes.
+
+Record scripts run before a record is stored, so a record that couldn't be stored has already run its script. It runs its script once more each time it is sent again, usually once. Every record that was stored the first time runs its script once. Pausing a backfill while it waits makes it read that page again when you resume it, so that page's stored records run their scripts again too.
+
+If the database answers but refuses the same records 5 times in a row, as a read-only or full database would, the backfill fails with "The Network store answers but keeps refusing this collection's records, so the backfill stopped." It starts again by itself 10 minutes later, and after twice as long for each such failure in a row, up to 6 hours. If it keeps failing, contact HappyProto.
+
+Write record scripts to be safe to run twice. See [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 
 ### Data retention
 
