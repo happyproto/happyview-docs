@@ -497,8 +497,8 @@ For public clients, omit `X-Client-Secret` and include the PKCE verifier in the 
 | `refresh_token` | string | no | From the PDS. |
 | `expires_at` | string (date-time) | no | When the access token expires. |
 | `scopes` | string | yes | Space-separated scopes the PDS granted. |
-| `pds_url` | string (URL) | no | The user's PDS. |
-| `issuer` | string (URL) | no | The authorization server. |
+| `pds_url` | string (URL) | no | Ignored. HappyView sends the session's requests to the PDS named in the user's DID document, the one it checked the access token with. |
+| `issuer` | string (URL) | no | The authorization server that issued the tokens. The user's PDS must list it in `/.well-known/oauth-protected-resource`, and its metadata must give the same `issuer`, or the registration answers `403`. Without it, the session can't be refreshed or revoked. |
 | `signing_kid` | string | no | The key that signed the token exchange's client assertion. Default: the key the provision's assertions used, else the client's current one. |
 
 Response: `201 Created`
