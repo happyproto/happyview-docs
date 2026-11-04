@@ -3,7 +3,7 @@ title: Developing plugins
 description: "Build a HappyView plugin: its manifest, the exports each plugin type provides, and the host functions it imports."
 ---
 
-HappyView plugins are WebAssembly modules, and this guide builds one. For installing and configuring plugins, see the [Plugins guide](/docs/guides/plugins). [Plugin SDK](/docs/reference/plugin-sdk) in the reference has every manifest field, capability, host function and limit, and how to publish to the registry.
+A HappyView plugin is a WebAssembly module with a `manifest.json`. For installing and configuring plugins, see the [Plugins guide](/docs/guides/plugins). [Plugin SDK](/docs/reference/plugin-sdk) in the reference has every manifest field, capability, host function and limit, and how to publish to the registry.
 
 The [plugins](https://github.com/happyproto/plugins) repository has worked examples of every plugin type.
 
@@ -43,7 +43,7 @@ Each plugin has a `manifest.json` that describes its metadata:
 | `api_version`      | Plugin API version. Must be `"2"`; the loader refuses anything older (see [Plugin types](#plugin-types)) |
 | `description`      | Brief description shown during install                |
 | `icon_url`         | Optional icon URL                                     |
-| `plugin_type`      | `auth` (the default), `library` or `interpreter`; see [Plugin types](#plugin-types) |
+| `plugin_type`      | `auth`, `library` or `interpreter`; see [Plugin types](#plugin-types) |
 | `namespace`        | A library's name in `require`; see [Library plugins](#library-plugins) |
 | `wasm_file`        | WASM binary filename (default: `plugin.wasm`)         |
 | `capabilities`     | Every capability the module's imports need; see [Capabilities](#capabilities) |
@@ -62,7 +62,7 @@ The manifest's `plugin_type` field decides what the host expects the plugin to e
 
 | Type | Description |
 | --- | --- |
-| `auth` (default) | An external-auth plugin: OAuth/OpenID/API-key login plus profile lookup. The [plugin exports](#plugin-exports) and [host functions](#host-functions) below are the `auth` contract. |
+| `auth` (default) | Links a user's account on another platform. See [Auth plugins](#auth-plugins). |
 | `library` | A plugin other plugins and scripts call into, via `host_call_library`, or by loading its namespace. See [Library plugins](#library-plugins) below. |
 | `interpreter` | It runs the scripts written in one language. See [Interpreter manifests](#interpreter-manifests) below. |
 
@@ -145,11 +145,13 @@ Keep a script-facing `load` text-only. Bytecode reaches the interpreter only fro
 
 #### Running test files
 
-`happyview test` hands each `*.test.<ext>` file to the interpreter that claims `<ext>`, as a run of kind `test`. The project-author side is in the [testing guide](/docs/getting-started/testing). This section is the interpreter's half: what a test file's run receives, the five imports it reaches HappyView through, and what each answers.
+`happyview test` hands each `*.test.<ext>` file to the interpreter that claims `<ext>`, as a run of kind `test`. The project-author side is in the [testing guide](/docs/getting-started/testing).
 
 An interpreter that runs test files declares `script:test` beside `script:host`. The imports below need it, and a module that imports any of them without declaring it is refused at load. A host that predates test runs has no such imports, so a plugin built against them loads only on a host that has them. The SDK wrappers are `host::test_trigger`, `host::test_mock`, `host::test_calls`, `host::test_pds_writes` and `host::test_report`, and the request and response types are in `happyview_plugin_sdk::wire`.
 
-**What `execute` receives.** A test file's `ExecuteInput` differs from a handler's in these fields:
+##### What `execute` receives
+
+A test file's `ExecuteInput` differs from a handler's in these fields:
 
 | Field | Value |
 | --- | --- |
@@ -166,7 +168,7 @@ Run the file, collect its tests, run them in order, and report each one through 
 
 An interpreter built on an SDK from before test runs cannot decode `kind: "test"` and answers `BAD_INPUT`. HappyView reports that as an interpreter that predates test runs, naming it.
 
-**The imports.** Each takes a JSON request and answers the usual `{"ok": ...}` or `{"error": {code, message, retryable}}` envelope. None of them traps.
+Each of the five test imports takes a JSON request and answers the usual `{"ok": ...}` or `{"error": {code, message, retryable}}` envelope. None of them traps.
 
 | Import | Request | `ok` |
 | --- | --- | --- |
@@ -180,7 +182,9 @@ An interpreter built on an SDK from before test runs cannot decode `kind: "test"
 
 `TestReport.status` is `pass`, `fail` or `skip`. `name` is the test's full name with its `describe` blocks joined by ` > `. `file` and `line` place a failing assertion, which may be in a module the test file required, and `message` says what failed. HappyView sets `path` to the file being run whatever you send, so `""` is fine.
 
-**What a trigger answers.** Every kind answers `{status, body}`. A handler that fails is not an import error: it shows in `status` and `body`.
+##### What a trigger answers
+
+Every kind answers `{status, body}`. A handler that fails is not an import error: it shows in `status` and `body`.
 
 | Kind | `status` | `body` |
 | --- | --- | --- |
@@ -191,7 +195,7 @@ An interpreter built on an SDK from before test runs cannot decode `kind: "test"
 
 **What clears and what persists.** Each test file gets its own database and its own record of calls, writes, mocks and reports. Within a file, `host_test_report` clears the recorded library calls and PDS writes, so each test starts with none. Mocks are not cleared: one lasts for the rest of the file, until the same namespace is mocked again, which replaces it and restarts its lists.
 
-**The mock format.** `responses` maps each method name to the answer for its calls:
+`responses` maps each method name to the answer for its calls:
 
 - A single value answers every call with that value.
 - A list answers one call per element, in order. A call after the last fails with `MOCK_EXHAUSTED`. To answer with a list, wrap it in another: `[[1, 2]]` answers `[1, 2]` once.
@@ -199,7 +203,7 @@ An interpreter built on an SDK from before test runs cannot decode `kind: "test"
 
 A mocked call never reaches the library, and is recorded for `host_test_calls` whether mocked or not. A namespace that is not mocked runs the real library.
 
-**Error codes.**
+##### Error codes
 
 | Code | Where | When |
 | --- | --- | --- |
@@ -258,47 +262,11 @@ A `library` plugin may declare other libraries it calls through `host_call_libra
 
 `version` is a semver requirement (`>=1.0.0`, `^1`, and so on); it defaults to `*` when omitted. The loader validates the whole dependency graph on every install and uninstall: a missing dependency, an installed version that doesn't satisfy the requirement, a dependency cycle, and a self-dependency are all rejected. Uninstalling a plugin that other libraries still depend on is refused too, unless the request passes `?force=true` (see [Remove a plugin](/docs/reference/admin/plugins#remove-a-plugin)) to cascade the removal.
 
-Only library plugins can declare dependencies. The loader rejects any `dependencies` entry on an `auth` plugin (the default when `plugin_type` is absent) or an `interpreter`.
-
-## API endpoints
-
-Apps reach an auth plugin through these public endpoints:
-
-| Endpoint                                | Description                                    |
-| --------------------------------------- | ---------------------------------------------- |
-| `GET /external-auth/providers`          | List available auth providers                  |
-| `GET /external-auth/accounts`           | List user's linked accounts                    |
-| `GET /external-auth/{plugin}/authorize` | Start OAuth flow                               |
-| `GET /external-auth/{plugin}/callback`  | OAuth callback handler                         |
-| `POST /external-auth/{plugin}/unlink`   | Unlink account                                 |
-| `POST /external-auth/{plugin}/connect`  | Connect with API key (for `api_key` auth type) |
-| `POST /external-auth/{plugin}/refresh`  | Refresh the caller's tokens if they have expired |
-
-`GET /external-auth/accounts` includes each link's `expires_at` (RFC 3339, or `null` for a token that never expires).
-
-`POST /external-auth/{plugin}/refresh` returns `{"refreshed": bool, "expires_at": string|null}`. Tokens are never returned. It answers `404` when the caller has no link to that plugin, and `502` when the plugin's `refresh_tokens` call fails. It answers `409` when the token has expired and the provider issued no refresh token, so the account must be relinked.
-
-The admin endpoints that install and manage plugins are in the [Plugins admin API](/docs/reference/admin/plugins).
-
-## Plugin exports
-
-An `auth` plugin must export these functions:
-
-| Export              | Signature                     | Description                  |
-| ------------------- | ----------------------------- | ---------------------------- |
-| `alloc`             | `(size: u32) -> u32`          | Allocate memory              |
-| `dealloc`           | `(ptr: u32, size: u32)`       | Deallocate memory            |
-| `plugin_info`       | `() -> i64`                   | Plugin metadata              |
-| `get_authorize_url` | `(ptr: u32, len: u32) -> i64` | Generate OAuth authorize URL |
-| `handle_callback`   | `(ptr: u32, len: u32) -> i64` | Handle OAuth callback        |
-| `refresh_tokens`    | `(ptr: u32, len: u32) -> i64` | Refresh expired tokens       |
-| `get_profile`       | `(ptr: u32, len: u32) -> i64` | Get external profile info    |
-
-The host calls `refresh_tokens` on demand, when a stored token is within 60 seconds of its `expires_at`. A token stored without an expiry is never refreshed. The response may omit `refresh_token`; the host then keeps the previous one.
+Only library plugins can declare dependencies. The loader rejects any `dependencies` entry on an `auth` plugin or an `interpreter`.
 
 ## Host functions
 
-An `auth` plugin typically imports these host functions:
+Any plugin can import these host functions, under the capabilities that cover them. Further imports are listed under [Capabilities](#capabilities) and the sections after it:
 
 | Import              | Description             |
 | ------------------- | ----------------------- |
@@ -311,7 +279,7 @@ An `auth` plugin typically imports these host functions:
 
 ## Library plugins
 
-A `library` plugin exports a callable API surface instead of the `auth` contract above. Other plugins reach it through `host_call_library`; scripts load it by its namespace.
+A `library` plugin exports a callable API surface. Other plugins reach it through `host_call_library`; scripts load it by its namespace.
 
 ### Exports
 
@@ -319,7 +287,7 @@ A `library` plugin exports a callable API surface instead of the `auth` contract
 | ------------------ | ----------------------------- | ------------------------------------------------------------------------ |
 | `alloc`             | `(size: u32) -> u32`          | Allocate memory                                                          |
 | `dealloc`           | `(ptr: u32, size: u32)`       | Deallocate memory                                                        |
-| `plugin_info`       | `() -> i64`                   | Same `PluginInfo` envelope as an `auth` plugin                           |
+| `plugin_info`       | `() -> i64`                   | Plugin metadata (the `PluginInfo` envelope)                           |
 | `get_api_surface`   | `() -> i64`                   | Returns the JSON-encoded [API surface](#api-surface-format) describing this library's callable functions |
 | `call`              | `(ptr: u32, len: u32) -> i64` | Dispatches one function call                                             |
 
@@ -497,7 +465,7 @@ A plugin declaring `database:read` or `database:write` can import:
 | `host_db_query`          | `(sql_ptr, sql_len, params_ptr, params_len) -> i64`                       | Run a read query; see [Database access](#database-access)             | `database:read` or `database:write` |
 | `host_db_execute`        | `(sql_ptr, sql_len, params_ptr, params_len) -> i64`                       | Run a write statement; see [Database access](#database-access)        | `database:write` |
 
-`host_call_library` calls nest; a library calling a library that calls a third is normal. Depth is capped at **8**: the ninth hop fails with a depth-exceeded error. Every hop counts, including the first one a script makes.
+`host_call_library` calls nest; a library calling a library that calls a third is normal. Depth is capped at 8: the ninth hop fails with a depth-exceeded error. Every hop counts, including the first one a script makes.
 
 A plugin declaring the listed capability can import the matching function below. Each takes one JSON spec and returns the usual `{ok}`/`{error}` envelope, with error codes `INVALID_SPEC`, `DB_ERROR`, `STORAGE_UNAVAILABLE`, `BAD_INPUT`, `FORBIDDEN`, or `HOST_ERROR`; `host_lookup_record` answers every failure with `LOOKUP_ERROR` instead. `STORAGE_UNAVAILABLE` means the [record storage](/docs/guides/record-providers) that claims the collection is down; a script that passes it on answers `503`, which a client can retry:
 
@@ -523,17 +491,17 @@ An envelope is the record shape every library read answers, described in [Librar
 
 Everything that can go wrong with a call comes back through its handle. That includes arguments that are not a JSON array (`BAD_INPUT`), a missing `library:call` capability (`FORBIDDEN`), an unknown library, the depth limit, and the library's own errors. `host_call_library_start` only returns `0` when the host cannot read the request from the plugin's memory. A wait the host can never answer (an empty list, or a handle that was never issued or has already been collected) returns `{"error": {"code": "BAD_INPUT", ...}}` with no `handle`, immediately.
 
-At most **8** started calls run at once for each run or library call. A call started beyond that still gets its handle immediately and waits for a free slot before it begins. When a run returns, calls it started and never collected are allowed to finish, for up to the script wall clock, and their results are discarded. A failure among them is written to the plugin's log. When a run fails or times out, its outstanding calls are stopped.
+At most 8 started calls run at once for each run or library call. A call started beyond that still gets its handle immediately and waits for a free slot before it begins. When a run returns, calls it started and never collected are allowed to finish, for up to the script wall clock, and their results are discarded. A failure among them is written to the plugin's log. When a run fails or times out, its outstanding calls are stopped.
 
 With the SDK, these are `host::call_library_start` and `host::call_library_wait_any`.
 
 #### Database access
 
-`host_db_query` and `host_db_execute` run SQL **untranslated** against whichever backend HappyView is running on, except reads of the record views that external record storage serves (see below). Placeholders are backend-native (`?` on SQLite, `$1`, `$2` and so on on Postgres), the same rule as `raw` on [`happyview.sql`](/docs/reference/scripts/libraries). A plugin that supports both backends branches on placeholder syntax itself, using `db_backend` from the [call envelope](#library-plugins), the plugin equivalent of `happyview.db`'s `backend()`. Record and table queries go through the imports above; `host_db_query`/`host_db_execute` are for raw SQL only.
+`host_db_query` and `host_db_execute` run SQL untranslated against whichever backend HappyView is running on, except reads of the record views that external record storage serves (see below). Placeholders are backend-native (`?` on SQLite, `$1`, `$2` and so on on Postgres), the same rule as `raw` on [`happyview.sql`](/docs/reference/scripts/libraries). A plugin that supports both backends branches on placeholder syntax itself, using `db_backend` from the [call envelope](#library-plugins), the plugin equivalent of `happyview.db`'s `backend()`. Record and table queries go through the imports above; `host_db_query`/`host_db_execute` are for raw SQL only.
 
 - `database:read` permits `host_db_query` only, and only read-only statements: every statement must be a query whose body and every CTE are `SELECT`s. `WITH … INSERT/UPDATE/DELETE` and a data-modifying CTE (`WITH x AS (DELETE FROM t RETURNING uri) SELECT * FROM x`) count as writes and are rejected before they run.
 - `database:write` permits both imports for any statement, including `INSERT`, `UPDATE`, `DELETE`, and `DROP`.
-- Both share the same protected-table guard as `happyview.sql`. It blocks `happyview_*` tables (and `_sqlx_migrations`) by default, except an allowlist of tables holding public indexed data: `happyview_records`, `happyview_record_refs`, `happyview_records_by_collection`, `happyview_labels`, `happyview_lexicons`, `happyview_jobs`, and the space data tables (`happyview_spaces`, `happyview_space_members`, `happyview_space_records`, `happyview_space_record_oplog`, `happyview_space_notify_registrations`, `happyview_space_dids`). Secrets, tokens, auth/privilege state, trust config, and cryptographic key material stay blocked regardless of which database capability is declared.
+- Both share the same protected-table guard as `happyview.sql`. It blocks `happyview_*` tables (and `_sqlx_migrations`) by default, except an allowlist of tables holding public indexed data: `happyview_records`, `happyview_record_refs`, `happyview_records_by_collection`, `happyview_labels`, `happyview_lexicons`, `happyview_jobs`, and the atproto space data tables (`happyview_spaces`, `happyview_space_members`, `happyview_space_records`, `happyview_space_record_oplog`, `happyview_space_notify_registrations`, `happyview_space_dids`). Secrets, tokens, auth/privilege state, trust config, and cryptographic key material stay blocked regardless of which database capability is declared.
 
 `happyview_records` and `happyview_record_refs` are views over HappyView's compact record tables. Reads work as they do on a table, including `json_extract(record, '$.field')` on SQLite and `record::jsonb->>'field'` on Postgres. Writes differ from a table's: upserts with `INSERT … ON CONFLICT` don't work, `RETURNING` gives back the values you supplied rather than the stored row, and writes on SQLite report 0 rows changed. Filtering on `uri` reads every row, so filter by `did`, `collection` and `rkey` instead. [Raw SQL on the record views](/docs/guides/database/database-setup#raw-sql-on-the-record-views) lists them all.
 
@@ -559,7 +527,7 @@ Every host function except `host_log`, `host_lexicon_get`, `host_allowed_hosts` 
 }
 ```
 
-Choose `network:request:defined` over `network:request` when the plugin talks to a self-hosted backend whose address belongs to the operator rather than to you, the plugin's author. That is a URL you can't know at publish time and shouldn't have to declare. It's also the better choice over `network:request:unrestricted` in that case: declaring unrestricted network access to reach one operator-chosen server asks for far more than the plugin needs. Until an operator lists hosts for the plugin under its settings, every request fails with "no hosts are configured for this plugin; an admin lists them under the plugin's settings". A plugin reads its own effective list back with `host::allowed_hosts()`: the operator-configured list under `network:request:defined`, the manifest's `allowed_hosts` under `network:request`, or an empty list under `network:request:unrestricted`.
+If your plugin talks to a self-hosted backend whose address the operator chooses, which you can't know when you publish, declare `network:request:defined` rather than `network:request`. Don't use `network:request:unrestricted` for that case either, because it lets the plugin reach any host. Until an operator lists hosts for the plugin under its settings, every request fails with "no hosts are configured for this plugin; an admin lists them under the plugin's settings". A plugin reads its own effective list back with `host::allowed_hosts()`: the operator-configured list under `network:request:defined`, the manifest's `allowed_hosts` under `network:request`, or an empty list under `network:request:unrestricted`.
 
 ### Acting as the caller
 
@@ -656,9 +624,9 @@ A plugin declaring `blobs:read` or `blobs:write` can import the matching functio
 | `host_blob_get` | `blobs:read` | `{cid}` → `{bytes, mime_type, size}`, or null |
 | `host_blob_stat` | `blobs:read` | `{cid}` → `{cid, mime_type, size}`, or null, without transferring the bytes |
 
-### Spaces
+### atproto spaces
 
-A plugin declaring `spaces:read` or `spaces:write` can import the matching function below. Each takes one JSON spec and returns the usual `{ok}`/`{error}` envelope. A space is `{uri, id, did, authority_did, creator_did, spaceType, skey, display_name, description, read_policy, write_policy, app_access, config, revision, created_at, updated_at}`; a member is `{did, access, read, write}`, where `access` is one of `read`, `write`, `read_self`, or `none`; an invite is `{invite_id, token, access, read, write, max_uses, expires_at}`; a record is `{uri, collection, rkey, record, cid, author_did}`.
+A plugin declaring `spaces:read` or `spaces:write` can import the matching function below. These imports reach atproto spaces, which are off by default: until an instance turns them on, each import fails with `SPACES_DISABLED`. Each takes one JSON spec and returns the usual `{ok}`/`{error}` envelope. A space is `{uri, id, did, authority_did, creator_did, spaceType, skey, display_name, description, read_policy, write_policy, app_access, config, revision, created_at, updated_at}`; a member is `{did, access, read, write}`, where `access` is one of `read`, `write`, `read_self`, or `none`; an invite is `{invite_id, token, access, read, write, max_uses, expires_at}`; a record is `{uri, collection, rkey, record, cid, author_did}`.
 
 | Import | Capability | Spec → result |
 | --- | --- | --- |
@@ -732,7 +700,7 @@ In Lua, an empty table argument (`{}`) is encoded as a JSON object, the same con
 
 ### Using the SDK
 
-Everything above (the allocator, the packed-`i64` calling convention, the JSON envelope, and the `env` host imports) is what a plugin would otherwise have to hand-roll behind `extern "C"`. The `happyview-plugin-sdk` crate (`crates/happyview-plugin-sdk` in the HappyView repo) owns all of it, so a plugin crate needs only this one dependency.
+The `happyview-plugin-sdk` crate (`crates/happyview-plugin-sdk` in the HappyView repo) provides the allocator, the packed-`i64` calling convention, the JSON envelope and the `env` host imports, so a plugin doesn't implement them behind `extern "C"`. It is the plugin crate's only dependency.
 
 - `library_plugin! { info: ..., surface: ..., call: ... }` generates the five ABI exports (`alloc`, `dealloc`, `plugin_info`, `get_api_surface`, `call`) from a `PluginInfo`, an `ApiSurface`-returning function, and a dispatch function. The `export_abi!` macro it builds on is also available directly for lower-level cases. [Plugin SDK](/docs/reference/plugin-sdk#macros) lists the macros for the other plugin types.
 - `host::*` gives typed, `Result`-returning wrappers over every host import, such as `host::http_request`, `host::allowed_hosts`, `host::kv_get`/`kv_set`/`kv_delete`, `host::get_secret`, `host::call_library`, `host::call_library_start`/`call_library_wait_any`, `host::library_surface`, `host::db_query`/`db_execute`, `host::lookup_record`, and `host::log`/`debug`/`info`/`warn`/`error`. A native (non-wasm32) build compiles the whole SDK, so a plugin's own logic is testable with `cargo test`; the host wrappers report `host::HostError::NotWasm` there instead of calling anything.
@@ -742,6 +710,46 @@ Everything above (the allocator, the packed-`i64` calling convention, the JSON e
 The `happyview-http` plugin (outbound `get`/`post`/`put`/`patch`/`delete`/`head` through `host::http_request`) is the worked example. HappyView's test fixture at `tests/fixtures/sdk_http` is a close copy of it under its own id and namespace, with an extra `allowed_hosts` export for the SDK's own tests.
 
 All plugins, including the standard libraries, live in the [plugins repository](https://github.com/happyproto/plugins) and consume `happyview-plugin-sdk` as an ordinary dependency. HappyView itself ships no plugins, only the SDK crate and, for its own tests, some small fixtures.
+
+## Auth plugins
+
+An `auth` plugin links a user's account on another platform through OAuth, OpenID or an API key, and looks up its profile.
+
+### API endpoints
+
+Apps reach an auth plugin through these public endpoints:
+
+| Endpoint                                | Description                                    |
+| --------------------------------------- | ---------------------------------------------- |
+| `GET /external-auth/providers`          | List available auth providers                  |
+| `GET /external-auth/accounts`           | List user's linked accounts                    |
+| `GET /external-auth/{plugin}/authorize` | Start OAuth flow                               |
+| `GET /external-auth/{plugin}/callback`  | OAuth callback handler                         |
+| `POST /external-auth/{plugin}/unlink`   | Unlink account                                 |
+| `POST /external-auth/{plugin}/connect`  | Connect with API key (for `api_key` auth type) |
+| `POST /external-auth/{plugin}/refresh`  | Refresh the caller's tokens if they have expired |
+
+`GET /external-auth/accounts` includes each link's `expires_at` (RFC 3339, or `null` for a token that never expires).
+
+`POST /external-auth/{plugin}/refresh` returns `{"refreshed": bool, "expires_at": string|null}`. Tokens are never returned. It answers `404` when the caller has no link to that plugin, and `502` when the plugin's `refresh_tokens` call fails. It answers `409` when the token has expired and the provider issued no refresh token, so the account must be relinked.
+
+The admin endpoints that install and manage plugins are in the [Plugins admin API](/docs/reference/admin/plugins).
+
+### Plugin exports
+
+An `auth` plugin must export these functions:
+
+| Export              | Signature                     | Description                  |
+| ------------------- | ----------------------------- | ---------------------------- |
+| `alloc`             | `(size: u32) -> u32`          | Allocate memory              |
+| `dealloc`           | `(ptr: u32, size: u32)`       | Deallocate memory            |
+| `plugin_info`       | `() -> i64`                   | Plugin metadata              |
+| `get_authorize_url` | `(ptr: u32, len: u32) -> i64` | Generate OAuth authorize URL |
+| `handle_callback`   | `(ptr: u32, len: u32) -> i64` | Handle OAuth callback        |
+| `refresh_tokens`    | `(ptr: u32, len: u32) -> i64` | Refresh expired tokens       |
+| `get_profile`       | `(ptr: u32, len: u32) -> i64` | Get external profile info    |
+
+The host calls `refresh_tokens` on demand, when a stored token is within 60 seconds of its `expires_at`. A token stored without an expiry is never refreshed. The response may omit `refresh_token`; the host then keeps the previous one.
 
 ## Next steps
 

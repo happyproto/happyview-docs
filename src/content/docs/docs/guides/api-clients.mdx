@@ -11,7 +11,7 @@ For the admin CRUD endpoints, see the [API reference](/docs/reference/admin/api-
 
 ## Concepts
 
-An API client represents **your application**, not individual users. Create one client for your app and use the same client key everywhere. Users authenticate separately via OAuth: the client key identifies _which app is calling_, not _who is using it_.
+An API client is your app's identity on the instance, and one client serves all of its users. Create one client for your app and use the same client key everywhere. Users authenticate separately via OAuth. The client key identifies the app making the call, and the user's OAuth session identifies the user.
 
 Each client has:
 
@@ -50,9 +50,11 @@ Go to **Access > API Clients**, click **Create API Client** and fill in:
 - **Allowed Origins:** (public clients only) which `Origin` headers to accept
 - **Scopes:** `atproto` is always included; add custom scopes if your instance uses them
 
-**Save the client secret immediately.** It is only shown once and is hashed before storage.
+Save the client secret immediately. It's only shown once and is hashed before storage.
 
 ### From the API
+
+To create one from code, send its fields to `POST /admin/api-clients` with your API key:
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -272,7 +274,7 @@ curl 'https://happyview.example.com/xrpc/com.example.feed.getHot' \
 </TabItem>
 </Tabs>
 
-Server-side callers should also include the secret (since there's no origin to authenticate):
+If your app runs on a server, also send the client secret, since there's no origin to authenticate:
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -465,7 +467,7 @@ HappyView isn't involved in any of this, unless your `client_id_url` document de
 Publishing `token_endpoint_auth_method: "private_key_jwt"` (and a `jwks_uri` pointing back at HappyView) on your `client_id_url` document makes your app a confidential atproto OAuth client, which the PDS trusts with much longer-lived sessions than a public client gets. HappyView can hold the signing key for you. Generate one from **Access > API Clients > (your client) > AT Protocol Client Auth** in the dashboard, or via `POST /admin/api-clients/{id}/auth-key`, and call `POST /oauth/client-assertion` to sign on your behalf.
 
 :::caution
-The assertion is required **at both the pushed authorization request (PAR) and the token exchange**. These are two separate requests to the PDS's authorization server, and each needs its own freshly signed assertion (they expire after 60 seconds). Signing once and reusing it for both calls will be rejected by the PDS.
+The assertion is required at both the pushed authorization request (PAR) and the token exchange. These are two separate requests to the PDS's authorization server, and each needs its own freshly signed assertion (they expire after 60 seconds). Signing once and reusing it for both calls will be rejected by the PDS.
 :::
 
 ```http
@@ -747,7 +749,7 @@ Rate limit state is returned in response headers:
 | `RateLimit-Reset`     | Unix timestamp when the bucket will be full |
 | `Retry-After`         | Seconds to wait (only on `429` responses)   |
 
-Adjust per-client rate limits via the dashboard or the [admin API](/docs/reference/admin/api-clients#update-an-api-client).
+Adjust per-client rate limits via the dashboard or the [API reference](/docs/reference/admin/api-clients#update-an-api-client).
 
 ## Security notes
 
@@ -759,6 +761,4 @@ Adjust per-client rate limits via the dashboard or the [admin API](/docs/referen
 ## Next steps
 
 - [Authentication](/docs/getting-started/authentication): full protocol details and security model
-- [JavaScript SDK](/docs/reference/sdk): get started with the SDK
-- [Admin API: API Clients](/docs/reference/admin/api-clients): CRUD endpoints
 - [Permissions](/docs/guides/permissions): control who can manage API clients

@@ -3,7 +3,7 @@ title: Plugins
 description: Install plugins from the registry, a URL, environment variables or the file system, and configure their secrets.
 ---
 
-Plugins are WebAssembly modules that add to what HappyView can do. Interpreters run scripts in one language, libraries are what a script loads with `require("happyview.*")`, and auth plugins link a user's account on another platform.
+Plugins are WebAssembly modules that HappyView loads. Interpreters run scripts in one language, and libraries are what a script loads with `require("happyview.*")`.
 
 The official plugins are built in the [plugins](https://github.com/happyproto/plugins) repository and published to the HappyProto plugin registry. Releases built before capability declarations, including earlier official plugin releases, are refused at install; pick a release whose manifest has `api_version` `"2"`.
 
@@ -25,7 +25,7 @@ To install one without the dashboard, see [`POST /admin/plugins`](/docs/referenc
 
 #### Channels
 
-A project publishes up to three channels: `latest` for releases, and `beta` and `alpha` for prereleases. An install follows a channel, `latest` by default, and is offered an update whenever the channel moves to another version that may be installed. Pin an install to one version instead and it is never offered one. **Switch channel** on an installed plugin moves it to another channel's version and follows that channel from then on.
+A project publishes up to three channels: `latest` for releases, and `beta` and `alpha` for prereleases. An install follows a channel, `latest` by default, and is offered an update whenever the channel moves to another version that may be installed. If you pin an install to one version instead, it's never offered an update. **Switch channel** on an installed plugin moves it to another channel's version and follows that channel from then on.
 
 #### Lifecycle states
 
@@ -76,7 +76,7 @@ PLUGIN_URLS=example-search|https://example.com/plugins/example-search/manifest.j
 
 Format: `id|url` or `id|url|sha256:hash` (comma-separated for multiple).
 
-A `PLUGIN_URLS` plugin is registered from its environment URL at every boot. It is matched to its registry project like any URL install, but an update installed through the registry lasts only until the next restart, which loads the environment URL again. Install plugins that are in the registry through the registry instead, and keep `PLUGIN_URLS` for plugins you host yourself.
+A `PLUGIN_URLS` plugin is registered from its environment URL at every boot. It is matched to its registry project like any URL install, but an update installed through the registry lasts only until the next restart, which loads the environment URL again. If a plugin is in the registry, install it from the registry instead, and keep `PLUGIN_URLS` for plugins you host yourself.
 
 ### Default plugins
 
@@ -107,9 +107,7 @@ Plugins may require secrets, such as API keys and client credentials. Set them i
 
 Open the plugin from **Integrations > Plugins** and enter its secrets on its **Settings** tab. These are encrypted using AES-256-GCM and stored in the database.
 
-**Requires:** `TOKEN_ENCRYPTION_KEY` environment variable (base64-encoded 32-byte key).
-
-Generate one with:
+Dashboard secrets need the `TOKEN_ENCRYPTION_KEY` environment variable, a base64-encoded 32-byte key. If you haven't set one, generate it with:
 
 ```bash
 openssl rand -base64 32
