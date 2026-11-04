@@ -87,7 +87,7 @@ The Lua editor offers completion, hover and signature help from the declarations
 
 ### Script performance
 
-Navigate to **Script Performance** to see how often each script runs, how long it takes, and how much of that time is the script's own. The page needs `metrics:read`, which every template holds.
+Navigate to **Script performance** to see how often each script runs, how long it takes, and how much of that time is the script's own. The page needs `metrics:read`, which every template holds.
 
 The **1h**, **24h**, **7d** and **30d** buttons pick the window. The first two are held in memory and cover this instance's runs alone. They're saved once a minute, so a restart reloads the last day. The other two are read from the database and summed over every instance sharing it. Stored metrics are kept for as long as event logs (`event_log_retention_days`, 30 days by default), and the page says so when that is shorter than the window.
 
