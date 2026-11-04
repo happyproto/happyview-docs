@@ -1,11 +1,11 @@
 ---
 title: "Spaces"
-description: "Admin API endpoints for the space inspector and its access grants, for browsing spaces, accounts, records and blobs for moderation, and for space migration status."
+description: "Admin API endpoints for the space inspector and its access grants, for browsing atproto spaces, accounts, records and blobs for moderation, and for space migration status."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Browse the [spaces](/docs/guides/spaces) on this instance for moderation. These endpoints give operators access to spaces they are not members of, so they live in the admin API rather than the space XRPC API.
+Browse the [atproto spaces](/docs/guides/spaces) on this instance for moderation. These endpoints give operators access to spaces they are not members of, so they live in the admin API rather than the space XRPC API.
 
 :::note[Pending on alpha]
 The space inspector, access grants and `spaces:inspect` come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet. Until they do, reading records and blobs needs `spaces:manage-records` and no grant.
