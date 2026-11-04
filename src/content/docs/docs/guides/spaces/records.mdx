@@ -17,7 +17,7 @@ at:// did:plc:abcdefghijklmnop1234567890 / space / com.example.forum / main     
 ```
 
 :::note
-When a repository has moved to its author's PDS, HappyView forwards `createRecord`, `putRecord` and `deleteRecord` to that PDS. This bridge is deprecated. A write returns `403` when HappyView holds no session for the author.
+When a repo has moved to its author's PDS, HappyView forwards `createRecord`, `putRecord` and `deleteRecord` to that PDS. This bridge is deprecated. A write returns `403` when HappyView holds no session for the author.
 :::
 
 ## Creating a record
@@ -333,7 +333,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.space.putRecord' \
 
 HappyView takes the author DID from the authenticated caller, so you can write records only as yourself and the URI's author component is always your DID.
 
-`putRecord` performs an upsert: if a record with the same collection + rkey already exists for this author in this space, it's overwritten. Use `swapRecord` to prevent unintended overwrites (see [Optimistic concurrency](#optimistic-concurrency) below).
+`putRecord` performs an upsert: if a record with the same collection and rkey already exists for this author in this space, it's overwritten. Use `swapRecord` to prevent unintended overwrites (see [Optimistic concurrency](#optimistic-concurrency) below).
 
 ## Getting a record
 
@@ -1099,18 +1099,18 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getLatestCommit?space
 | Field   | Type   | Required | Description                          |
 | ------- | ------ | -------- | ------------------------------------ |
 | `space` | string | Yes      | The space URI                        |
-| `did`   | string | Yes      | The DID of the user to get state for |
+| `did`   | string | Yes      | The author's DID |
 
 **Response:**
 
 | Field    | Type         | Description                                                    |
 | -------- | ------------ | -------------------------------------------------------------- |
-| `rev`    | string/null  | Current revision for this user's repo in the space             |
+| `rev`    | string/null  | Current revision of the author's repo in the space             |
 | `commit` | object/null  | Deniable commit data: `ver` and `rev`, plus `hash`, `ikm`, `sig` and `mac`, each a bytes object `{"$bytes": "<base64>"}` |
 
 ## Record operation log
 
-`listRepoOps` returns the operation log for a user in a space. HappyView records each write (create, update, delete) as an oplog entry.
+`listRepoOps` returns an author's operation log in a space. HappyView records each write (create, update, delete) as an entry in the operation log.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1204,7 +1204,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepoOps?space=at:
 | Field    | Type    | Required | Description                                    |
 | -------- | ------- | -------- | ---------------------------------------------- |
 | `space`  | string  | Yes      | The space URI                                  |
-| `did`    | string  | Yes      | The DID of the user whose ops to list          |
+| `did`    | string  | Yes      | The DID of the author whose ops to list        |
 | `limit`          | integer | No       | Max number of entries to return (default 100, max 1000) |
 | `cursor`         | string  | No       | Position to start after, as `{rev}:{idx}` from a previous response. A bare `rev` skips that whole revision |
 | `excludeValues`  | boolean | No       | If `true`, omit record values from response (default `false`) |
@@ -1247,7 +1247,7 @@ Each entry records a single write operation. The `action` is one of `create`, `u
 
 ## Repo export
 
-`getRepo` exports a user's full repo within a space as a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
+`getRepo` exports an author's full repo within a space as a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1341,7 +1341,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getRepo?space=at://di
 | Field   | Type   | Required | Description                          |
 | ------- | ------ | -------- | ------------------------------------ |
 | `space` | string | Yes      | The space URI                        |
-| `did`   | string | Yes      | The DID of the user whose repo to export |
+| `did`   | string | Yes      | The DID of the author whose repo to export |
 
 The response body is a CAR v1 file with content type `application/vnd.ipld.car`.
 

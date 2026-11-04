@@ -146,7 +146,7 @@ curl -X POST 'https://happyview.example.com/xrpc/dev.happyview.space.createInvit
 |---|---|---|---|---|
 | `space` | string | Yes | | The space this invite is for |
 | `access` | object | No | `{ "read": true, "write": false }` | Access granted on acceptance: `read` and `write` booleans, both required when `access` is given |
-| `maxUses` | integer | No | unlimited | Maximum number of times the invite can be redeemed |
+| `maxUses` | integer | No | unlimited | Maximum number of times the invite can be accepted |
 | `expiresAt` | string (datetime) | No | never | When the invite expires, in UTC (ending in `Z` or `+00:00`) |
 
 **Response (201):**
@@ -390,7 +390,7 @@ curl -X POST 'https://happyview.example.com/xrpc/dev.happyview.space.revokeInvit
 </TabItem>
 </Tabs>
 
-Only the space's creator or an operator with superadmin can revoke an invite. Revoking prevents future redemptions but does not remove members who already redeemed it. A revoke answers `{"success": true}`, and an `inviteId` that is not one of the space's invites fails with `404`.
+Only the space's creator or an operator with superadmin can revoke an invite. Revoking prevents future acceptances but does not remove members who already accepted it. A revoke answers `{"success": true}`, and an `inviteId` that is not one of the space's invites fails with `404`.
 
 ## Listing invites
 
