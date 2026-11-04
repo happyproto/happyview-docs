@@ -1,6 +1,6 @@
 ---
 title: Managing spaces
-description: "Create, read, list, update and delete spaces, and set their read and write policies, app access and configuration."
+description: "Create, read, list, update and delete atproto spaces, and set their read and write policies, app access and configuration."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -19,7 +19,7 @@ at://did:web:happyview.example.com/space/com.example.forum/main
 
 The account that creates the space is its **creator**. The creator administers the space: only the creator, or an operator with superadmin, can update or delete it, change its member list, and manage its invites.
 
-Because every space on an instance shares the instance's DID, a space key is unique per space type across the whole instance. A second account creating a space with the same type and `skey` gets `409 Conflict`.
+Because every space on an instance shares HappyView's DID, a space key is unique per space type across the whole instance. A second account creating a space with the same type and `skey` gets `409 Conflict`.
 
 If the instance has no published service identity, HappyView anchors new spaces on the creator's DID instead. The creator's DID is then both the authority and the DID in the URI, and only HappyView can verify the space's credentials.
 
@@ -212,7 +212,7 @@ A managing-app policy names the app's service identifier in `managingApp`:
 }
 ```
 
-HappyView resolves the identifier's fragment to a service entry in the app's DID document, and a bare DID to its `#atproto_pds` entry. For each decision it calls `com.atproto.simplespace.checkUserAccess` at that endpoint with service auth from HappyView, passing `space`, `user`, and `access` (`read` or `write`). The managing-app policy requires the space's authority to be HappyView's instance DID, because the app expects the authority to sign the call.
+HappyView resolves the identifier's fragment to a service entry in the app's DID document, and a bare DID to its `#atproto_pds` entry. For each decision it calls `com.atproto.simplespace.checkUserAccess` at that endpoint with service auth from HappyView, passing `space`, `user`, and `access` (`read` or `write`). The managing-app policy requires the space's authority to be HappyView's DID, because the app expects the authority to sign the call.
 
 A policy with an unknown `$type` fails with `400 UnsupportedPolicy`.
 

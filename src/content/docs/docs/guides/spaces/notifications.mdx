@@ -338,7 +338,9 @@ The space's creator or an operator with superadmin can also send the same notifi
 
 The following forms are deprecated. They are still served in v3 alpha; removal is not yet scheduled.
 
-**Webhook registration.** `registerNotify` with `serviceDid` and `endpoint` in place of `service` registers a webhook URL. The response includes the registration `id`:
+### Webhook registration
+
+`registerNotify` with `serviceDid` and `endpoint` in place of `service` registers a webhook URL. The response includes the registration `id`:
 
 ```json
 {
@@ -359,7 +361,7 @@ HappyView POSTs a JSON payload to the endpoint for each record created, updated,
 
 ### Verifying a webhook
 
-A webhook POST carries service auth from HappyView in `Authorization: Bearer <token>`, the same kind of JWT a registration by identifier receives, when the `serviceDid` it was registered with lists a service endpoint on the same origin (scheme, host and port) as the webhook URL. To receive it, publish a service entry for that origin in your DID document. The token's claims:
+A webhook POST carries service auth from HappyView in `Authorization: Bearer <token>`, the same kind of JWT a registration by identifier receives. It's sent only when the `serviceDid` the webhook was registered with lists a service endpoint on the same origin (scheme, host and port) as the webhook URL. To receive it, publish a service entry for that origin in your DID document. The token's claims:
 
 - `iss` is HappyView's instance DID. Verify the signature (`ES256`) against the `#atproto` key in that DID's document.
 - `aud` is the `serviceDid` the webhook was registered with. Refuse a token whose `aud` isn't your own DID.
@@ -368,4 +370,6 @@ A webhook POST carries service auth from HappyView in `Authorization: Bearer <to
 
 The payload is the same as without the header, so a receiver that doesn't check it keeps working. HappyView sends the payload without the header when the `serviceDid` doesn't list the webhook's origin, when it has no `TOKEN_ENCRYPTION_KEY`, or when it can't mint the token.
 
-**Per-record notifyWrite.** `notifyWrite` also accepts `{space, did, collection, rkey, cid}` from the author, the space's creator, or an operator with superadmin. HappyView syncs the author's repo and sends the per-record payload to webhook registrations.
+### Per-record notifyWrite
+
+`notifyWrite` also accepts `{space, did, collection, rkey, cid}` from the author, the space's creator, or an operator with superadmin. HappyView syncs the author's repo and sends the per-record payload to webhook registrations.
