@@ -11,7 +11,7 @@ The database upgrades in place, but one way only: the first start moves every re
 
 This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
-**v3 is in alpha.** The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
+v3 is in alpha. The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
 
 ## Architecture changes
 
@@ -57,7 +57,7 @@ Until then, every script surface refuses in its own way:
 
 Record and label events are let through rather than held, so indexing doesn't stop. The dead-letter rows are the record of what went unprocessed, at **Dead Letters** in the dashboard.
 
-To see what is installed:
+To see what's installed:
 
 ```sh
 curl "http://127.0.0.1:3000/admin/plugins?type=interpreter" -H "$AUTH"
@@ -88,7 +88,7 @@ An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The 
 
 [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference, and three of its details apply to an upgrade.
 
-**It is the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and these have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has. `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later; see [Channels](/docs/guides/plugins#channels).
+**Use the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and the official projects have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has. `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later; see [Channels](/docs/guides/plugins#channels).
 
 **There is nothing to checksum.** A registry version names its manifest and its module by CID. HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
 
@@ -104,10 +104,9 @@ A script stored before the upgrade stays in the table untouched and fails the fi
 
 [Migrating from v2](/docs/guides/migrating-scripts) is the reference for what the rewrite does and what it leaves behind as a `-- codemod:` marker for you to finish by hand.
 
-Two things affect the order you do this in:
+The codemod does not need an interpreter. It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
 
-- **The codemod does not need an interpreter.** It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
-- **`happyview-codemod` is in the published Docker image**, at `/usr/local/bin/happyview-codemod`. Run `docker run <image> happyview-codemod --database-url <url>` against the same database for a dry run, then again with `--apply` to write the rewrites. Or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
+`happyview-codemod` is in the published Docker image, at `/usr/local/bin/happyview-codemod`. Run `docker run <image> happyview-codemod --database-url <url>` against the same database for a dry run, then again with `--apply` to write the rewrites. Or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
 
 Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception: a rewrite that still has markers is stored once you confirm it, with `"allow_markers": true` in the API or `--allow-markers` on the CLI.
 
@@ -132,7 +131,7 @@ The `require` block the codemod writes at the top of each script is the list of 
 
 They install exactly as an interpreter does, from the same registry and the same `alpha` channel. The registry carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
 
-The codemod's polyfills are libraries too. The `Record` shim needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one. The row-shape shim reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which shim a script got and why.
+The codemod's polyfills depend on libraries too. The `Record` polyfill needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one. The row-shape polyfill reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which polyfill a script got and why.
 
 ## 4. Rebuild or replace your plugins
 
@@ -143,7 +142,7 @@ auth plugins need an api_version: "2" manifest declaring capabilities
 (got api_version "1"); republish the plugin with a capabilities-declaring manifest
 ```
 
-There is no fallback for any plugin type, auth included. A v2-era manifest also has to declare its `capabilities`, and the loader cross-checks that declaration against the compiled module's import section. A plugin that imports something its manifest does not cover is refused before it runs.
+There is no fallback for any plugin type. A v2-era manifest also has to declare its `capabilities`, and the loader cross-checks that declaration against the compiled module's import section. A plugin that imports something its manifest does not cover is refused before it runs.
 
 The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it, such as a script that loads a library, stops working until you replace it. Check your boot log after the upgrade.
 
@@ -157,7 +156,7 @@ A run that spends either budget fails with `timeout`; one that exhausts its memo
 
 ## 6. Error text where you grep it
 
-If you have alerting or log queries over script failures, two columns changed shape.
+If you have alerting or log queries over script failures, two things changed.
 
 **Dead-letter and job `error` columns.** v2 wrote a stage prefix naming where in the host the failure happened: `db api:`, `xrpc api:`, `script load failed:`, `missing handle():`, `create sandbox:`. v3 writes the failure's category instead: `syntax:`, `runtime:`, `timeout:`, `memory:` or `missing_handle:`, followed by the interpreter's own text, or `<category> in <file>: …` when the run has a file. The old prefixes match nothing.
 
@@ -165,7 +164,7 @@ If you have alerting or log queries over script failures, two columns changed sh
 
 ## 7. `spaceType` on the plugin and script surfaces
 
-A space's type NSID is named `spaceType` everywhere the protocol names it: the plugin SDK's `SpaceInfo` and `SpacesCreate`, and `ctx.space.spaceType` in a script. It was `type` on the SDK and `type_nsid` on `ctx.space`.
+atproto spaces are off by default; see [Spaces](/docs/guides/spaces). An atproto space's type NSID is named `spaceType` everywhere the protocol names it: the plugin SDK's `SpaceInfo` and `SpacesCreate`, and `ctx.space.spaceType` in a script. It was `type` on the SDK and `type_nsid` on `ctx.space`.
 
 The HTTP surface is unaffected. `createSpace` and `listSpaces` accept `spaceType` and still accept `type`, and a space in a response still carries `type`.
 
@@ -175,11 +174,11 @@ A record read through a library answers `{uri, did, collection, rkey, cid, index
 
 The public XRPC query routes keep their flat body-plus-`uri` shape. A query with no script still answers a `uri` lookup as it did in v2, but nothing else; see [Queries and procedures need a script](#9-queries-and-procedures-need-a-script).
 
-A script the codemod migrated keeps v2's flat rows, through a shim the codemod inlines; [Migrating from v2](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
+A script the codemod migrated keeps v2's flat rows, through a polyfill the codemod inlines; [Migrating from v2](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
 
 ## 9. Queries and procedures need a script
 
-Since the release that removes them, a query or procedure lexicon names no collection. `target_collection` and the procedure `action` setting (`create`, `update`, `delete`, `upsert`) are gone from the lexicon, the admin API, `happyview.toml` and the dashboard. A script names the collection it reads or writes as a literal NSID, such as `db.records("xyz.statusphere.status")`, and `ctx.collection` is set only for record events.
+In v3, a query or procedure lexicon names no collection. `target_collection` and the procedure `action` setting (`create`, `update`, `delete`, `upsert`) are gone from the lexicon, the admin API, `happyview.toml` and the dashboard. A script names the collection it reads or writes as a literal NSID, such as `db.records("xyz.statusphere.status")`, and `ctx.collection` is set only for record events.
 
 HappyView no longer answers a query or procedure on its own:
 
@@ -211,7 +210,7 @@ happyview.toml:2: unknown field `target_collection`
 
 A default build compiles no Lua interpreter at all: `mlua` sits behind a non-default `lua-reference` feature. The resulting binary cannot run a script without an interpreter plugin.
 
-`lua-reference` is **not** a fallback interpreter. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
+`lua-reference` is not a fallback interpreter. It exists so the test suite can compare the interpreter plugin against the implementation it replaced; a build with it enabled still routes every script run through the plugin.
 
 v3 adds environment variables of its own, all optional. Two are about plugins: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. `HAPPYVIEW_DEFAULT_PLUGINS` installs each source once; `PLUGIN_URLS`, which v2 also read, loads its plugins again at every boot. See the [Configuration reference](/docs/reference/configuration#plugins).
 
@@ -235,9 +234,9 @@ Anything written after the upgrade, including operators, scripts and settings, i
 - [ ] Install a library plugin for every `happyview.*` name the rewritten scripts require
 - [ ] Confirm `needs_migration` is empty and `runnable` is true for every script
 - [ ] Replace any plugin whose manifest is `api_version` `"1"`, and check the boot log for refusals
-- [ ] Review long-running scripts against the instruction limit and the 10-second wall clock
+- [ ] Review long-running scripts against the instruction limit and the wall clock
 - [ ] Update any alerting that matches the old stage prefixes in dead-letter or job `error` text
-- [ ] Rebuild any in-house library plugin against the v3 SDK if it reads records or spaces
+- [ ] Rebuild any in-house library plugin against the v3 SDK if it reads records or atproto spaces
 
 ## Next steps
 

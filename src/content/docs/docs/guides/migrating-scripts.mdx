@@ -108,7 +108,7 @@ Two shapes changed:
 - A v3 record read returns an envelope, `{ uri, did, collection, rkey, cid, indexed_at, record }`, with the stored body under `record`. v2 returned the body with `uri` added to it.
 - `db.query` is a chain: `db.query{ collection = c, limit = n }` becomes `db.records(c):limit(n):run()`. A chain step given `nil` is skipped.
 
-Where a rename alone would change behavior, the codemod inlines a small shim, called a polyfill, at the top of the script that keeps the v2 behavior on top of the v3 library. There are three: the v2 row shape over `happyview.db` and `happyview.backlinks`, the v2 `Record` API over `happyview.record`, and v2's `xrpc` return shape over `happyview.xrpc`. Each one is marked with a comment such as:
+Where a rename alone would change behavior, the codemod inlines a polyfill at the top of the script that keeps the v2 behavior on top of the v3 library. There are three: the v2 row shape over `happyview.db` and `happyview.backlinks`, the v2 `Record` API over `happyview.record`, and v2's `xrpc` return shape over `happyview.xrpc`. Each one is marked with a comment such as:
 
 ```lua
 -- codemod polyfill: v2 Record over happyview.record; replace with the library API when convenient
@@ -137,6 +137,8 @@ When a save is refused because the body reads a removed global, the error has a 
 Previewing needs the `scripts:read` permission. Applying needs `scripts:manage`.
 
 ### From the admin API
+
+To preview the rewrite of a stored script, then store it:
 
 ```sh
 AUTH="Authorization: Bearer hv_..." # your API key
@@ -189,7 +191,7 @@ File and stdin mode print the rewritten script to stdout and notes to stderr. Da
 | `1` | Error |
 | `2` | At least one script still has markers |
 
-Running the codemod on a script it already migrated changes nothing. A re-run reports every marker still in the script and exits `2`, so run it again to see what is still open.
+A re-run on a migrated script changes nothing; it reports every marker still in the script and exits `2`.
 
 ## Markers
 
@@ -202,6 +204,8 @@ A marker is a `-- codemod:` comment above a line the codemod couldn't rewrite. I
 - `TID` conversions other than `TID()`, which `internal.tids` can't reproduce exactly.
 
 ## Before and after
+
+Here's a v2 script before and after the codemod:
 
 ```lua
 -- before (a query)
