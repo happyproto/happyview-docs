@@ -23,7 +23,7 @@ Events follow a `category.action` naming convention. Each event has a severity l
 | `lexicon.unpublished` | info | Lexicon NSID | `did`, `uri`                       |
 | `lexicon_publishing.rule_created`, `.rule_updated`, `.rule_deleted` | info | The rule's pattern | `rule_id`, `target_kind`, `linked_repo_id`, `auto_publish` |
 
-The first three are logged when lexicons are uploaded, updated, or deleted via the [admin API](/docs/reference/admin/lexicons). The `actor_did` is the operator who performed the action. The rest come from [publishing lexicons](/docs/guides/publishing-lexicons). A failure repeating the last error isn't logged again.
+The first three are logged when lexicons are uploaded, updated, or deleted via the [admin API](/docs/reference/admin/lexicons). The `actor_did` is the operator who performed the action. The rest come from [publishing lexicons](/docs/guides/publishing-lexicons). A publishing failure that repeats the last error isn't logged again.
 
 ### Project events
 
@@ -48,7 +48,7 @@ Logged when a project is deployed through [`PUT /admin/project`](/docs/reference
 
 Logged when records are received from Jetstream and stored or removed from the local database, or skipped because a record script returned `nil`. An update is logged as `record.created`. These are system-triggered events (`actor_did` is null). They write one row per record, so successful operations are only logged when [`verbose_event_logging`](/docs/reference/admin/settings) is on. If a database error occurs, the same event type is logged with `error` severity regardless of that setting, and the error message is included in the detail.
 
-`record.unstored_claimed` is a record of a collection that an [external record storage](/docs/guides/record-providers#claimed-collections) claims, arriving from somewhere other than that storage; HappyView refuses it. `record.delete_hook_failed` and the `record.deleted` events whose `origin` is `happyview.reconcile-collection` come from the job that removes records their PDS no longer holds. That job logs every record it deletes, whatever `verbose_event_logging` says.
+`record.unstored_claimed` is logged when a record of a collection that an [external record storage](/docs/guides/record-providers#claimed-collections) claims arrives from somewhere other than that storage. HappyView refuses it. `record.delete_hook_failed` and the `record.deleted` events whose `origin` is `happyview.reconcile-collection` come from the job that removes records their PDS no longer holds. That job logs every record it deletes, whatever `verbose_event_logging` says.
 
 ### Script events
 
@@ -104,7 +104,7 @@ Logged when an operator attempts to access an endpoint they don't have permissio
 | `space_inspector.enabled` | warn | `feature.space_inspector_enabled` | none |
 | `space_inspector.disabled` | warn | `feature.space_inspector_enabled` | none |
 
-These record access to private space contents through the [space inspector](/docs/guides/spaces#moderating-spaces), and every one is a [protected event](#protected-events). `space.access_granted` and `space.access_revoked` record a grant's start and early end. `user_id` is the operator the grant belongs to, and `revoked_by` is the DID of the operator who ended it. `space_inspector.enabled` and `space_inspector.disabled` record the inspector being turned on or off, from the dashboard or the [settings API](/docs/reference/admin/settings).
+These record access to private atproto space contents through the [space inspector](/docs/guides/spaces#moderating-spaces), and every one is a [protected event](#protected-events). `space.access_granted` and `space.access_revoked` record a grant's start and early end. `user_id` is the operator the grant belongs to, and `revoked_by` is the DID of the operator who ended it. `space_inspector.enabled` and `space_inspector.disabled` record the inspector being turned on or off, from the dashboard or the [settings API](/docs/reference/admin/settings).
 
 `space.moderator_read` is logged when an operator reads space records or blobs through the [admin spaces API](/docs/reference/admin/spaces). `grant_id` is the [access grant](/docs/reference/admin/spaces#access-grants) the read was made under, and `scope` is its scope, `space` or `account`. `action` is one of these:
 
@@ -182,7 +182,15 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 
 `jetstream.invalid_request` means Jetstream refused the subscription as invalid, or kept refusing it without saying why after HappyView dropped what it could from the request. HappyView retries after `retry_in_secs` (an hour by default).
 
-`jetstream.account_deleted` is logged when an account this instance holds records for is deleted: its records (other than local writes not yet echoed back) are removed. `jetstream.account_takendown` is logged the same way for an account that is taken down or suspended. A tombstone is written for every deleted, taken-down or suspended account, but the event is logged only when this instance held, and purged, records for it. The tombstone means a late or replayed copy of the account's records is refused. `jetstream.account_status_mismatch` is logged instead when the relay reports an account deleted (`status`) but the account's current PDS (`pds`) says it is active: HappyView keeps its records and writes no tombstone. This happens when the relay is still relaying a PDS the account moved away from. Takedowns and suspensions are never checked this way, because a relay may impose them without the account's PDS knowing. `jetstream.account_inactive` is logged when such an account is deactivated, desynchronized or throttled; its records are kept. When an account becomes active again, its tombstone is lifted, but removed records come back only through a new [backfill](/docs/guides/backfill). `jetstream.sync_purged` is logged when an account's repo is resynced: its records in registered collections are removed, and the current ones that follow in the stream replace them. Events for accounts this instance holds nothing for are not logged.
+`jetstream.account_deleted` is logged when an account this instance holds records for is deleted: its records (other than local writes not yet echoed back) are removed. `jetstream.account_takendown` is logged the same way for an account that is taken down or suspended.
+
+A tombstone is written for every deleted, taken-down or suspended account, but the event is logged only when this instance held, and purged, records for it. The tombstone means a late or replayed copy of the account's records is refused.
+
+`jetstream.account_status_mismatch` is logged instead when the relay reports an account deleted (`status`) but the account's current PDS (`pds`) says it is active: HappyView keeps its records and writes no tombstone. This happens when the relay is still relaying a PDS the account moved away from. Takedowns and suspensions are never checked this way, because a relay may impose them without the account's PDS knowing.
+
+`jetstream.account_inactive` is logged when such an account is deactivated, desynchronized or throttled; its records are kept. When an account becomes active again, its tombstone is lifted, but removed records come back only through a new [backfill](/docs/guides/backfill).
+
+`jetstream.sync_purged` is logged when an account's repo is resynced: its records in registered collections are removed, and the current ones that follow in the stream replace them. Events for accounts this instance holds nothing for are not logged.
 
 `jetstream.record_invalid` is logged once for an event HappyView skips immediately because retrying cannot help. That is a create or update with no record body, an unknown operation, data the database rejects, or a network lexicon schema that cannot be applied.
 
@@ -433,13 +441,13 @@ See the [Admin API reference](/docs/reference/admin/events#list-event-logs) for 
 
 Event logs are automatically cleaned up after 30 days. Change that with **Event Log Retention (days)** under **System > General**, or the `EVENT_LOG_RETENTION_DAYS` environment variable; the setting wins. A background task runs hourly to delete events older than the retention period. Job logs and stored [script performance](/docs/guides/dashboard#script-performance) metrics follow the same period.
 
-Set the value to `0` to disable automatic cleanup and keep logs indefinitely. [Protected events](#protected-events) follow a schedule of their own.
+Set the value to `0` to disable automatic cleanup and keep logs indefinitely. [Protected events](#protected-events) have a retention period of their own.
 
 See the [Configuration reference](/docs/reference/configuration#logging-retention-and-telemetry) for the other retention settings.
 
 ## Protected events
 
-Some events record access to private space data, or changes to the audit trail itself. These are protected, and can't be purged by hand:
+Some events record access to private atproto space contents, or changes to the audit trail itself. These are protected, and can't be purged by hand:
 
 - `space.access_granted`
 - `space.access_revoked`
@@ -451,9 +459,9 @@ Some events record access to private space data, or changes to the audit trail i
 
 A [purge](/docs/reference/admin/events#purge-event-logs) skips them. A purge filter naming one of these types, or a category holding one, answers `400 Bad Request`. The purge preview, `GET /admin/events/count`, doesn't count them either.
 
-They're removed only by their own retention, `space_access_log_retention_days`. Pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`, adds it to **System > General** as **Space Access Log Retention (days)**. It is 365 days by default, and `0` keeps them. While it is unset, a general retention of `0` makes it `0` too. The same sweep deletes access grants that ended longer ago than that.
+They're removed only by their own retention, `space_access_log_retention_days`. Pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`, adds it to **System > General** as **Space Access Log Retention (days)**. It is 365 days by default, and `0` keeps them. While it is unset, a general retention of `0` makes it `0` too. The same hourly cleanup deletes access grants that ended longer ago than that.
 
-Events tied to an access grant that still exists are kept whatever their age: its grant and revocation events and the reads made under it. So a grant's reason and reads last as long as the grant does. Other protected events keep their own schedule.
+Events tied to an access grant that still exists are kept whatever their age: its grant and revocation events and the reads made under it. So a grant's reason and reads last as long as the grant does. Other protected events follow their own retention period.
 
 Protected events live in the same database table as every other event. This guards against a routine or accidental purge, but it isn't a tamper-proof audit log. Anyone with direct access to the database can still delete them.
 

@@ -5,7 +5,7 @@ description: "The traits a record source or record storage implements to run Hap
 
 HappyView gets its records from a record source and, optionally, keeps some of them in an external record storage. Both are traits in an open crate, so you can build your own and run HappyView with them. The built-in setup is the Jetstream source with no external storage, which is what `happyview` runs unless you change it. Everything in [Backfill](/docs/guides/backfill) and the Jetstream settings in the [configuration reference](/docs/reference/configuration) (`JETSTREAM_URL` and the rest) describe that built-in source.
 
-You only need this page if you are writing a provider. If you run HappyView as it ships, nothing here changes anything for you.
+You only need this page if you're writing a provider.
 
 ## Sources and storages
 
@@ -27,8 +27,6 @@ The crates:
 Only what the crates re-export at their root is the stable API. Modules marked `#[doc(hidden)]` are public so HappyView's own tests can reach them. They are not part of the API and can change in any release.
 
 ## The `Host` trait
-
-This is what HappyView gives a provider.
 
 | Method | Meaning |
 |---|---|
@@ -95,18 +93,38 @@ HappyView keeps its own record tables for every collection a storage does not cl
 
 ## Claimed collections
 
-For a collection a storage claims:
+These rules apply to each collection a storage claims.
 
-- **Reads** go to the storage's `read_route`. The list, get and query endpoints and the plugin query DSL behave as they do for any collection. HappyView's list and keyset queries page through `idx_records_v2_collection_indexed_at` and `idx_records_v2_collection_created_at_id`. Whatever relation the read route serves as `happyview_records_v2` must let the planner reach those indexes, or every page reads the whole collection.
-- **Writes** from HappyView go through the storage too. A local write is a `Pending` delta until the record comes back from the source.
-- **Deletes** from an event clear the delta unconditionally: a `Proceed` with `for_rev: None`, so no `Replace` or `Hide` outlives the record and covers a later re-create of the same key. The storage owns removing the record itself. An admin delete does not clear anything. It hides the record with a `Hide` delta, also with `for_rev: None`.
-- **Events** carry `stored: true` when the body is already in the storage. HappyView then runs the record script and writes only its delta. HappyView refuses an event for a claimed collection that is not marked stored, with a `record.unstored_claimed` warning in the event log, so nothing is ever written to the local tables.
-- **Raw SQL** writes the local tables for unclaimed collections as it does on an instance with no storage, and without a raw route it reads them the same way. Read-only raw SQL that reads only `happyview_records` and `happyview_record_refs` runs on the storage's `raw_route` when it offers one, so it sees claimed records. So does a table query (`host_table_query`, or `sql.from` in Lua) of either view. Every read of those views then goes to the route, so records of unclaimed collections held in the local tables can't be read through them. A raw write runs locally whatever it reads, so `INSERT … SELECT FROM happyview_records` sees only local rows. To read one local collection quickly, see [Reading one collection](/docs/guides/database/database-setup#reading-one-collection). Placeholders and SQL dialect follow the route's backend. A query that mixes those views with other tables is refused, because it cannot run in one place. While the storage is unavailable, a routed query fails with `STORAGE_UNAVAILABLE`, which a script that passes it on answers as a 503. Any other database error from the route is reported with a note of which backend ran the query. Without a raw route, a claimed collection's records are queryable only in the storage's own database. Writes to claimed collections stay refused, so a record script cannot create a local row that reads never see. A `sql.raw` write that names one of their records fails with an error that says to use `records.indexPut`; from a script, that is `save_local` in the `happyview.record` library. While a storage is configured, a raw write to `happyview_records` that names no collection or record URI is refused too, because HappyView cannot tell whether it touches a claimed record.
-- **Outages.** When the storage is down (`unavailable` says so), requests for a claimed collection answer 503 `ServiceUnavailable`, which a client can retry:
-  - every XRPC read, whether the default get and list or a script's record queries;
-  - a write that fails before anything else accepted it: a script's index write or index delete, and an admin delete.
+### Reads
 
-  A write the caller's PDS has already accepted still answers 200. HappyView cannot show it until the storage is back, and the storage's own ingest brings the record in. An outage of the instance database stays a 500.
+Reads go to the storage's `read_route`. The list, get and query endpoints and the plugin query DSL behave as they do for any collection. HappyView's list and keyset queries page through `idx_records_v2_collection_indexed_at` and `idx_records_v2_collection_created_at_id`. Whatever relation the read route serves as `happyview_records_v2` must let the planner reach those indexes, or every page reads the whole collection.
+
+### Writes
+
+Writes from HappyView go through the storage too. A local write is a `Pending` delta until the record comes back from the source.
+
+### Deletes
+
+Deletes from an event clear the delta unconditionally: a `Proceed` with `for_rev: None`, so no `Replace` or `Hide` outlives the record and covers a later re-create of the same key. The storage owns removing the record itself. An admin delete does not clear anything. It hides the record with a `Hide` delta, also with `for_rev: None`.
+
+### Events
+
+Events carry `stored: true` when the body is already in the storage. HappyView then runs the record script and writes only its delta. HappyView refuses an event for a claimed collection that is not marked stored, with a `record.unstored_claimed` warning in the event log, so nothing is ever written to the local tables.
+
+### Raw SQL
+
+Raw SQL writes the local tables for unclaimed collections as it does on an instance with no storage, and without a raw route it reads them the same way. Read-only raw SQL that reads only `happyview_records` and `happyview_record_refs` runs on the storage's `raw_route` when it offers one, so it sees claimed records. So does a table query (`host_table_query`, or `sql.from` in Lua) of either view. Every read of those views then goes to the route, so records of unclaimed collections held in the local tables can't be read through them. A raw write runs locally whatever it reads, so `INSERT … SELECT FROM happyview_records` sees only local rows. To read one local collection quickly, see [Reading one collection](/docs/guides/database/database-setup#reading-one-collection). Placeholders and SQL dialect follow the route's backend. A query that mixes those views with other tables is refused, because it cannot run in one place. While the storage is unavailable, a routed query fails with `STORAGE_UNAVAILABLE`, which a script that passes it on answers as a 503. Any other database error from the route is reported with a note of which backend ran the query.
+
+Without a raw route, a claimed collection's records are queryable only in the storage's own database. Writes to claimed collections stay refused, so a record script cannot create a local row that reads never see. A `sql.raw` write that names one of their records fails with an error that says to use `records.indexPut`; from a script, that is `save_local` in the `happyview.record` library. While a storage is configured, a raw write to `happyview_records` that names no collection or record URI is refused too, because HappyView cannot tell whether it touches a claimed record.
+
+### Outages
+
+When the storage is down (`unavailable` says so), requests for a claimed collection answer 503 `ServiceUnavailable`, which a client can retry:
+
+- every XRPC read, whether the default get and list or a script's record queries;
+- a write that fails before anything else accepted it: a script's index write or index delete, and an admin delete.
+
+A write the caller's PDS has already accepted still answers 200. HappyView cannot show it until the storage is back, and the storage's own ingest brings the record in. An outage of the instance database stays a 500.
 
 ## Composing with Jetstream
 

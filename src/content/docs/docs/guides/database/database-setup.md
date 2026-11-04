@@ -3,7 +3,7 @@ title: Database setup
 description: Choose between SQLite and Postgres, and what the compact record format changes for raw SQL.
 ---
 
-HappyView supports two database backends: **SQLite** (default) and **PostgreSQL**. The backend is auto-detected from your `DATABASE_URL` scheme, or you can set `DATABASE_BACKEND` explicitly.
+HappyView supports two database backends: SQLite (default) and PostgreSQL. The backend is auto-detected from your `DATABASE_URL` scheme, or you can set `DATABASE_BACKEND` explicitly.
 
 ## SQLite (default)
 
@@ -51,7 +51,7 @@ HappyView applies any pending migrations every time it starts, before it serves 
 
 **Postgres** builds these indexes with `CREATE INDEX CONCURRENTLY`, which keeps reads and writes flowing while it builds but still has to scan the whole table. If a build fails partway, Postgres leaves an invalid index behind. HappyView drops it on the next boot and builds it again, so restarting HappyView recovers.
 
-**Multiple replicas on Postgres.** HappyView takes a database-wide lock while it migrates. A replica that starts while another holds it waits for that migration to finish, which takes as long as the slowest index build. When an upgrade carries a migration like this, roll it out to one replica first and start the rest once it is serving. Replicas still on an older release take the lock differently, and one that starts during a concurrent index build can deadlock with it. Postgres then aborts one side or the other, and that can be the upgraded replica's index build. That build leaves an invalid index, which HappyView drops and rebuilds from scratch on its next boot. An orchestrator that keeps restarting old replicas can therefore keep the build from ever finishing. While the first upgraded replica migrates, scale to that single replica, or at least keep replicas on the older release from starting, then bring the rest up once it is serving.
+**Multiple replicas on Postgres.** HappyView takes a database-wide lock while it migrates. A replica that starts while another holds it waits for that migration to finish, which takes as long as the slowest index build. Replicas still on an older release take the lock differently, and one that starts during a concurrent index build can deadlock with it. Postgres then aborts one side or the other, and that can be the upgraded replica's index build. That build leaves an invalid index, which HappyView drops and rebuilds from scratch on its next boot. An orchestrator that keeps restarting old replicas can therefore keep the build from ever finishing. While the first upgraded replica migrates, scale to that single replica, or at least keep replicas on the older release from starting, then bring the rest up once it is serving.
 
 ## The compact record format
 
@@ -77,7 +77,7 @@ Make sure there is enough free disk:
 - **SQLite**: about half the size of the database file. The copy sits beside the old tables, at about a third of their size. Once the old tables are dropped, HappyView returns their pages to the filesystem in steps of 32 MB, emptying the write-ahead log after each. In the measurements above the most extra disk in use was 0.40 times the database file. On a database that has never had incremental vacuum (`PRAGMA auto_vacuum` reports `0`), the pages are not returned: the file keeps its size, and SQLite reuses the freed pages for new records.
 - **Postgres**: about the current size of `happyview_records` and `happyview_record_refs` together. The copy takes about half of that inside the database. It also generates about the tables' size in write-ahead log, of which Postgres keeps up to `max_wal_size` (1 GB by default), or more when WAL archiving or a replication slot holds it back.
 
-**On Postgres, stop every HappyView instance before you start the new release.** An instance still running the old release can write to the old tables while the new one copies them. The copy picks up those writes, and the final check locks the old tables so that it sees every one, but if writes keep arriving, the upgrade stops with an error rather than drop them. Stop the old instances and start the new release again.
+If you're on Postgres, stop every HappyView replica before you start the new release. A replica still running the old release can write to the old tables while the new one copies them. The copy picks up those writes, and the final check locks the old tables so that it sees every one, but if writes keep arriving, the upgrade stops with an error rather than drop them. Stop the old replicas and start the new release again.
 
 **Your own indexes, triggers and views on the old tables.** The upgrade drops `happyview_records` and `happyview_record_refs` and puts views of the same names in their place, so what you built on the old tables goes with them:
 
@@ -93,11 +93,11 @@ Make sure there is enough free disk:
 - **Views on SQLite** keep working. They name `happyview_records`, which is the new view after the upgrade.
 - **Views, materialized views, rules and foreign keys on Postgres** that depend on either table would stop the old table from being dropped. The upgrade checks for them before it copies anything. If it finds any, it stops with an error that names each one, such as `record store upgrade: these objects depend on happyview_records or happyview_record_refs, which the upgrade replaces with views of the same names: view my_witchsky; …`. Nothing is copied or dropped. Save their definitions, drop them and start HappyView again so the upgrade runs. Then recreate the views and rules: they read the new views the same way they read the tables. A foreign key cannot point at a view, so a foreign key to either table cannot come back; check the reference in your own code instead.
 
-**On SQLite, start one instance.** A second process started on the same file while the first is upgrading can exit with `database is locked`. Start it again once the first is serving: it finds the upgrade done.
+If you're on SQLite, start one instance. A second process started on the same file while the first is upgrading can exit with `database is locked`. Start it again once the first is serving: it finds the upgrade done.
 
 ### The first start
 
-The upgrade runs once, after the migrations and before HappyView serves requests. On Postgres it holds the migration lock, so another instance that starts waits for it, as it waits for a migration.
+The upgrade runs once, after the migrations and before HappyView serves requests. On Postgres it holds the migration lock, so another replica that starts waits for it, as it waits for a migration.
 
 1. HappyView copies `happyview_records` into the new tables in batches of 10,000, then `happyview_record_refs`. Each batch is committed with its position, and the log reports `record store upgrade: copying records` and `copying refs` with the count so far. If the process stops partway, the next start resumes from the last batch.
 2. It compares every record and every ref with the copy: the body byte for byte, the CID, the rev and the timestamps, and the number of records in each collection. If anything differs, it drops nothing, discards the copy and stops with an error naming up to five differences. Fix those rows or restore the backup, then start again; the copy starts over.

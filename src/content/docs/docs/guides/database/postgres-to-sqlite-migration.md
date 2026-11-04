@@ -3,9 +3,7 @@ title: Postgres to SQLite migration
 description: Move an existing instance from Postgres to SQLite, including the raw SQL its scripts send.
 ---
 
-## Overview
-
-The new database starts empty: records come back through backfill, and everything else is re-created by hand (step 6). HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw Postgres SQL to `happyview.sql`'s `raw` does need changing, because raw SQL reaches the backend untranslated.
+Moving to SQLite starts you on an empty database: records come back through backfill, and everything else is re-created by hand (step 6). HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw Postgres SQL to `happyview.sql`'s `raw` does need changing, because raw SQL reaches the backend untranslated.
 
 ## Step 1: Export your data
 
@@ -37,7 +35,7 @@ DATABASE_BACKEND=sqlite
 
 Convert raw SQL in Lua scripts from Postgres syntax to SQLite syntax. `migrate-lua-sql` automates this. It reads `.lua` files on disk, so copy any script you keep in the dashboard into a file first, and paste the result back afterwards. Convert raw SQL in JavaScript or TypeScript scripts by hand, using the list below.
 
-### Run the codemod tool
+### Run `migrate-lua-sql`
 
 ```sh
 # Preview the changes first
@@ -48,7 +46,7 @@ migrate-lua-sql /path/to/lua/scripts
 
 The tool ships in the [release archive](/docs/guides/self-hosting/binary), not the Docker image; from a clone, run `cargo run --bin migrate-lua-sql -- /path/to/lua/scripts`. It scans every `.lua` file in the given directory and its subdirectories, or in the current directory when none is given, and rewrites Postgres SQL patterns to SQLite equivalents. It rewrites any string literal that looks like SQL and fits on one line, whether or not it reaches `raw`, so review the `--dry-run` output first.
 
-### What the codemod converts automatically
+### What `migrate-lua-sql` converts automatically
 
 - `$1`, `$2`, etc. parameter placeholders to `?`
 - JSON operators (`->`, `->>`) and `::jsonb` casts to `json_extract()` calls
@@ -59,17 +57,15 @@ The tool ships in the [release archive](/docs/guides/self-hosting/binary), not t
 
 ### What it flags for manual review
 
-The tool prints warnings for patterns it cannot convert automatically:
+`migrate-lua-sql` prints warnings for patterns it cannot convert automatically:
 
-- JSONB `?` (contains-key) operator: consider using `json_each()` with an `EXISTS` subquery
+- JSONB `?` (contains-key) operator: rewrite with `json_each()` in an `EXISTS` subquery
 - `make_interval()`: Postgres-specific, needs manual conversion
 - `SIMILAR TO`: use `LIKE` or `GLOB` instead
 - `ANY()` / `ALL()` array operators: no direct SQLite equivalent
 - Type casts other than `::jsonb` (e.g., `::text`, `::integer`): may need manual conversion to `CAST(... AS ...)`
 
-Review the flagged lines and update them manually.
-
-## Step 4: Import data into SQLite
+## Step 4: Re-index records
 
 There is no direct import. HappyView creates the SQLite database and runs its migrations when it starts. Re-index your records from the network:
 
