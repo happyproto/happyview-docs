@@ -29,7 +29,7 @@ Adds: `backfill:create`, `api-keys:create`, `api-keys:delete`, `dead-letters:man
 
 ### Manager template
 
-Everything in the **Maintainer** template, plus the ability to manage and publish lexicons, records, scripts, labelers, settings, plugins, API clients, and spaces, and to deploy the project.
+Everything in the **Maintainer** template, plus the ability to manage and publish lexicons, records, scripts, labelers, settings, plugins, API clients, and atproto spaces, and to deploy the project.
 
 Adds: `lexicons:create`, `lexicons:delete`, `lexicons:publish`, `scripts:manage`, `project:deploy`, `script-variables:create`, `script-variables:delete`, `records:delete`, `labelers:create`, `labelers:read`, `labelers:delete`, `settings:manage`, `plugins:read`, `plugins:create`, `plugins:delete`, `api-clients:view`, `api-clients:create`, `api-clients:edit`, `api-clients:delete`, `spaces:create`, `spaces:read`, `spaces:update`, `spaces:delete`, `spaces:manage-members`, `spaces:manage-invites`, `spaces:manage-records`, `spaces:manage-credentials`
 
@@ -39,7 +39,7 @@ All 54 permissions. Equivalent to granting every permission individually (but st
 
 ## Reading space contents
 
-`spaces:inspect` lets an operator request time-limited access to read the records and blobs in private spaces, through the [space inspector](/docs/guides/spaces#moderating-spaces). Only **Full Access** includes it. Give it to the operators who handle reports, one by one.
+`spaces:inspect` lets an operator request time-limited access to read the records and blobs in private atproto spaces, through the [space inspector](/docs/guides/spaces#moderating-spaces). Only **Full Access** includes it. Give it to the operators who handle reports, one by one.
 
 `spaces:manage-records` is still in the **Manager** template, but it grants no access. Reading a space's contents needs `spaces:inspect` instead.
 

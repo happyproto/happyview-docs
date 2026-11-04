@@ -3,7 +3,7 @@ title: From source
 description: Build and run HappyView from a clone of its alpha branch with cargo.
 ---
 
-This guide runs HappyView directly with `cargo run`, from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
+Run HappyView directly with `cargo run` from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
 
 ## Prerequisites
 
@@ -82,4 +82,4 @@ HappyView starts on port 3000 (configurable via the `PORT` environment variable)
 
 ## Next steps
 
-Your HappyView instance is running. Install an interpreter before saving any script: a self-hosted instance ships with none ([Languages](/docs/reference/scripts/languages#install-an-interpreter)). Then [deploy a project](/docs/getting-started/deploying) to it.
+Install an interpreter before saving any script: a self-hosted instance ships with none ([Languages](/docs/reference/scripts/languages#install-an-interpreter)). Then [deploy a project](/docs/getting-started/deploying) to it.

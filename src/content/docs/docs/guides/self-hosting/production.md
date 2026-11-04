@@ -3,7 +3,7 @@ title: "Production"
 description: What to set and back up before an instance serves real users.
 ---
 
-These settings take a working HappyView instance from local development to production. For setup instructions, see [Docker](/docs/guides/self-hosting/docker) or [the release binaries](/docs/guides/self-hosting/binary).
+For setup instructions, see [Docker](/docs/guides/self-hosting/docker) or [the release binaries](/docs/guides/self-hosting/binary).
 
 ## Session secret
 
@@ -23,7 +23,7 @@ Set `TOKEN_ENCRYPTION_KEY` to a base64-encoded 32-byte key. It encrypts at rest,
 openssl rand -base64 32
 ```
 
-Without a valid key, app sign-in, spaces and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Sessions, script variables and the attestation key are stored unencrypted until a key is set; the first boot with one encrypts them. Changing the key makes everything already encrypted unreadable.
+Without a valid key, app sign-in, atproto spaces (off by default) and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Sessions, script variables and the attestation key are stored unencrypted until a key is set; the first boot with one encrypts them. Changing the key makes everything already encrypted unreadable.
 
 ## TLS and `PUBLIC_URL`
 

@@ -15,7 +15,7 @@ Each API key is a 35-character token with the format `hv_` followed by 32 random
 hv_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
 ```
 
-When you create a key, HappyView shows the full token **once**. After that, only the prefix (`hv_a1b2c3d4`) is stored for display, and the key itself is SHA-256 hashed before being saved to the database, so nobody (including you) can retrieve the full key after creation.
+When you create a key, HappyView shows the full token once. After that, only the prefix (`hv_a1b2c3d4`) is stored for display, and the key itself is SHA-256 hashed before being saved to the database, so nobody (including you) can retrieve the full key after creation.
 
 Each API key has its own set of **scoped permissions**, chosen when you create it. A key never has more access than the operator who created it; [API key permissions](/docs/guides/permissions#api-key-permissions) explains how the two combine.
 
@@ -125,14 +125,13 @@ The **Last Used** column in the API Keys table shows when each key was last used
 
 ## Security considerations
 
-- **Treat API keys like passwords.** Anyone with the key can access your HappyView instance with the key's permissions.
-- **Use the principle of least privilege.** Only grant the permissions a key actually needs. A key that deploys a project from CI needs only `project:deploy`, not full access.
-- **Use descriptive names** so you can identify which service uses which key.
-- **Revoke keys you no longer need.** If a key is compromised, revoke it immediately.
-- **Don't commit keys to version control.** Use environment variables or secret managers instead.
+- Anyone holding a key can access your instance with that key's permissions, so store it like a password.
+- Grant only the permissions the key needs. A key that deploys a project from CI needs only `project:deploy`.
+- Name each key after the service that uses it.
+- Revoke keys you no longer use, and revoke a compromised key at once.
+- Keep keys out of version control. Use environment variables or a secret manager.
 
 ## Next steps
 
 - [Admin API reference](/docs/reference/admin/admin-api): full endpoint documentation
-- [Scripts](/docs/getting-started/scripts): automate record processing with scripts
-- [Record & label scripts](/docs/getting-started/reacting-to-records): react to record changes and label events
+- [API key permissions](/docs/guides/permissions#api-key-permissions): how a key's permissions combine with its owner's
