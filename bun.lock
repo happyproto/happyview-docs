@@ -12,7 +12,7 @@
         "@astrojs/vercel": "11.0.17",
         "@atproto/api": "^0.20.25",
         "@atproto/oauth-client-browser": "^0.4.5",
-        "@happyview/design-system": "1.1.1",
+        "@happyview/design-system": "1.2.0",
         "astro": "7.4.4",
         "mermaid": "^11.16.0",
         "react": "^19.2.0",
@@ -204,7 +204,7 @@
 
     "@expressive-code/plugin-text-markers": ["@expressive-code/plugin-text-markers@0.44.3", "", { "dependencies": { "@expressive-code/core": "^0.44.3" } }, "sha512-4Ae2xRSDV5kdWPsi40xWbOtoihbzM0zLVjQKkDAnD5KzFXl+6/kd+VhuWOlTRVaJ5cqGk++vCbAaf0MR1XbZlw=="],
 
-    "@happyview/design-system": ["@happyview/design-system@1.1.1", "", {}, "sha512-ArsB/Ke4zRjCaBtRuWEwQIQSkq+8O7Fv96SrqIXKgCOwJlO2OOhqKXU3Wjvc4wUfOePIHlcSHdkD7UJPlRHBWg=="],
+    "@happyview/design-system": ["@happyview/design-system@1.2.0", "", {}, "sha512-jsvz3RlTKb2DRCxcLDJVCGr3gyqaX2ec+D/vQ0miOpAtvy6ImQrGPzTACeGRCMzJJ4QcZZeXlDnWjE7608JObw=="],
 
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
 

@@ -20,7 +20,7 @@
     "@astrojs/vercel": "11.0.17",
     "@atproto/api": "^0.20.25",
     "@atproto/oauth-client-browser": "^0.4.5",
-    "@happyview/design-system": "1.1.1",
+    "@happyview/design-system": "1.2.0",
     "astro": "7.4.4",
     "mermaid": "^11.16.0",
     "react": "^19.2.0",
