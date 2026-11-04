@@ -5,12 +5,36 @@ import { footer } from '../../site';
 ---
 
 <Default />
+<p class="term-status" role="status" aria-live="polite" data-term-status></p>
 <div class="site-foot not-content print:hidden">
   <p>{footer.copyright}</p>
   <ul role="list">
     {footer.links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}
   </ul>
 </div>
+
+<script>
+  // A terminal's Copy button copies its commands, without the "$" or the
+  // comments. It is hidden until this runs, since without it the button
+  // would do nothing.
+  const status = document.querySelector<HTMLElement>('[data-term-status]');
+  for (const button of document.querySelectorAll<HTMLButtonElement>('.hp-term-copy[data-copy]')) {
+    button.hidden = false;
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+        button.textContent = 'Copied';
+        if (status) status.textContent = 'Copied the commands';
+      } catch {
+        button.textContent = 'Copy failed';
+      }
+      setTimeout(() => {
+        button.textContent = 'Copy';
+        if (status) status.textContent = '';
+      }, 2000);
+    });
+  }
+</script>
 
 <style>
   .site-foot {
@@ -21,7 +45,6 @@ import { footer } from '../../site';
     gap: var(--hp-space-2) var(--hp-space-4);
     margin-block-start: var(--hp-space-8);
     padding-block-start: var(--hp-space-4);
-    border-block-start: 1px solid var(--hp-color-border);
     color: var(--hp-color-fg-muted);
     font-size: var(--hp-text-sm);
   }

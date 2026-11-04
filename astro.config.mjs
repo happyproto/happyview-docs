@@ -8,14 +8,16 @@ import starlightLinksValidator from 'starlight-links-validator';
 import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightSidebarTopics from 'starlight-sidebar-topics';
 import { redirectsFile } from './src/integrations/redirects-file.ts';
+import { rehypeCallouts } from './src/lib/rehype-callouts.ts';
 import { rehypeTables } from './src/lib/rehype-tables.ts';
 import { remarkMermaid } from './src/lib/remark-mermaid.ts';
+import { remarkWorkbench } from './src/lib/remark-workbench.ts';
 import { v3Sidebar } from './src/sidebar.ts';
 import v2Sidebar from './src/v2-sidebar.json' with { type: 'json' };
 
 export default defineConfig({
   site: 'https://happyview.dev',
-  markdown: { processor: unified({ remarkPlugins: [remarkMermaid], rehypePlugins: [rehypeTables] }) },
+  markdown: { processor: unified({ remarkPlugins: [remarkMermaid, remarkWorkbench], rehypePlugins: [rehypeTables, rehypeCallouts] }) },
   vite: { plugins: [tailwindcss()] },
   integrations: [
     starlight({
@@ -27,6 +29,22 @@ export default defineConfig({
         replacesTitle: true,
       },
       favicon: '/img/favicon.png',
+      // Code sits on the surface with no frame of its own; shell sessions,
+      // trees and named files are the design system's pieces instead (see
+      // remark-workbench).
+      expressiveCode: {
+        styleOverrides: {
+          borderWidth: '0px',
+          borderRadius: 'var(--hp-radius-lg)',
+          codeBackground: 'var(--hp-color-surface)',
+          frames: {
+            frameBoxShadowCssValue: 'none',
+            editorTabBarBackground: 'var(--hp-color-surface-raised)',
+            editorActiveTabBackground: 'var(--hp-color-surface)',
+            editorTabBarBorderBottomColor: 'transparent',
+          },
+        },
+      },
       editLink: {
         baseUrl: 'https://github.com/happyproto/happyview-docs/edit/main/',
       },

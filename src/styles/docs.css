@@ -36,7 +36,9 @@
   --sl-color-bg-accent: var(--hp-color-accent);
   --sl-color-hairline-light: var(--hp-color-border);
   --sl-color-hairline: var(--hp-color-border);
-  --sl-color-hairline-shade: var(--hp-color-border);
+  /* The rails Starlight draws under the header and beside the sidebar: none.
+     Space separates the columns, as on a workbench. */
+  --sl-color-hairline-shade: transparent;
 
   /* Asides and badges: note is the brand blue, tip the brand orange, the
      rest the semantic colours. Each aside's ground is its ink tinted onto
@@ -108,13 +110,6 @@ main .content-panel + .content-panel {
 #starlight__sidebar :is(a:not([aria-current='page']), summary):hover .large {
   color: var(--hp-color-fg);
 }
-#starlight__sidebar a[aria-current='page'],
-#starlight__sidebar a[aria-current='page']:hover,
-#starlight__sidebar a[aria-current='page']:focus {
-  background: var(--sl-color-accent-low);
-  color: var(--hp-color-accent);
-  font-weight: var(--hp-weight-semibold);
-}
 #starlight__sidebar a[aria-current='page'] .large {
   color: inherit;
   font-weight: inherit;
@@ -148,12 +143,16 @@ main .content-panel + .content-panel {
   }
 }
 
-/* Previous and next: hairlines, as everywhere else on the site. */
-.pagination-links a,
-.sl-link-card {
+/* Link cards, like previous and next: a ground, not an outline. */
+.sl-link-card,
+.sl-link-card:hover {
+  border-color: transparent;
   box-shadow: none;
 }
-.pagination-links a:hover {
+.sl-link-card {
+  background: var(--hp-color-surface);
+}
+.sl-link-card:hover {
   background: var(--hp-color-surface-raised);
 }
 
@@ -167,10 +166,11 @@ main .content-panel + .content-panel {
   text-decoration-thickness: 2px;
 }
 
-/* Tables. rehype-tables wraps each in a scroller; the edge shadows appear
-   only while there is more to scroll to. In a column under 40rem a table
-   stacks, each row a block and each cell naming its column. The width that
-   counts is the column's, which a sidebar narrows at any screen size. */
+/* Tables are the design system's hp-table, in its hp-table-scroll, which
+   rehype-tables adds: the first column fits its name, the prose columns
+   share the rest, and in a column under 40rem the table stacks. Here the
+   scroller also shades an edge while there is more to scroll to, and
+   Starlight's own cell rules give way. */
 .table-scroll,
 pre.mermaid,
 .diagram-full {
@@ -181,66 +181,16 @@ pre.mermaid,
     linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
     linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
 }
-.table-scroll {
-  container-type: inline-size;
-}
-.sl-markdown-content .table-scroll > table {
+.sl-markdown-content .hp-table {
   display: table;
-  inline-size: 100%;
   margin: 0;
   overflow: visible;
 }
-.sl-markdown-content td code {
-  overflow-wrap: anywhere;
+.sl-markdown-content .hp-table :is(th, td) {
+  border-block-end: 0;
 }
-.sl-markdown-content td code.name {
-  white-space: nowrap;
-}
-.sl-markdown-content table.stack td:last-child {
-  inline-size: 40%;
-}
-@container (max-width: 40rem) {
-  .sl-markdown-content table.stack,
-  .sl-markdown-content table.stack :is(tbody, tr, td) {
-    display: block;
-    inline-size: auto;
-  }
-  .sl-markdown-content table.stack thead {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .sl-markdown-content table.stack tr {
-    padding-block: var(--hp-space-3);
-    border-block-end: 1px solid var(--hp-color-border);
-  }
-  .sl-markdown-content table.stack td,
-  .sl-markdown-content table.stack td:last-child {
-    inline-size: auto;
-    padding: 0;
-    border: 0;
-  }
-  .sl-markdown-content td code.name {
-    white-space: normal;
-  }
-  .sl-markdown-content table.stack td + td {
-    margin-block-start: var(--hp-space-2);
-  }
-  .sl-markdown-content table.stack td:empty {
-    display: none;
-  }
-  .sl-markdown-content table.stack td:first-child {
-    font-weight: var(--hp-weight-semibold);
-  }
-  .sl-markdown-content table.stack td + td::before {
-    content: attr(data-label);
-    display: block;
-    color: var(--hp-color-fg-muted);
-    font-size: var(--hp-text-xs);
-    font-weight: var(--hp-weight-medium);
-  }
+.sl-markdown-content .hp-table td code {
+  overflow-wrap: normal;
 }
 
 /* Code blocks: Expressive Code's frame on the raised surface. */
@@ -433,4 +383,208 @@ pre.mermaid small,
     align-items: center;
     min-block-size: 2.75rem;
   }
+}
+
+/* ---- The workbench ----------------------------------------------------------
+
+   The page is open ground: no rails between the columns and no box around
+   prose. The framed things are the tools, the design system's terminal,
+   file tree, editor and callouts, which remark-workbench and rehype-callouts
+   make from the fences and asides already on each page. */
+
+/* The header stays in reach without a rule under it: the page shows through,
+   softened, as it scrolls beneath. */
+@supports (backdrop-filter: blur(1px)) {
+  :root {
+    --sl-color-bg-nav: color-mix(in oklab, var(--hp-color-bg) 86%, transparent);
+  }
+  .page > header.header {
+    backdrop-filter: saturate(1.4) blur(12px);
+  }
+}
+
+/* The sidebar's nested groups, the version switch and the table of contents
+   go without their lines, and the current
+   page is a tint with a dot in the accent, so it reads without a filled
+   block. */
+#starlight__sidebar ul ul li {
+  border-inline-start: 0;
+}
+/* With no rule under it, the pinned version switch fades the list that
+   scrolls beneath it instead. */
+#starlight__sidebar .starlight-sidebar-topics::after {
+  block-size: var(--hp-space-4);
+  margin: 0 0 calc(-1 * var(--hp-space-4));
+  border: 0;
+  background: linear-gradient(var(--hp-color-bg), transparent);
+  position: relative;
+  pointer-events: none;
+}
+#starlight__sidebar .starlight-sidebar-topics {
+  padding-block-end: var(--hp-space-2);
+}
+.right-sidebar {
+  border-inline-start: 0;
+}
+#starlight__sidebar a[aria-current='page'],
+#starlight__sidebar a[aria-current='page']:hover,
+#starlight__sidebar a[aria-current='page']:focus {
+  position: relative;
+  background: color-mix(in oklab, var(--hp-color-accent) 8%, var(--hp-color-bg));
+  color: var(--hp-color-fg);
+  font-weight: var(--hp-weight-medium);
+}
+#starlight__sidebar a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--hp-space-3));
+  inset-block-start: calc(50% - 3px);
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--hp-color-accent);
+}
+
+/* Previous and next: no cards, the title leads and the ground lifts on hover. */
+.pagination-links a {
+  border: 0;
+  background: var(--hp-color-surface);
+  box-shadow: none;
+}
+.pagination-links a:hover {
+  background: var(--hp-color-surface-raised);
+}
+
+/* Titles: larger and tighter than Starlight's, so a page announces itself
+   without a rule under it. */
+.content-panel h1#_top {
+  font-size: clamp(var(--hp-text-3xl), 4vw + 1rem, 2.75rem);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+  font-size: 1.625rem;
+}
+.sl-markdown-content :not(h1, h2, h3, h4, h5, h6, .sl-heading-wrapper) + .sl-heading-wrapper.level-h2 {
+  margin-block-start: var(--hp-space-12);
+}
+
+/* Section links hang in the margin as a "#", quiet until the heading is
+   pointed at. Phones have no margin to hang them in, and no hover to reveal
+   them, so they go there. */
+@media (min-width: 50rem) {
+  .sl-markdown-content .sl-heading-wrapper:is(.level-h2, .level-h3) {
+    position: relative;
+  }
+  .sl-markdown-content .sl-heading-wrapper:is(.level-h2, .level-h3) > :first-child:not([hidden]) {
+    padding-inline-end: 0;
+  }
+  .sl-markdown-content :is(.level-h2, .level-h3) > .sl-anchor-link {
+    position: absolute;
+    inset-inline-end: 100%;
+    inset-block-start: 0;
+    margin: 0;
+    padding-inline-end: 0.35em;
+    color: var(--hp-color-border-strong);
+    font-family: var(--hp-font-mono);
+    font-weight: var(--hp-weight-regular);
+    text-decoration: none;
+    opacity: 1;
+  }
+  .sl-markdown-content :is(.level-h2, .level-h3) > .sl-anchor-link::before {
+    content: '#';
+  }
+  .sl-markdown-content :is(.level-h2, .level-h3) > .sl-anchor-link .sl-anchor-icon {
+    display: none;
+  }
+  .sl-markdown-content .sl-heading-wrapper:hover > .sl-anchor-link,
+  .sl-markdown-content .sl-anchor-link:focus-visible {
+    color: var(--hp-color-accent);
+  }
+}
+@media (max-width: 49.99rem) {
+  .sl-markdown-content .sl-anchor-link {
+    display: none;
+  }
+  .sl-markdown-content .sl-heading-wrapper > :first-child:not([hidden]) {
+    padding-inline-end: 0;
+  }
+}
+
+/* Asides are hp-callouts; Starlight's rule down the side goes. */
+.starlight-aside.hp-callout {
+  border-inline-start: 0;
+}
+.starlight-aside.hp-callout .starlight-aside__title {
+  font-size: inherit;
+  line-height: var(--hp-leading-snug);
+}
+
+/* The workbench pieces take the page's block rhythm. */
+.sl-markdown-content :is(.hp-term, .hp-tree, .hp-editor) {
+  margin-block: var(--hp-space-4) var(--hp-space-6);
+}
+.sl-markdown-content :is(.hp-term, .hp-tree, .hp-editor) :is(ul, li, pre, p) {
+  margin: 0;
+}
+.sl-markdown-content .hp-tree li + li {
+  margin: 0;
+}
+.sl-markdown-content .hp-term-body {
+  border: 0;
+}
+.sl-markdown-content .hp-term-body:focus-visible {
+  outline: 2px solid var(--hp-color-accent);
+  outline-offset: -2px;
+}
+
+/* A code block shades the edge a line runs past, as a terminal does, on its
+   own ground: the surface, or the page inside an editor. */
+.expressive-code pre {
+  background:
+    linear-gradient(to right, var(--ec-codeBg) 40%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--ec-codeBg) 40%, transparent) right / 2rem 100% no-repeat local,
+    linear-gradient(to right, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in oklab, var(--hp-color-fg) 14%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+  background-color: var(--ec-codeBg);
+}
+
+/* In an editor, Expressive Code draws only the code: the editor is its frame. */
+.hp-editor-body .expressive-code {
+  margin: 0;
+}
+.hp-editor-body .expressive-code .frame {
+  --ec-brdRad: 0;
+  --ec-brdWd: 0;
+  --ec-frm-frameBoxShdCssVal: none;
+  --ec-codeBg: var(--hp-color-bg);
+}
+.hp-editor-body .expressive-code .frame:not(.has-title) .header {
+  display: none;
+}
+
+/* Copied: said once for assistive technology, from the footer's live region. */
+.term-status {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Code in a heading keeps the mono and drops the chip: at display size a
+   filled box is the outline the page refused. */
+.sl-markdown-content :is(h1, h2, h3, h4) code {
+  padding: 0;
+  background: none;
+  font-size: 0.92em;
+}
+
+/* The browser's own surfaces, in the palette. */
+::selection {
+  background: color-mix(in oklab, var(--hp-color-accent) 28%, transparent);
+}
+:root {
+  scrollbar-color: var(--hp-color-border-strong) transparent;
 }
