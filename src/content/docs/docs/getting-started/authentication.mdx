@@ -7,8 +7,6 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you the ways a person or a program proves who it is to HappyView, and what each one can reach.
-
 Your app's users call your XRPC endpoints under `/xrpc/`, and operators and automation call the admin API under `/admin/`. They take different credentials:
 
 | Who | Calls | With |
@@ -151,7 +149,7 @@ Other AppViews and services can also call your XRPC endpoints with an atproto se
 
 ## Use the admin API with an API key
 
-For automation, create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API with a key you already have, held in `$AUTH` as `Authorization: Bearer <key>`:
+For automation, create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API with a key you already have. The example assumes `AUTH='Authorization: Bearer <key>'` is set in your shell:
 
 ```sh
 curl -X POST "http://127.0.0.1:3000/admin/api-keys" \

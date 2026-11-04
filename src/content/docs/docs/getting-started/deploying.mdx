@@ -7,7 +7,7 @@ prerequisites:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page deploys your project to an instance: you sign in to it once with `hpy`, preview what a deploy would change, then deploy. The same steps work for an instance on HappyProto and one you run yourself.
+To deploy your project to an instance, sign in to it once with `hpy`, preview what a deploy would change, then deploy. The same steps work for an instance on HappyProto and one you run yourself.
 
 ## Before you start
 
@@ -106,7 +106,7 @@ Then give the job the instance's URL and the key:
 | `HPY_HV_URL` | The instance's URL |
 | `HPY_HV_API_KEY` | The API key |
 
-In GitHub, set `HPY_HV_URL` as a repository variable and `HPY_HV_API_KEY` as a repository secret, under **Settings > Secrets and variables > Actions**. This workflow checks and tests every push, and deploys `main`:
+In GitHub, set `HPY_HV_URL` as a repository variable and `HPY_HV_API_KEY` as a repository secret, under **Settings > Secrets and variables > Actions**. This workflow checks and tests every pull request and every push to `main`, and deploys `main`:
 
 ```yaml
 name: Deploy

@@ -1,13 +1,11 @@
 ---
 title: Testing
-description: Write test files next to your scripts and run them with happyview test, with mocks, forged callers and no network.
+description: Write test files next to your scripts and run them with happyview test, with mocks and forged callers, and without HappyView reaching the network.
 prerequisites:
   - /docs/getting-started/reacting-to-records
   - /docs/getting-started/authentication
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-
-This page shows you how to test the scripts in a HappyView project. You'll write a test file, run it, fire triggers at your scripts, mock a library and act as a signed-in user.
 
 Tests run against a project on disk: a directory with a `happyview.toml` and a `src/` directory. `hpy happyview create` scaffolds one. Scripts saved only in the dashboard can't be tested this way.
 

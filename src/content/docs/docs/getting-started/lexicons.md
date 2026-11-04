@@ -5,9 +5,9 @@ prerequisites:
   - /docs/getting-started/project-structure
 ---
 
-This page adds a record lexicon to your project, so your instance starts indexing that collection, and shows the other ways a lexicon can reach an instance.
+Adding a record lexicon to your project makes your instance start indexing that collection. A lexicon can also reach an instance from the network or from the dashboard.
 
-A lexicon is a schema document. Three kinds matter for building an app:
+A lexicon is a schema document. An app uses three kinds:
 
 - A **record lexicon** describes a kind of record. HappyView indexes every record of that collection it sees.
 - A **query lexicon** or **procedure lexicon** describes an endpoint. HappyView serves it at `/xrpc/<NSID>`; [Queries and procedures](/docs/getting-started/queries-and-procedures) covers those.
@@ -60,7 +60,7 @@ A local instance doesn't backfill unless you also set `backfill = true` under `[
 
 ## Use a lexicon someone else published
 
-Many lexicons are already published by their authors, such as Bluesky's `app.bsky.feed.post`. You don't need a copy in your project: list it under `[network_lexicons]` and the instance fetches it from the network and keeps it up to date.
+Many lexicons are already published by their authors, such as Bluesky's `app.bsky.feed.post`. Instead of copying it into your project, list it under `[network_lexicons]`, and the instance fetches it from the network and keeps it up to date.
 
 ```toml
 [network_lexicons]

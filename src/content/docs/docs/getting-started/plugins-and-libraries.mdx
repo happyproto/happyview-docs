@@ -7,8 +7,6 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to add the plugins your scripts need to your project, load a library from a script, and decide what each plugin is allowed to do.
-
 The examples use the `happyview.db` library and the `xyz.statusphere.status` collection.
 
 ## Interpreters and libraries
@@ -36,7 +34,7 @@ hpy happyview add javascript            # an interpreter, by its language
 
 hpy looks the name up in the registry and works out whether it's an interpreter or a library. If a name is both, pass `--interpreter` or `--library`. If several registry projects answer to one name, hpy asks which one you mean, or you can name it with `--project`.
 
-Each plugin publishes up to three channels: `latest`, `beta` and `alpha`. With no option, hpy follows `latest`, or the first of `beta` and `alpha` the plugin publishes if it has no `latest`. To choose:
+Each plugin publishes up to three channels: `latest`, `beta` and `alpha`. With no option, hpy follows `latest`. If the plugin has no `latest`, hpy follows the first of `beta` and `alpha` that it publishes. To choose:
 
 ```sh
 hpy happyview add happyview.db --channel alpha    # follow a channel: latest, beta or alpha

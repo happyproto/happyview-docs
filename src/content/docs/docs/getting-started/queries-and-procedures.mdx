@@ -7,7 +7,7 @@ prerequisites:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page adds endpoints to your project. A **query lexicon** becomes a read endpoint your app calls with `GET`; a **procedure lexicon** becomes a write endpoint it calls with `POST`. Both answer at `/xrpc/<NSID>`.
+A **query lexicon** becomes a read endpoint your app calls with `GET`; a **procedure lexicon** becomes a write endpoint it calls with `POST`. Both answer at `/xrpc/<NSID>`.
 
 ## A query that lists records
 
@@ -265,7 +265,7 @@ export default function handle(
 </TabItem>
 </Tabs>
 
-The script needs the `happyview.record` library: `hpy happyview add happyview.record`, then restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; writing to repositories you've been granted is [Linked repos](/docs/guides/linked-repos).
+The script needs the `happyview.record` library: `hpy happyview add happyview.record`, then restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; to write to repositories you've been granted access to, see [Linked repos](/docs/guides/linked-repos).
 
 To try a procedure before your app can sign users in, call it from a test, which can act as any user: see [Testing](/docs/getting-started/testing#act-as-a-user).
 

@@ -7,9 +7,7 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to queue work from a script and run it in the background, where it isn't held to the time limits that requests and record scripts have.
-
-A background job has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request.
+A background job runs outside the time limits that requests and record scripts have. It has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request.
 
 You need a project made with `hpy happyview create`, running under `hpy happyview dev`.
 
@@ -227,9 +225,9 @@ The worker checks for pending jobs every 5 seconds and takes the oldest first. B
 
 These are not available in this version of HappyView:
 
-- **Delayed or scheduled runs.** A job is picked up as soon as a worker is free. There is no way to say "run this at a later time". Inside a job, `ctx.job.wait` can pause for up to an hour.
-- **Automatic retries.** A job that fails stays `failed`. Nothing runs it again. To retry, queue a new job.
-- **Recurring schedules.** There is no cron-style schedule. A job can queue a follow-up job before it returns, but nothing repeats a job on its own.
+- **Delayed or scheduled runs.** A job is picked up as soon as a worker is free. Inside a job, `ctx.job.wait` can pause for up to an hour.
+- **Automatic retries.** A job that fails stays `failed`. To retry, queue a new job.
+- **Recurring schedules.** There is no cron-style schedule. A job can queue a follow-up job before it returns.
 
 ## Next steps
 
