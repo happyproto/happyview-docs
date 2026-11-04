@@ -3,7 +3,7 @@ title: "Docker"
 description: Run HappyView from its published container image with one of the production Compose files.
 ---
 
-This guide deploys HappyView from the prebuilt images published to GitHub Container Registry, using one of the two production Compose files in the repository. Nothing is compiled locally: the image already contains HappyView and its dashboard.
+To run HappyView with Docker, you use its prebuilt image from GitHub Container Registry and one of the repository's two production Compose files. The image already contains HappyView and its dashboard, so nothing is compiled locally.
 
 If you want to run the repository's development stack with hot reloading, see [Run the development stack](/docs/contributing/develop#run-the-development-stack) instead. To run HappyView directly with `cargo run`, see [From source](/docs/guides/self-hosting/from-source).
 
@@ -13,6 +13,8 @@ If you want to run the repository's development stack with hot reloading, see [R
 - A domain and a reverse proxy that terminates TLS, which HappyView doesn't do itself. See [step 4](#4-put-a-reverse-proxy-in-front)
 
 ## The image
+
+HappyView's image is published at:
 
 ```
 ghcr.io/gamesgamesgamesgamesgames/happyview
@@ -32,7 +34,7 @@ Multi-arch manifests are published for `linux/amd64` and `linux/arm64` on every 
 v3 is in alpha, so every v3 image is a prerelease, published under its full version and its commit SHA only. A prerelease moves none of `latest`, `2.13` or `2`. Find the newest `3.0.0-alpha.<n>` on the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases). The `beta` line (such as `2.17.0-beta.1`) is v2.
 
 :::caution[Set HAPPYVIEW_VERSION]
-Every Compose file below reads `HAPPYVIEW_VERSION` and defaults to `latest`, which is v2. Set it to an exact v3 version, as step 2 does, so you get the version these docs describe and a redeploy can't pull a different build than the one you tested.
+Every Compose file below reads `HAPPYVIEW_VERSION` and defaults to `latest`, which is v2. Set it to an exact v3 version, as step 2 does. That way you get the version these docs describe, and a redeploy can't pull a different build than the one you tested.
 :::
 
 ## 1. Choose a database
@@ -83,12 +85,12 @@ echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
 
 Compose refuses to start without these:
 
-- **`PUBLIC_URL`**: the public HTTPS URL people actually reach, scheme included. It's used to build OAuth redirect URIs, so a mismatch breaks login. Do **not** include `BASE_PATH` here.
+- **`PUBLIC_URL`**: the public HTTPS URL people reach, scheme included. It's used to build OAuth redirect URIs, so a mismatch breaks login. Do **not** include `BASE_PATH` here.
 - **`SESSION_SECRET`**: signs the dashboard session cookie. An unset or too-short value doesn't stop HappyView booting. It disables cookie login, which is why the Compose files require it explicitly.
-- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [spaces](/docs/guides/spaces), and service identity don't work. Rotating it makes everything already encrypted unreadable.
+- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [atproto spaces](/docs/guides/spaces) (off by default), and service identity don't work. Rotating it makes everything already encrypted unreadable.
 
 :::caution[Deploying from a clone of the repository instead]
-The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not. A development `.env` left beside the Compose files is auto-loaded just the same, and quietly supplies these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:
+The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not. A development `.env` left beside the Compose files is auto-loaded too, and supplies these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:
 
 ```sh
 docker compose --env-file .env.prod -f docker-compose.prod.sqlite.yml up -d
@@ -97,10 +99,12 @@ docker compose --env-file .env.prod -f docker-compose.prod.sqlite.yml up -d
 :::
 
 :::caution[Percent-encode Postgres passwords]
-`POSTGRES_PASSWORD` is interpolated into a connection URL. A password containing `@`, `/`, `:`, or `#` truncates it, because those are URL delimiters. `openssl rand -hex 32` avoids the problem entirely.
+`POSTGRES_PASSWORD` is interpolated into a connection URL. A password containing `@`, `/`, `:`, or `#` truncates it, because those are URL delimiters. The output of `openssl rand -hex 32` contains none of these characters.
 :::
 
 ## 3. Start the stack
+
+From the instance directory, start the stack in the background:
 
 ```sh
 docker compose up -d
@@ -116,7 +120,7 @@ docker compose logs -f
 
 ## 4. Put a reverse proxy in front
 
-HappyView does not terminate TLS, and both Compose files publish to **loopback only** by default (`127.0.0.1:3000`). The proxy in front is what should be exposed.
+HappyView does not terminate TLS, and both Compose files publish only to loopback by default (`127.0.0.1:3000`). The proxy in front is what should be exposed.
 
 ### Using the bundled Caddy service
 
@@ -133,10 +137,10 @@ Then, in `.env` and the Compose file:
 - Add `CADDY_DOMAIN` to `.env`: the hostname from `PUBLIC_URL` with the scheme stripped, so `happyview.example.com` for `https://happyview.example.com`. `PUBLIC_URL` itself stays the full URL.
 - Delete the `ports` block from the `happyview` service. Caddy reaches it over the Compose network, so publishing it to the host as well only widens the exposure. Leave `HTTP_BIND` unset.
 
-Point DNS at the host _before_ the first `up`. Caddy requests a certificate on startup, and a challenge for a hostname that doesn't resolve to this host fails and retries with backoff.
+Before the first `up`, point DNS at the host. Caddy requests a certificate on startup, and a challenge for a hostname that doesn't resolve to this host fails and retries with backoff.
 
 :::caution[Port 80 has to stay open]
-It serves the redirect from HTTP to HTTPS *and* the ACME HTTP-01 challenge, which is also how renewal works. Closing it once the first certificate has issued makes renewal fail silently about 60 days later. DNS-01, the usual alternative, isn't available here: the stock `caddy` image ships no DNS provider modules, and adding one means building a custom image with xcaddy.
+It serves both the redirect from HTTP to HTTPS and the ACME HTTP-01 challenge, which is also how renewal works. Closing it once the first certificate has issued makes renewal fail silently about 60 days later. DNS-01, the usual alternative, isn't available here, because the stock `caddy` image ships no DNS provider modules and adding one means building a custom image with xcaddy.
 :::
 
 :::danger[The certificate volume must persist]
@@ -145,9 +149,9 @@ It serves the redirect from HTTP to HTTPS *and* the ACME HTTP-01 challenge, whic
 
 ### Other options
 
-- **A proxy on the host**: leave the default `ports` block and point nginx, Caddy, or Traefik at `127.0.0.1:3000`
-- **Cloudflare Tunnel**: no inbound port needs opening at all. See [Expose the stack through a Cloudflare Tunnel](/docs/contributing/develop#expose-the-stack-through-a-cloudflare-tunnel) for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname
-- **`HTTP_BIND=0.0.0.0:3000`**: publishes on all interfaces. Only do this if something else is firewalling the port, since `ports` bypasses the host firewall on most Docker installs
+- To use a proxy on the host, leave the default `ports` block and point nginx, Caddy, or Traefik at `127.0.0.1:3000`.
+- With a Cloudflare Tunnel, no inbound port needs opening. See [Expose the stack through a Cloudflare Tunnel](/docs/contributing/develop#expose-the-stack-through-a-cloudflare-tunnel) for how the tunnel is wired up, then set `PUBLIC_URL` to the tunnel's hostname.
+- `HTTP_BIND=0.0.0.0:3000` publishes on all interfaces. Only do this if something else is firewalling the port, since `ports` bypasses the host firewall on most Docker installs.
 
 Whatever you use, `PUBLIC_URL` must match the resulting public URL exactly. To serve HappyView at a subpath alongside other services, see [Reverse proxy subpath](/docs/guides/self-hosting/production#reverse-proxy-subpath). `BASE_PATH` is applied at container start, so prebuilt images work at any subpath without a rebuild.
 
@@ -174,7 +178,7 @@ Compose hands the container only the variables named in its `environment` block,
 To pass another variable, add it to the `environment` block. The SQLite file has a commented-out line for `ATTESTATION_PRIVATE_KEY`. The Postgres file has them for that, `APP_NAME`, `LOGO_URI`, `TOS_URI`, `POLICY_URI`, `PLUGIN_URLS` and the `BACKFILL_CONCURRENT_*` settings.
 
 :::caution[Postgres connection limits]
-HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. Both are lazy, so an idle instance holds almost nothing, but a running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
+HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. Both are lazy, so an idle instance holds almost nothing. A running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
 :::
 
 :::danger[Don't override the SQLite DATABASE_URL through the environment]
@@ -208,7 +212,7 @@ For an external probe, `GET /health` returns `200 ok` once HappyView can bind it
 
 Both stacks set `init: true`. The entrypoint `exec`s HappyView, making it PID 1, where the kernel drops signals that have only their default disposition, and HappyView installs no `SIGTERM` handler. Without an init, every `stop`, `restart`, and `down` would hang for the full grace period and end in `SIGKILL` (exit 137). `init: true` puts tini at PID 1 to forward the signal so HappyView exits promptly.
 
-This is a _prompt_ exit, not a _graceful_ one: there is no graceful-shutdown handler, so in-flight requests are dropped either way, and an interrupted [job](/docs/getting-started/background-jobs) is re-queued on the next boot.
+HappyView has no graceful-shutdown handler, so in-flight requests are dropped either way, and an interrupted [job](/docs/getting-started/background-jobs) is re-queued on the next boot.
 
 The Postgres service additionally uses `stop_signal: SIGINT`. Docker's default `SIGTERM` is a Postgres _smart_ shutdown, which waits for every client to disconnect. It would hang for the full grace period and take a `SIGKILL`, leaving the next boot to run crash recovery. `SIGINT` is the fast shutdown: roll back open transactions, checkpoint, exit.
 

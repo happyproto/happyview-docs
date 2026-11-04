@@ -3,11 +3,11 @@ title: "Quickstart"
 description: "Install hpy, create a project and call its starter query on a local instance."
 ---
 
-These steps install `hpy`, create a project and call its starter query on a local instance. [Installation](/docs/getting-started/installation) and [Running locally](/docs/getting-started/running-locally) explain the first three steps in more detail.
+Let's install `hpy`, create a project and call its starter query on a local instance. [Installation](/docs/getting-started/installation) and [Running locally](/docs/getting-started/running-locally) explain steps 1 to 3 in more detail.
 
-You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account to develop with. Use a test account: the local instance writes to that account's real PDS. [pds.rip](https://pds.rip) issues sandbox accounts.
+You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account to develop with. Use a test account, because the local instance writes to that account's real PDS, and you probably don't want test records piling up in your main account. [pds.rip](https://pds.rip) issues sandbox accounts.
 
-1. Install `hpy` from its `beta` channel, then check it:
+1. Let's install `hpy` from its `beta` channel, then check it:
 
    ```sh
    brew install happyproto/tap/hpy-beta
@@ -16,7 +16,7 @@ You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account
 
    For the install script and other package managers, see [Install hpy](/docs/getting-started/installation#install-hpy).
 
-2. Create a project:
+2. Now let's create a project:
 
    ```sh
    hpy happyview create --name my-app
@@ -33,7 +33,7 @@ You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account
 
    The project contains a query lexicon, `src/lexicons/com/example/hello.json`, and the Lua script that answers it, `hello.lua`.
 
-3. Run the project as a local instance:
+3. Looking good! Let's run the project as a local instance:
 
    ```sh
    cd my-app
@@ -50,17 +50,19 @@ You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account
 
    Leave it running.
 
-4. In another terminal, call the starter query:
+4. In another terminal, let's call the starter query:
 
    ```sh
    curl 'http://127.0.0.1:3000/xrpc/com.example.hello?name=Ada'
    ```
 
+   The instance answers:
+
    ```text
    {"message":"Hello, Ada!"}
    ```
 
-   Without `name`, the query answers `{"message":"Hello, world!"}`. Edit `hello.lua` and save it, and the next request runs the new version.
+   Without `name`, the query answers `{"message":"Hello, world!"}`. If we edit `hello.lua` and save it, the next request runs the new version.
 
 ## Next steps
 
