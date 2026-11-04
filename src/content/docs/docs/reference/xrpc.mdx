@@ -5,7 +5,7 @@ description: "The XRPC endpoints an instance serves: fixed ones, and the queries
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-[XRPC](https://atproto.com/specs/xrpc) is the HTTP-based RPC protocol atproto uses. HappyView registers XRPC endpoints from your [lexicons](/docs/getting-started/lexicons), whether they come from a project, an upload or the network: query lexicons become `GET /xrpc/{nsid}` routes, procedure lexicons become `POST /xrpc/{nsid}` routes.
+[XRPC](https://atproto.com/specs/xrpc) is the HTTP-based RPC protocol atproto uses. HappyView registers XRPC endpoints from your [lexicons](/docs/getting-started/lexicons), whether they come from a project, an upload or the network: query lexicons become `GET /xrpc/{method}` routes, procedure lexicons become `POST /xrpc/{method}` routes.
 
 A query or procedure is served by the [script](/docs/getting-started/scripts) attached to it. Without one, a query answers only a single-record lookup by `uri`, and every other call answers [`501`](#method-has-no-script).
 
@@ -23,14 +23,14 @@ A request with an identity also has to name its API client, with `X-Client-Key` 
 
 ## Fixed endpoints
 
-These endpoints are always available regardless of which lexicons are loaded.
+These endpoints are available regardless of which lexicons are loaded, except where a row says otherwise.
 
 | Endpoints | Documented in |
 | --- | --- |
 | `GET /health`, `GET /xrpc/app.bsky.actor.getProfile`, `POST /xrpc/com.atproto.repo.uploadBlob` | This page |
 | `dev.happyview.listApiClients`, `getApiClient`, `createApiClient`, `deleteApiClient` | [Third-party API clients](/docs/reference/oauth) |
 | `dev.happyview.delegation.*` | [Delegation](#delegation) |
-| `com.atproto.space.*`, `com.atproto.simplespace.*` | [Spaces](/docs/guides/spaces), while spaces are turned on |
+| `com.atproto.space.*`, `com.atproto.simplespace.*` | [atproto spaces](/docs/guides/spaces); off by default, available once turned on |
 
 ### Delegation
 
@@ -643,7 +643,9 @@ When a script fails, the response is a `script_error` body:
 { "error": "script_error", "errorType": "runtime", "message": "attempt to index a nil value (local 't')", "method": "xyz.statusphere.getStatus", "line": 3, "file": "src/lib/format.lua" }
 ```
 
-`errorType` is `syntax`, `runtime`, `memory` or `missing_handle` with status `500`, or `timeout` with status `408` when the script hit the instruction limit or the wall clock, both set in **System > General**. `line` is the script line that raised, or `null`. `file` is the project file `line` is in, relative to the project root: the script itself, or a local module it imported. It is `null` for a script saved through the dashboard, which has no file.
+`errorType` is `syntax`, `runtime`, `memory` or `missing_handle` with status `500`. It is `timeout` with status `408` when the script hit the instruction limit or the wall clock, both set in **System > General**.
+
+`line` is the script line that raised, or `null`. `file` is the project file `line` is in, relative to the project root: the script itself, or a local module it imported. It is `null` for a script saved through the dashboard, which has no file.
 
 The instance logs the same error with the script source and the caller's input. See [Errors](/docs/reference/scripts/contract#errors) for how to diagnose script issues.
 
