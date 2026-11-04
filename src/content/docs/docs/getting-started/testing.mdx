@@ -1,15 +1,13 @@
 ---
 title: Testing
-description: Write test files next to your scripts and run them with happyview test, with mocks, forged callers and no network.
+description: Write test files next to your scripts and run them with happyview test, with mocks and forged callers, and without HappyView reaching the network.
 prerequisites:
   - /docs/getting-started/reacting-to-records
   - /docs/getting-started/authentication
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to test the scripts in a HappyView project. You'll write a test file, run it, fire triggers at your scripts, mock a library and act as a signed-in user.
-
-Tests run against a project on disk: a directory with a `happyview.toml` and a `src/` directory. `hpy happyview create` scaffolds one. Scripts saved only in the dashboard can't be tested this way.
+Let's check our scripts before we deploy them. Tests run against a project on disk: a directory with a `happyview.toml` and a `src/` directory. `hpy happyview create` scaffolds one. Scripts saved only in the dashboard can't be tested this way.
 
 :::note[You need an interpreter that supports tests]
 Test files run in the same interpreter plugins as your scripts. An interpreter built before test runs existed refuses a test file, and the run says it needs `happyview-plugin-sdk` 0.3.0 or later. Update the plugin to fix it.
@@ -21,7 +19,7 @@ A test file is any file under `src/` named `*.test.<ext>`, where `<ext>` is an e
 
 A test file defines no `handle`. It declares tests, and each test passes, fails or is skipped. Lua uses busted-style globals: `describe`, `it`, `pending`, `before_each`, `after_each` and `assert`. JavaScript and TypeScript use Vitest-style functions imported from `internal.test`: `describe`, `it`, `it.skip`, `beforeEach`, `afterEach` and `expect`.
 
-This test checks a module directly, without firing anything. It assumes `src/lib/format.lua` (or `.js`, `.ts`) exports a `shout` function.
+Let's start with a module. This test assumes `src/lib/format.lua` (or `.js`, `.ts`) exports a `shout` function, and checks it directly, without firing anything:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -85,7 +83,7 @@ The Lua assertions are `assert(value, message)`, `assert.are.equal`, `assert.are
 
 ## Run the tests
 
-From the project root:
+Let's run them from the project root:
 
 ```sh
 hpy happyview test                # every test file
@@ -132,13 +130,13 @@ A whole file fails if it won't load, raises an error outside a test, reports no 
 | `1` | A test or a file failed, or no test file ran (there are none, or the filter matched none) |
 | `2` | The tests couldn't run: a usage error, a plugin that wouldn't load, or a build error in the project |
 
-`hpy happyview test` exits with the same code.
+`hpy happyview test` exits with the same code. A filter with a typo in it fails the run, so it can't pass by testing nothing.
 
 ## Fire a trigger
 
-The `test` object from `internal.test` fires triggers at your scripts. Each trigger goes in through the same entry point as the real event, so your script runs as it would in production, with auth and indexing around it. Each one returns `{ status, body }`.
+Excellent! Next, let's test a script. The `test` object from `internal.test` fires triggers at your scripts. Each trigger goes in through the same entry point as the real event, so your script runs as it would in production, with auth and indexing around it. Each one returns `{ status, body }`.
 
-This test fires a record create at the `xyz.statusphere.status` record script from [Reacting to records](/docs/getting-started/reacting-to-records):
+Let's fire a record create at the `xyz.statusphere.status` record script from [Reacting to records](/docs/getting-started/reacting-to-records):
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -243,7 +241,7 @@ A forged caller only exists in a test run. HappyView honors it only when the req
 
 ## Mock a library
 
-A library you don't mock runs for real, network included. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. This test answers every `get` from `happyview.http`, then checks the script made one call. `com.example.getWeather` stands in for a query your project defines.
+A library you don't mock runs for real, network included. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. `com.example.getWeather` stands in for a query your project defines. This test answers every `get` from `happyview.http`, then checks the script made one call:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">

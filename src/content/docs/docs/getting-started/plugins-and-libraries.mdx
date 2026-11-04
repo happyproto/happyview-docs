@@ -7,8 +7,6 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to add the plugins your scripts need to your project, load a library from a script, and decide what each plugin is allowed to do.
-
 The examples use the `happyview.db` library and the `xyz.statusphere.status` collection.
 
 ## Interpreters and libraries
@@ -26,7 +24,7 @@ A self-hosted instance has no interpreter until one is installed. At boot it log
 
 ## Add a plugin to your project
 
-`hpy happyview create` already added the interpreters you chose, Lua by default. To add a library, or another interpreter, run `hpy happyview add` from the project root with the library's name or the interpreter's language:
+`hpy happyview create` already added the interpreters we chose, Lua by default. To add a library or another interpreter, we run `hpy happyview add` from the project root with the library's name or the interpreter's language:
 
 ```sh
 hpy happyview add happyview.db          # a library, by its namespace
@@ -36,7 +34,7 @@ hpy happyview add javascript            # an interpreter, by its language
 
 hpy looks the name up in the registry and works out whether it's an interpreter or a library. If a name is both, pass `--interpreter` or `--library`. If several registry projects answer to one name, hpy asks which one you mean, or you can name it with `--project`.
 
-Each plugin publishes up to three channels: `latest`, `beta` and `alpha`. With no option, hpy follows `latest`, or the first of `beta` and `alpha` the plugin publishes if it has no `latest`. To choose:
+Each plugin publishes up to three channels: `latest`, `beta` and `alpha`. With no option, hpy follows `latest`. If the plugin has no `latest`, hpy follows the first of `beta` and `alpha` that it publishes. To choose:
 
 ```sh
 hpy happyview add happyview.db --channel alpha    # follow a channel: latest, beta or alpha
@@ -59,7 +57,7 @@ lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channe
 
 Each entry names the registry project by its publisher's DID and its name, and follows either a `channel` or one exact `version`.
 
-`add` then resolves every entry to an exact version, downloads each plugin, and writes `happyview.lock`. The lock pins the version, the CIDs that the downloaded files must match, and the capabilities that version declares. Commit it, and don't edit it by hand:
+`add` then resolves every entry to an exact version, downloads each plugin, and writes `happyview.lock`. The lock pins the version, the CIDs that the downloaded files must match, and the capabilities that version declares. Commit it, and don't edit it by hand. The entry for `happyview.db` looks like this:
 
 ```toml
 # Written by hpy from happyview.toml. Commit it; don't edit it by hand.
@@ -88,7 +86,7 @@ If anything fails, such as a name the registry doesn't know or a download that d
 
 ### Restart `hpy happyview dev`
 
-`hpy happyview dev` puts the locked plugins in place before it starts HappyView. A running `dev` doesn't watch the plugins directory, so stop it and start it again after `add`.
+`hpy happyview dev` puts the locked plugins in place before it starts HappyView. A running `dev` doesn't watch the plugins directory, so let's stop it and start it again now. If a script ever says it can't find a library we just added, a forgotten restart is the first thing to check.
 
 ## Deploy the locked versions
 
@@ -96,7 +94,7 @@ If anything fails, such as a name the registry doesn't know or a download that d
 
 ## Use a library in a script
 
-Once `happyview.db` is in your project, any script can load it. This query script lists one account's statuses, newest first:
+Excellent! With `happyview.db` in our project, any script can load it. Let's write a query script that lists one account's statuses, newest first:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">

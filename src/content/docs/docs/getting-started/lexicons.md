@@ -5,18 +5,18 @@ prerequisites:
   - /docs/getting-started/project-structure
 ---
 
-This page adds a record lexicon to your project, so your instance starts indexing that collection, and shows the other ways a lexicon can reach an instance.
+Adding a record lexicon to our project makes our instance start indexing that collection. A lexicon can also reach an instance from the network or from the dashboard.
 
-A lexicon is a schema document. Three kinds matter for building an app:
+A lexicon is a schema document. An app uses three kinds:
 
 - A **record lexicon** describes a kind of record. HappyView indexes every record of that collection it sees.
 - A **query lexicon** or **procedure lexicon** describes an endpoint. HappyView serves it at `/xrpc/<NSID>`; [Queries and procedures](/docs/getting-started/queries-and-procedures) covers those.
 
-The examples use Statusphere's `xyz.statusphere.status`: a status emoji a user sets on their account.
+We'll use Statusphere's `xyz.statusphere.status` as our running example: a status emoji a user sets on their account.
 
 ## Add a record lexicon
 
-A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexicons/xyz/statusphere/status.json`.
+A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexicons/xyz/statusphere/status.json`. Let's create that file:
 
 ```json
 {
@@ -39,15 +39,15 @@ A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexico
 }
 ```
 
-Save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
-
-Records arrive only when someone writes one, so the list can stay empty for a while. To see records straight away, backfill the ones already on the network, as the next section shows.
+Let's save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
 
 If the `id` doesn't match the path, the build fails and tells you where the file should be.
 
+Records arrive only when someone writes one, so the list can stay empty for a while. Watching an empty table isn't much of a demo, so let's backfill the records already on the network instead. That takes one more setting, below.
+
 ## Backfill what came before
 
-Indexing starts from now: records written before your instance started listening aren't fetched unless you ask for a **backfill**. Turn it on for a lexicon in `happyview.toml`:
+Indexing starts from now: records written before your instance started listening aren't fetched unless you ask for a **backfill**. Let's turn it on for our status lexicon in `happyview.toml`:
 
 ```toml
 [lexicons."xyz.statusphere.status"]
@@ -56,11 +56,11 @@ backfill = true
 
 A backfill finds every account with records in that collection and fetches them from each account's PDS. It runs once per collection: when you deploy, or at an instance's next start, and not again after that. [Backfill](/docs/guides/backfill) covers watching one and running it again.
 
-A local instance doesn't backfill unless you also set `backfill = true` under `[dev]`, so developing doesn't crawl the network every time you start.
+A local instance doesn't backfill unless we also set `backfill = true` under `[dev]`, so developing doesn't crawl the network every time we start.
 
 ## Use a lexicon someone else published
 
-Many lexicons are already published by their authors, such as Bluesky's `app.bsky.feed.post`. You don't need a copy in your project: list it under `[network_lexicons]` and the instance fetches it from the network and keeps it up to date.
+Many lexicons are already published by their authors, such as Bluesky's `app.bsky.feed.post`. Instead of copying it into our project, we can list it under `[network_lexicons]`, and the instance fetches it from the network and keeps it up to date:
 
 ```toml
 [network_lexicons]

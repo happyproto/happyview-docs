@@ -7,8 +7,6 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you the ways a person or a program proves who it is to HappyView, and what each one can reach.
-
 Your app's users call your XRPC endpoints under `/xrpc/`, and operators and automation call the admin API under `/admin/`. They take different credentials:
 
 | Who | Calls | With |
@@ -21,9 +19,9 @@ Your app's users call your XRPC endpoints under `/xrpc/`, and operators and auto
 
 ## Sign in to the dashboard
 
-You sign in to the dashboard with your atproto account. Open your instance, enter your handle, and approve the sign-in on your PDS. HappyView sets a signed session cookie, and the dashboard uses it for every admin call it makes for you.
+Let's sign in to the dashboard first, with your atproto account. Open your instance, enter your handle, and approve the sign-in on your PDS. HappyView sets a signed session cookie, and the dashboard uses it for every admin call it makes for you.
 
-On a new instance, the first account to sign in becomes an operator, with the superadmin privilege and every permission. To choose that account in advance, set `SUPERADMIN_DID`. HappyView then gives that DID superadmin at boot and does not promote whoever signs in first.
+On a new instance, the first account to sign in becomes an operator, with the superadmin privilege and every permission. If you'd rather not race anyone to the sign-in page, set `SUPERADMIN_DID` to choose that account in advance. HappyView then gives that DID superadmin at boot and does not promote whoever signs in first.
 
 Signing in needs a secure `SESSION_SECRET` of at least 32 bytes. With a missing or weak one, HappyView refuses to start a sign-in.
 
@@ -91,7 +89,7 @@ Because HappyView and your app hold the same key, HappyView can sign its own pro
 
 ## The caller, inside a script
 
-A script sees the caller in `ctx`:
+Now let's use the caller in a script. A script sees the caller in `ctx`:
 
 - `ctx.caller_did` is the signed-in user's DID. It is absent when the request is anonymous.
 - `ctx.has_pds_auth` is `true` when HappyView holds a session it can use to write to that user's PDS.
@@ -151,7 +149,7 @@ Other AppViews and services can also call your XRPC endpoints with an atproto se
 
 ## Use the admin API with an API key
 
-For automation, create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API with a key you already have, held in `$AUTH` as `Authorization: Bearer <key>`:
+For automation, let's create an admin API key. Open **API Keys** in the dashboard, under **Access**, and click **Create API Key**, or call the admin API with a key you already have. The example assumes `AUTH='Authorization: Bearer <key>'` is set in your shell:
 
 ```sh
 curl -X POST "http://127.0.0.1:3000/admin/api-keys" \

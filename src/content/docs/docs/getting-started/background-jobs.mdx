@@ -7,15 +7,13 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page shows you how to queue work from a script and run it in the background, where it isn't held to the time limits that requests and record scripts have.
+A background job runs outside the time limits that requests and record scripts have. It has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request.
 
-A background job has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request.
-
-You need a project made with `hpy happyview create`, running under `hpy happyview dev`.
+We'll need a project made with `hpy happyview create`, running under `hpy happyview dev`.
 
 ## Add the jobs library
 
-Queuing a job needs the `happyview.jobs` library. A job script doesn't. From the project root:
+Queuing a job needs the `happyview.jobs` library, though a job script doesn't. Let's add it from the project root:
 
 ```sh
 hpy happyview add happyview.jobs
@@ -25,7 +23,7 @@ This adds the library to `[libraries]` in `happyview.toml` and to `happyview.loc
 
 ## Write the job script
 
-A job script lives in `src/jobs/`, and its file name is its job type. Create `src/jobs/export.lua` (or `.js`, `.ts`). Its trigger is `job.run:export`.
+A job script lives in `src/jobs/`, and its file name is its job type. Let's create `src/jobs/export.lua` (or `.js`, `.ts`), which gets the trigger `job.run:export`:
 
 ```
 src/
@@ -35,7 +33,7 @@ src/
 
 A job type is 1 to 128 characters of lowercase letters, digits, `.`, `_` and `-`, starting with a letter or digit. Types starting with `happyview.` are reserved for HappyView's built-in jobs. A type can't end in `.test`, because `src/jobs/<type>.test.lua` is a test file. `src/jobs/` is flat, so a job script can't sit in a subdirectory.
 
-This script works through a list of items, saves its progress as it goes, and stops early if someone cancels or pauses it.
+Our script works through a list of items, saves its progress as it goes, and stops early if someone cancels or pauses it:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -118,7 +116,7 @@ export default async function handle(input: { items: unknown[] }, ctx: JobCtx) {
 
 Jobs are queued from scripts, with `create(job_type, input)` from the `happyview.jobs` library. It returns the new job's id. There is no admin API endpoint for queuing your own jobs.
 
-This procedure script queues an `export` job and answers straight away with its id. `com.example.startExport` stands in for a procedure your project defines, so the file is `src/lexicons/com/example/startExport.lua`, next to `startExport.json`.
+`com.example.startExport` stands in for a procedure our project defines, so the file is `src/lexicons/com/example/startExport.lua`, next to `startExport.json`. Let's have it queue an `export` job and answer straight away with its id:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -184,13 +182,13 @@ Inside a job script, `ctx.job` has the job's id and three functions that act on 
 
 ## Try it in a test
 
-To run a job script without queuing anything, fire it from a test file with `test.job(type, input)`. It runs the script once, to the end, and returns the job's `status`, `result` and `error`. No job worker runs during a test, so a job that a script queues stays pending until you fire it this way. See [Testing](/docs/getting-started/testing).
+To run a job script without queuing anything, we can fire it from a test file with `test.job(type, input)`. It runs the script once, to the end, and returns the job's `status`, `result` and `error`. No job worker runs during a test, so a job that a script queues stays pending until we fire it this way. See [Testing](/docs/getting-started/testing).
 
 ## Watch a job
 
-Open your local dashboard and go to **Data > Jobs**. The table lists every job with its status, and you can filter by status. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines your job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
+Let's open the local dashboard and go to **Data > Jobs**. The table lists every job with its status, and we can filter by status. If a job you queued still says `pending`, give it a few seconds before debugging anything, because the worker checks for pending jobs every 5 seconds. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines our job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
 
-You can also read jobs with the admin API. Here `$AUTH` holds `Authorization: Bearer <key>`, with an [admin API key](/docs/getting-started/authentication#use-the-admin-api-with-an-api-key):
+We can also read jobs with the admin API. Here `$AUTH` holds `Authorization: Bearer <key>`, with an [admin API key](/docs/getting-started/authentication#use-the-admin-api-with-an-api-key):
 
 ```sh
 # List jobs, optionally by status
@@ -227,9 +225,9 @@ The worker checks for pending jobs every 5 seconds and takes the oldest first. B
 
 These are not available in this version of HappyView:
 
-- **Delayed or scheduled runs.** A job is picked up as soon as a worker is free. There is no way to say "run this at a later time". Inside a job, `ctx.job.wait` can pause for up to an hour.
-- **Automatic retries.** A job that fails stays `failed`. Nothing runs it again. To retry, queue a new job.
-- **Recurring schedules.** There is no cron-style schedule. A job can queue a follow-up job before it returns, but nothing repeats a job on its own.
+- **Delayed or scheduled runs.** A job is picked up as soon as a worker is free. Inside a job, `ctx.job.wait` can pause for up to an hour.
+- **Automatic retries.** A job that fails stays `failed`. To retry, queue a new job.
+- **Recurring schedules.** There is no cron-style schedule. A job can queue a follow-up job before it returns.
 
 ## Next steps
 

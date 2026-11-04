@@ -8,9 +8,11 @@ prev:
   label: Installation
 ---
 
-`hpy happyview dev [options]` runs a project as a local HappyView instance. It runs from the project's root directory, the one that holds `happyview.toml`.
+`hpy happyview dev [options]` runs our project as a local HappyView instance, so we can try each change as soon as we save it. It runs from the project's root directory, the one that holds `happyview.toml`.
 
-## Example
+## Start the instance
+
+Let's start it from the `my-app` project we created in [Installation](/docs/getting-started/installation#create-a-project):
 
 ```sh
 cd my-app
@@ -24,15 +26,19 @@ happyview dev: serving /home/you/my-app at http://127.0.0.1:3000
 dashboard: http://127.0.0.1:3000/dashboard/
 ```
 
-The starter project's query lexicon, `src/lexicons/com/example/hello.json`, answers at `/xrpc/com.example.hello`:
+The starter project's query lexicon, `src/lexicons/com/example/hello.json`, answers at `/xrpc/com.example.hello`. Let's say hello:
 
 ```sh
 curl 'http://127.0.0.1:3000/xrpc/com.example.hello?name=Ada'
 ```
 
+It answers:
+
 ```text
 {"message":"Hello, Ada!"}
 ```
+
+Excellent! Our instance is up and serving its first query.
 
 ## Downloads
 
@@ -80,14 +86,14 @@ These dashboard pages show a running project's activity:
 
 ## Backfill
 
-A local instance does not backfill by default: it indexes records as they arrive, and does not fetch records written before it started. `create` writes this setting into `happyview.toml`:
+A local instance doesn't backfill by default: it indexes records as they arrive, and does not fetch records written before it started. `create` writes this setting into `happyview.toml`:
 
 ```toml
 [dev]
 backfill = false
 ```
 
-Set it to `true` and restart `dev` to backfill locally. The setting applies only to `dev`; a deployed instance backfills the collections its lexicons ask for. [Lexicons](/docs/getting-started/lexicons) shows how a lexicon asks for a backfill.
+To backfill locally, we set it to `true` and restart `dev`. The setting applies only to `dev`; a deployed instance backfills the collections its lexicons ask for. [Lexicons](/docs/getting-started/lexicons) shows how a lexicon asks for a backfill.
 
 ## Options
 

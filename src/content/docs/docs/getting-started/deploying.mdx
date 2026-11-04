@@ -7,7 +7,7 @@ prerequisites:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page deploys your project to an instance: you sign in to it once with `hpy`, preview what a deploy would change, then deploy. The same steps work for an instance on HappyProto and one you run yourself.
+Let's put our project on an instance. We sign in to it once with `hpy`, preview what a deploy would change, then deploy. The same steps work for an instance on HappyProto and one you run yourself.
 
 ## Before you start
 
@@ -21,7 +21,7 @@ This page deploys your project to an instance: you sign in to it once with `hpy`
 <Tabs syncKey="hosting">
 <TabItem label="HappyProto">
 
-Your instance's URL is in your HappyProto project, in the HappyProto dashboard.
+Your instance's URL is in your HappyProto project, in the HappyProto dashboard. Sign in with it:
 
 ```sh
 hpy happyview login --url https://<your instance>
@@ -30,7 +30,7 @@ hpy happyview login --url https://<your instance>
 </TabItem>
 <TabItem label="Self-hosted">
 
-Use the instance's public URL, the one its `PUBLIC_URL` names.
+Sign in with the instance's public URL, the one its `PUBLIC_URL` names:
 
 ```sh
 hpy happyview login --url https://happyview.example.com
@@ -45,6 +45,8 @@ If you're signed in to more than one instance, pass `--url` to each command belo
 
 ## Preview the deploy
 
+Before we change anything, let's see what a deploy would do:
+
 ```sh
 hpy happyview deploy --dry-run
 ```
@@ -52,6 +54,8 @@ hpy happyview deploy --dry-run
 A dry run builds your project on the instance and lists what would change, the plugins it would install, and any backfills it would start, without changing anything. If the project doesn't build there, it lists the problems with their files and lines. While a plugin is still to be installed, the instance may not be able to build the project yet. The dry run says so, and the deploy builds it again after the plugins are in place.
 
 ## Deploy
+
+Looking good? Then let's deploy:
 
 ```sh
 hpy happyview deploy
@@ -65,7 +69,7 @@ hpy happyview deploy
 
 The instance builds the project before it switches over. If the build fails, nothing changes: the project that was already there keeps serving, and the deploy prints the problems.
 
-When it's done, call your endpoint on the instance:
+When it's done, let's call our endpoint on the instance:
 
 ```sh
 curl 'https://<your instance>/xrpc/com.example.hello?name=Ada'
@@ -106,7 +110,7 @@ Then give the job the instance's URL and the key:
 | `HPY_HV_URL` | The instance's URL |
 | `HPY_HV_API_KEY` | The API key |
 
-In GitHub, set `HPY_HV_URL` as a repository variable and `HPY_HV_API_KEY` as a repository secret, under **Settings > Secrets and variables > Actions**. This workflow checks and tests every push, and deploys `main`:
+In GitHub, set `HPY_HV_URL` as a repository variable and `HPY_HV_API_KEY` as a repository secret, under **Settings > Secrets and variables > Actions**. This workflow checks and tests every pull request and every push to `main`, and deploys `main`:
 
 ```yaml
 name: Deploy
