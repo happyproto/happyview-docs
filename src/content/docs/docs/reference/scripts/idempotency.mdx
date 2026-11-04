@@ -27,7 +27,7 @@ Running a create script twice for the same record should leave things the same a
 
 ## Example
 
-A create script that mirrors records into an external index. It uses `PUT` to a URL built from the record's URI, so a second delivery overwrites the same document instead of adding another.
+This create script mirrors records into an external index. It uses `PUT` to a URL built from the record's URI, so a second delivery overwrites the same document instead of adding another:
 
 <Tabs syncKey="lang">
   <TabItem label="Lua">
