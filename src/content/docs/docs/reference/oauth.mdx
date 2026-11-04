@@ -396,7 +396,7 @@ Returns `404` if the client doesn't exist or isn't owned by the authenticated us
 
 ## Confidential client authentication
 
-These two endpoints are unrelated to the third-party XRPC methods above. They belong to any API client that wants to run its own atproto OAuth flow against a user's PDS as a **confidential** client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard: **Access > API Clients**, then the client's **AT Protocol Client Auth** panel.
+These two endpoints are unrelated to the third-party XRPC methods above. They belong to any API client that wants to run its own atproto OAuth flow against a user's PDS as a confidential client (`private_key_jwt`) instead of a public one. See the [API Clients guide](/docs/guides/api-clients#confidential-clients-attaching-the-client-assertion) for the full flow, or generate and inspect the key from the dashboard: **Access > API Clients**, then the client's **AT Protocol Client Auth** panel.
 
 ### Get the client's JWKS
 
@@ -489,7 +489,7 @@ curl https://happyview.example.com/oauth/clients/550e8400-e29b-41d4-a716-4466554
 POST /oauth/client-assertion
 ```
 
-Mints a `private_key_jwt` assertion for the calling client, for use in an atproto OAuth flow the client is running itself against a user's PDS. Needed **twice per flow**, once for the pushed authorization request (PAR) and once for the token exchange, since each assertion expires after 60 seconds and only covers one request.
+Mints a `private_key_jwt` assertion for the calling client, for use in an atproto OAuth flow the client is running itself against a user's PDS. Needed twice per flow, once for the pushed authorization request (PAR) and once for the token exchange, since each assertion expires after 60 seconds and only covers one request.
 
 Authenticate in one of three ways:
 
@@ -626,9 +626,9 @@ Attach `client_assertion` and `client_assertion_type` as form parameters on the 
 
 #### Refreshing a token: store the `kid`
 
-`kid` names the key that signed the assertion. **Store it alongside the session you establish**, and pass it back as the `kid` field whenever you request an assertion to *refresh* that session.
+`kid` names the key that signed the assertion. Store it alongside the session you establish, and pass it back as the `kid` field whenever you request an assertion to refresh that session.
 
-An authorization server binds a session to the key that established it. After a key rotation, a refresh with an assertion signed by the newer key presents a key the server never bound the session to. A conforming server responds by **destroying the session**, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
+An authorization server binds a session to the key that established it. After a key rotation, a refresh with an assertion signed by the newer key presents a key the server never bound the session to. A conforming server responds by destroying the session, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
 
 Omit `kid` for an initial authorization, where any currently valid key is correct.
 
