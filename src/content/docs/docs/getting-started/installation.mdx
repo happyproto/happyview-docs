@@ -11,14 +11,12 @@ next:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This page installs `hpy` and creates a project. HappyView itself is not installed separately: `hpy` downloads the version a project names when it runs the project.
-
-`hpy` is in beta and HappyView v3 is in alpha. `hpy happyview create` writes a HappyView version into the project it creates.
+HappyView itself is not installed separately. `hpy happyview create` writes a HappyView version into the project, and `hpy` downloads that version when it runs the project. HappyView v3 is in alpha.
 
 ## Before you start
 
-- **macOS or Linux.** On Windows, use WSL and follow the Linux steps inside it: running a project locally is not supported on Windows itself.
-- **An atproto account to develop with**, such as a Bluesky account. Use a test account rather than a personal one, because a project running locally writes to that account's real PDS ([Running locally](/docs/getting-started/running-locally#network)). [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days.
+- macOS or Linux. Running a project locally isn't supported on Windows itself, so use WSL there and follow the Linux steps inside it.
+- An atproto account to develop with, such as a Bluesky account. Use a test account rather than a personal one, because a project running locally writes to that account's real PDS ([Running locally](/docs/getting-started/running-locally#network)). [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days.
 
 ## Install hpy
 
@@ -41,7 +39,7 @@ curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
 </TabItem>
 </Tabs>
 
-The install script puts `hpy` in `~/.cargo/bin`; open a new terminal if it isn't on your `PATH` yet. Verify the installation:
+The install script puts `hpy` in `~/.cargo/bin`. If it isn't on your `PATH` yet, open a new terminal. Verify the installation:
 
 ```sh
 hpy --version
@@ -55,6 +53,8 @@ hpy --version
 hpy happyview create --name my-app
 ```
 
+An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both.
+
 `--name` is the directory to create. `create` then asks four things:
 
 | Prompt | What to answer |
@@ -65,8 +65,6 @@ hpy happyview create --name my-app
 | **App name** | Your app's name, shown in the dashboard. It defaults to the directory's name. |
 
 `create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
-
-An **interpreter** is a plugin that runs scripts in one language, and a **library** is a plugin your scripts load to do more, such as reading records. [Plugins and libraries](/docs/getting-started/plugins-and-libraries) covers both.
 
 ## Generated files
 
