@@ -144,7 +144,7 @@ Some script types carry more:
 - `collection` is the record's collection, for a record event only. A query or procedure names the collection it reads or writes in the script itself, such as `db.records("com.example.note")` or `record.create("com.example.note", input)`; see [Queries and procedures need a script](/docs/reference/lexicons#queries-and-procedures-need-a-script).
 - `params` is a procedure's query-string parameters. Its body is `input`.
 - `delegate_did` is the account the caller is delegated to write for, when there is one.
-- `space`, shaped `{ uri, id, did, authority_did, spaceType, skey }`, is part of `ctx`'s declared type, but no request fills it yet, so a script always sees none.
+- `space` belongs to atproto spaces, which are off by default. It is shaped `{ uri, id, did, authority_did, spaceType, skey }` and is part of `ctx`'s declared type, but no request fills it yet, so a script always sees none.
 - `job` is `{ id, progress(data), should_stop(), wait(seconds) }`. `progress` saves a progress snapshot that the dashboard shows. `should_stop` returns `true` once the job is being cancelled or paused; checking it is up to the script. `wait` sleeps for up to 3600 seconds. In JavaScript and TypeScript `wait` returns a promise, so write `await ctx.job.wait(5)`.
 
 A field that doesn't apply is absent rather than set to an empty value. In JavaScript, `"method" in ctx` is `false` for a record event.
@@ -161,7 +161,7 @@ A field that doesn't apply is absent rather than set to an empty value. In JavaS
 A query or procedure can answer in two other ways:
 
 - **A declared error.** An object whose `error` is a name the method's lexicon lists under `errors` is sent as JSON with status `400`. An `error` the lexicon doesn't list is an ordinary `200` body.
-- **Bytes.** When the method's lexicon declares an output encoding other than JSON, return a blob ref naming a blob stored on the instance, or an object with `$bytes` holding base64. A lexicon that names one encoding sets the content type. Under `*/*`, `mimeType` sets it: a `$bytes` object must carry one, and a blob ref without one uses the type stored with the blob. Any other return value fails the run.
+- **Bytes.** When the method's lexicon declares an output encoding other than JSON, return a blob ref naming a blob stored on the instance, or an object with `$bytes` holding base64. A lexicon that names one encoding sets the content type. Under `*/*`, `mimeType` sets it: a `$bytes` object must carry one, and a blob ref without one uses the type stored with the blob. Any other return value fails the invocation.
 
 "Nothing" is `nil` in Lua and `undefined` or `null` in JavaScript and TypeScript. A function that ends without a `return` returns nothing, which for a record script means the record is not indexed. If a record script only has side effects, end it with `return input.record or true` (Lua) or `return input.record ?? true` (JavaScript and TypeScript).
 
@@ -196,9 +196,9 @@ Every interpreter comes with the `internal.*` modules, which need nothing instal
 
 ## Sandbox
 
-Each interpreter runs scripts with a reduced standard library and no file, process or network access of its own. What each language keeps is on [Languages](/docs/reference/scripts/languages): see Lua specifics and JavaScript specifics.
+Each interpreter runs scripts with a reduced standard library and no file, process or network access of its own. What each language keeps is on [Languages](/docs/reference/scripts/languages): see [Lua specifics](/docs/reference/scripts/languages#lua-specifics) and [JavaScript specifics](/docs/reference/scripts/languages#javascript-specifics).
 
-In every language, the guest has no timezone, so dates are read and written as UTC.
+In every language, a script has no timezone, so dates are read and written as UTC.
 
 A script saved from the dashboard has no project around it, so a relative import such as `./helpers` is refused when you save it. Relative imports work in scripts that belong to a project.
 
