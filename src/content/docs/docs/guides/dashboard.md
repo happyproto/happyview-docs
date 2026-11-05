@@ -77,7 +77,7 @@ Register and manage API clients. Each client gets an `hvc_…` client key and `h
 
 ### Scripts
 
-Navigate to **Scripts** to list, create and edit the instance's scripts. A row is marked when no installed interpreter can run it. A script that still reads v2 globals offers **Migrate**; see [Migrating scripts to v3](/docs/guides/migrating-scripts). A script's own page shows a summary of its [performance](#script-performance).
+Navigate to **Scripts** to list, create and edit the instance's scripts. A row is marked when no installed interpreter can run it. A script that still reads v2 globals offers **Migrate**; see [Migrating scripts to v3](/docs/guides/migrating-scripts). A script's own page shows one line about its last hour, such as "Last hour: 12,400 runs · p95 3.1 ms · 0 errors", which links to its graphs on [Script performance](#script-performance). The line also counts timeouts when there were any. It's hidden when the script hasn't run in the last hour, and needs `metrics:read`.
 
 The Lua editor offers completion, hover and signature help from the declarations the interpreter provides, so it covers the libraries installed on the instance. See [Scripts](/docs/getting-started/scripts) for how a script is written.
 
