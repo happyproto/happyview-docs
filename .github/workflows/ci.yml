@@ -67,12 +67,14 @@ jobs:
       - uses: actions/checkout@v7
 
       # The glossary's permissions table is generated from HappyView's
-      # src/admin/permissions.rs on alpha. This fails when HappyView has
-      # changed it since; run the script and commit the result.
+      # src/admin/permissions.rs on the v3 branch, which the repository
+      # variable HAPPYVIEW_V3_REF names (alpha until v3 moves to beta).
+      # This fails when HappyView has changed it since; run the script and
+      # commit the result.
       - uses: actions/checkout@v7
         with:
           repository: gamesgamesgamesgamesgames/happyview
-          ref: alpha
+          ref: ${{ vars.HAPPYVIEW_V3_REF || 'alpha' }}
           path: happyview
           sparse-checkout: src/admin/permissions.rs
           sparse-checkout-cone-mode: false
