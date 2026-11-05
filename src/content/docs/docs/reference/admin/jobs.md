@@ -197,3 +197,27 @@ Returns the lines a job's script logged with `internal.logging`, oldest first. L
 | `started_at`   | string\|null | ISO 8601 timestamp when the worker started executing                            |
 | `completed_at` | string\|null | ISO 8601 timestamp when the job finished                                        |
 | `created_at`   | string       | ISO 8601 timestamp when the job was enqueued                                    |
+
+## Leases and recovery
+
+A worker that starts a job holds it under a lease. The lease lasts 60 seconds, and the worker renews it every 20 seconds while the job runs. A lease runs out only when its worker has stopped renewing it, for example because its instance restarted, crashed or hung.
+
+Each instance looks for jobs whose lease has run out when it starts, and again every 60 seconds. It settles each one by status:
+
+| Status | Becomes |
+| --- | --- |
+| `running` | `pending`, and the job is queued again. On the job's third lost lease it becomes `failed` instead, with the error `the job's worker stopped 3 times before it finished; it is not run again` |
+| `cancelling` | `cancelled` |
+| `pausing` | `paused` |
+
+Pausing and resuming a job doesn't count as a lost lease. `attempt` counts every run that started, so it does include resumes.
+
+Once a job's lease has run out and the job has been queued again, the old run can't change it: its progress writes and its result are discarded. At the old run's next renewal, `ctx.job.should_stop()` starts returning `true`, and the script is interrupted at its next host call.
+
+### Several instances on one database
+
+Instances that share a database only take over each other's jobs when the lease has run out, so starting one instance leaves the jobs another is running alone.
+
+Each instance checks a lease against its own clock. Renewal leaves 40 seconds of margin, so if two hosts' clocks differ by more than about 40 seconds, one can treat a live lease as expired and run the job a second time. Keep every host's clock synchronised, for example with NTP.
+
+Versions of HappyView from before leases claim jobs without one, and an instance with leases treats a running job that has no lease as stopped and queues it again. During an upgrade, either upgrade every instance at once or wait for running jobs to finish.
