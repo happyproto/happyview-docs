@@ -70,6 +70,10 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `JETSTREAM_WORKERS` | `8` | Records processed in parallel, `1` to `64`. |
 | `RELAY_URL` | `https://bsky.network` | The relay backfill asks which accounts hold a collection. |
 | `PLC_URL` | `https://plc.directory` | The PLC directory DIDs are resolved through. |
+| `ALLOW_PRIVATE_DESTINATIONS` | `false` | `true`, `1` or `yes` lets every outbound request connect to loopback, private, link-local and other non-public addresses. Logs a warning at every boot while set. Process environment only. |
+| `ALLOW_PRIVATE_HOSTS` | none | Hosts, separated by commas, that plugins and scripts may reach at non-public addresses. A bare name, such as `search`, allows any port; `host:port` or a URL allows that port only. Other requests still refuse them. Process environment only. |
+
+HappyView refuses outbound connections to non-public addresses, except to the hosts of `PLC_URL`, `RELAY_URL`, `JETSTREAM_URL`, `TELEMETRY_COLLECTOR_URL`, `PLUGIN_REGISTRY_URL`, `PLUGIN_URLS`, `HAPPYVIEW_DEFAULT_PLUGINS` and the `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY` variables, each on its URL's port only. See [Keep outbound requests off private addresses](/docs/guides/hardening#keep-outbound-requests-off-private-addresses).
 
 ## Backfill
 
@@ -144,7 +148,7 @@ A grant asks for 60 minutes by default, or the maximum if that's shorter.
 | --- | --- | --- |
 | `HAPPYVIEW_DEV_BACKFILL` | `false` | Whether `dev` backfills. Exactly `true` or `false`. `happyview.toml`: `[dev] backfill`. |
 | `HAPPYVIEW_WATCH_POLL_MS` | file events | Poll for changes every this many milliseconds, `50` to `60000`, instead of using file events. For `dev` and `test --watch`. |
-| `HAPPYVIEW_NETWORK` | none | Which network `dev` is on. `hpy happyview dev --network local` sets it to `local`. With any other value, or none, `dev` prints a warning that writes reach your real PDS. |
+| `HAPPYVIEW_NETWORK` | none | Which network `dev` is on. `hpy happyview dev --network local` sets it to `local`, which also lets outbound requests reach non-public addresses, as `ALLOW_PRIVATE_DESTINATIONS` does. With any other value, or none, `dev` prints a warning that writes reach your real PDS. |
 
 [happyview dev](/docs/reference/cli#happyview-dev) lists the defaults `dev` fills in.
 

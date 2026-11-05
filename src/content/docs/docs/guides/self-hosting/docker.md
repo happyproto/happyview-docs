@@ -178,7 +178,7 @@ Compose hands the container only the variables named in its `environment` block,
 To pass another variable, add it to the `environment` block. The SQLite file has a commented-out line for `ATTESTATION_PRIVATE_KEY`. The Postgres file has them for that, `APP_NAME`, `LOGO_URI`, `TOS_URI`, `POLICY_URI`, `PLUGIN_URLS` and the `BACKFILL_CONCURRENT_*` settings.
 
 :::caution[Postgres connection limits]
-HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. Both are lazy, so an idle instance holds almost nothing. A running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
+HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. A concurrency value saved in the dashboard's backfill settings replaces its variable in that sum. The pool is sized once, when HappyView starts, so a raised value gets its connections only after a restart. Both pools are lazy, so an idle instance holds almost nothing. A running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
 :::
 
 :::danger[Don't override the SQLite DATABASE_URL through the environment]
