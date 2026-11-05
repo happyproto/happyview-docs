@@ -156,6 +156,26 @@ at every startup and reload, and refuses any bytes whose CID doesn't match.
 restart. `PLUGIN_REGISTRY_URL=off` stops HappyView reading the registry, but doesn't change
 where an already-installed plugin fetches from.
 
+## Encryption
+
+### The instance won't start after changing `TOKEN_ENCRYPTION_KEY`
+
+**You see**, at startup, HappyView exits with:
+
+```
+Failed to load OAuth client authentication key: Internal("failed to decrypt client key: Decryption failed")
+```
+
+**Why.** At startup HappyView decrypts its OAuth client key, and the current
+`TOKEN_ENCRYPTION_KEY` can't open it. Either the key was swapped with no
+`TOKEN_ENCRYPTION_KEY_PREVIOUS` beside it, or `TOKEN_ENCRYPTION_KEY_PREVIOUS`
+was unset while the re-seal still had values to move.
+
+**Fix.** Put the key the instance used before back in
+`TOKEN_ENCRYPTION_KEY_PREVIOUS`, restart, and pick up the
+[rotation](/docs/guides/rotating-the-encryption-key#rotate-the-key) at step 4.
+If that key is gone, nothing it sealed can be decrypted again.
+
 ## Lexicon publishing
 
 ### "The attached account hasn't granted permission to write lexicon records"

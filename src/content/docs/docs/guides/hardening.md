@@ -1,6 +1,6 @@
 ---
 title: Hardening an instance
-description: Narrow the OAuth authority an instance holds, through API client scopes, the XRPC proxy, linked repos and key backups.
+description: Narrow the OAuth authority an instance holds, through API client scopes, the XRPC proxy, linked repos and key backups, and limit what the session cookie and outbound requests can reach.
 ---
 
 A HappyView instance holds OAuth credentials for its users and will act with them on behalf of the applications you register.
@@ -116,6 +116,33 @@ When a request carries an `atproto-proxy` header, it is asking to be relayed onw
 
 The decision to sign for a given audience belongs to the party holding the key, which is the PDS. You decide who gets to make such a request at all, because registering an API client is what grants it. Register clients deliberately, and scope them as above.
 
+## Understand cross-site requests with the session cookie
+
+The dashboard signs operators in with a session cookie, `happyview_session`. It is `HttpOnly` and `SameSite=Lax`, and `Secure` when `PUBLIC_URL` uses https. A browser sends it with the requests the instance's own pages make and with top-level navigations to the instance, which is how the OAuth sign-in callbacks arrive. A navigation that another site starts carries the cookie as well, so HappyView also checks each request's `Sec-Fetch-Site` and `Origin` headers before it uses the cookie. You don't configure any of this.
+
+A `POST`, `PUT`, `PATCH` or `DELETE` that carries the cookie is refused with `403 Forbidden` unless one of these is true:
+
+- `Sec-Fetch-Site` is `same-origin`, or `none` for an address the user typed.
+- `Origin` is one of the instance's [domains](/docs/reference/admin/domains).
+- The request has neither header. Any browser, old or new, adds `Origin` to a write like this, so a write without it was sent by a script or server, which can't hold the operator's cookie by accident.
+
+XRPC, `/external-auth` and `/api/setup` are stricter, and apply to reads too. HappyView signs the caller in from the cookie when `Sec-Fetch-Site` is `same-origin`. When the browser sends no `Sec-Fetch-Site`, it accepts an `Origin` from the instance's domains instead. Every other request is served as if it had no cookie, a request with neither header included. So a query script reached through a link on another site runs with no caller, whoever is signed in to the dashboard.
+
+Bearer tokens, DPoP and API keys aren't affected, because a browser never attaches them by itself. CORS allows credentials only for the instance's own domains, so an integration on any other origin, a subdomain of the same site included, can't use the cookie. It signs in with OAuth (DPoP) or an [API key](/docs/guides/api-keys) instead.
+
+## Keep outbound requests off private addresses
+
+Many of the URLs HappyView fetches aren't yours to choose: a PDS endpoint from a DID document, a handle someone typed, a webhook URL from a stored row, a plugin's request. Any of them can resolve to an address on the instance's own network. HappyView refuses to connect to loopback, private, link-local and other non-public addresses for these. It checks the address it actually connected to, so a redirect or a DNS answer that changes between lookup and connection can't get around it.
+
+Services you point HappyView at yourself can be private. The exemption covers the host in each of these variables: `PLC_URL`, `RELAY_URL`, `JETSTREAM_URL`, `TELEMETRY_COLLECTOR_URL`, `PLUGIN_REGISTRY_URL`, `PLUGIN_URLS`, `HAPPYVIEW_DEFAULT_PLUGINS`, `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY`. It covers one port per URL: the one written in it, else the scheme's usual port, such as 443 for https. With `PLC_URL=http://127.0.0.1:2582`, port 2582 on loopback is reachable and port 5432 isn't. `PUBLIC_URL` gets no exemption.
+
+Two variables widen this:
+
+- `ALLOW_PRIVATE_HOSTS` is a list of hosts that plugin and script HTTP calls may reach, such as a search index in the same Docker network. Write `host:port` or a URL to open one port, or the bare name to open all of them. The list doesn't apply to anything else HappyView fetches, so a DID document or webhook that names one of these hosts is still refused.
+- `ALLOW_PRIVATE_DESTINATIONS` turns the check off for every request. It's for an instance that indexes a PDS or labeler on its own private network. While it's set, every boot logs a warning.
+
+Prefer `ALLOW_PRIVATE_HOSTS`. Both are read from the process environment only. See [Network](/docs/reference/configuration#network) for their values.
+
 ## A checklist
 
 - [ ] Every API client registered with granular scopes, or a permission set, rather than `transition:generic`
@@ -125,6 +152,7 @@ The decision to sign for a given audience belongs to the party holding the key, 
 - [ ] Linked-repo grants scoped before the invite goes out
 - [ ] Third-party API clients registered deliberately and scoped as above
 - [ ] Database backups cover `happyview_oauth_client_keys`
+- [ ] `ALLOW_PRIVATE_DESTINATIONS` unset, with any service beside the instance listed in `ALLOW_PRIVATE_HOSTS` instead
 
 ## Related
 

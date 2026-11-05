@@ -22,6 +22,7 @@ The platform principal can:
 
 - list, add, remove and promote [domains](/docs/reference/admin/domains); while `PLATFORM_API_KEY_HASH` is set, the platform principal is the only caller that can add, remove or promote one
 - read [stats](/docs/reference/admin/stats), including [Jetstream status](/docs/reference/admin/stats#jetstream-status)
+- read a `TOKEN_ENCRYPTION_KEY` rotation's [status](/docs/reference/admin/encryption#rotation-status): counts per store and whether the previous key can be removed, never a stored value. It can't start a re-seal
 - call the endpoints on this page
 
 Every other admin endpoint refuses it with `403`.

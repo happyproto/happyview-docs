@@ -87,7 +87,7 @@ Compose refuses to start without these:
 
 - **`PUBLIC_URL`**: the public HTTPS URL people reach, scheme included. It's used to build OAuth redirect URIs, so a mismatch breaks login. Do **not** include `BASE_PATH` here.
 - **`SESSION_SECRET`**: signs the dashboard session cookie. An unset or too-short value doesn't stop HappyView booting. It disables cookie login, which is why the Compose files require it explicitly.
-- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [atproto spaces](/docs/guides/spaces) (off by default), and service identity don't work. Rotating it makes everything already encrypted unreadable.
+- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [atproto spaces](/docs/guides/spaces) (off by default), and service identity don't work. Changing it on its own makes everything already encrypted unreadable; to replace it, see [Rotating the encryption key](/docs/guides/rotating-the-encryption-key).
 
 :::caution[Deploying from a clone of the repository instead]
 The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not. A development `.env` left beside the Compose files is auto-loaded too, and supplies these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:
@@ -178,7 +178,7 @@ Compose hands the container only the variables named in its `environment` block,
 To pass another variable, add it to the `environment` block. The SQLite file has a commented-out line for `ATTESTATION_PRIVATE_KEY`. The Postgres file has them for that, `APP_NAME`, `LOGO_URI`, `TOS_URI`, `POLICY_URI`, `PLUGIN_URLS` and the `BACKFILL_CONCURRENT_*` settings.
 
 :::caution[Postgres connection limits]
-HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. Both are lazy, so an idle instance holds almost nothing. A running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
+HappyView opens two pools: the main one (`DATABASE_MAX_CONNECTIONS`) and a separate backfill pool sized `(BACKFILL_CONCURRENT_PDS × BACKFILL_CONCURRENT_DIDS_PER_PDS) + BACKFILL_CONCURRENT_RESOLUTION + 4`, which is 134 on the defaults. A concurrency value saved in the dashboard's backfill settings replaces its variable in that sum. The pool is sized once, when HappyView starts, so a raised value gets its connections only after a restart. Both pools are lazy, so an idle instance holds almost nothing. A running backfill peaks near 166, and Postgres's stock limit of 100 would fail it with `sorry, too many clients already`. Raise `POSTGRES_MAX_CONNECTIONS` further if you raise the backfill concurrency or add replicas.
 :::
 
 :::danger[Don't override the SQLite DATABASE_URL through the environment]
