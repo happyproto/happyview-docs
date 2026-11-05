@@ -38,7 +38,7 @@ HappyView's built-in XRPC methods, such as `app.bsky.actor.getProfile`, `com.atp
 
 The ceiling applies to two [instance settings](/docs/reference/configuration#instance-settings), `event_log_retention_days` and `backfill_retention_days`. An operator can save a shorter retention, but saving more than `max` days, or `0` (keep forever), is refused. The retention sweeps also enforce it: event logs, job logs, stored script metrics and backfill history are deleted after `max` days even when a setting, or its environment variable, asks for longer.
 
-[Protected events](/docs/guides/event-logs#protected-events) aren't capped. They follow `space_access_log_retention_days` as before.
+[Protected events](/docs/guides/event-logs#protected-events) aren't capped. They follow `space_access_log_retention_days`.
 
 Its `max` can't be `0`. A `0` in the variable or in the limits file stops boot, and a `0` written into the file later is ignored in favour of the limits already loaded.
 
