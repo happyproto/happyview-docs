@@ -52,7 +52,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | --- | --- | --- |
 | `SESSION_SECRET` | none | Signs the dashboard's session cookie. Must be at least 32 bytes; generate one with `openssl rand -base64 48`. When it's unset, too short, or the placeholder `change-me-in-production`, the instance still starts, but nobody can sign in to the dashboard, and the dashboard shows why. |
 | `TOKEN_ENCRYPTION_KEY` | none | Base64 of exactly 32 bytes (`openssl rand -base64 32`). Encrypts stored OAuth sessions and tokens, keys, plugin secrets, script variables and the attestation key. Without a valid one, app sign-in, atproto spaces and service identity don't work; an invalid value is logged and ignored. To replace it, see [Rotating the encryption key](/docs/guides/rotating-the-encryption-key). |
-| `TOKEN_ENCRYPTION_KEY_PREVIOUS` | none | The key being replaced, during a [rotation](/docs/guides/rotating-the-encryption-key) only. Stored values open with it until they're re-sealed under `TOKEN_ENCRYPTION_KEY`. Remove it once `GET /admin/encryption/rotation` reports `previous_key_can_go`. Boot stops if it isn't base64 of exactly 32 bytes, or if `TOKEN_ENCRYPTION_KEY` has no valid value. A value equal to `TOKEN_ENCRYPTION_KEY` is ignored. |
+| `TOKEN_ENCRYPTION_KEY_PREVIOUS` | none | The old key in a [key rotation](/docs/guides/rotating-the-encryption-key). HappyView tries it on any stored value the current key can't open, and re-seals those values under the current key. Unset it after `GET /admin/encryption/rotation` shows `previous_key_can_go: true`. It has to be base64 of 32 bytes and needs a valid `TOKEN_ENCRYPTION_KEY` beside it, or boot stops. Setting it to the current key has no effect. |
 | `SUPERADMIN_DID` | none | A DID given the superadmin privilege at every boot. A value that isn't a DID stops boot; empty means unset. Once set, the first person to sign in is no longer given superadmin. `happyview.toml`: `[instance] superadmin`. |
 | `PLATFORM_API_KEY_HASH` | none | The SHA-256, as 64 hex characters, of the key a hosting platform uses for `/admin/platform`. See [Platform](/docs/reference/admin/platform). |
 | `DEFAULT_RATE_LIMIT_CAPACITY` | `100` | Request budget for a new API client. |
@@ -71,7 +71,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `JETSTREAM_WORKERS` | `8` | Records processed in parallel, `1` to `64`. |
 | `RELAY_URL` | `https://bsky.network` | The relay backfill asks which accounts hold a collection. |
 | `PLC_URL` | `https://plc.directory` | The PLC directory DIDs are resolved through. |
-| `ALLOW_PRIVATE_DESTINATIONS` | `false` | `true`, `1` or `yes` lets every outbound request connect to loopback, private, link-local and other non-public addresses. Logs a warning at every boot while set. Process environment only. |
+| `ALLOW_PRIVATE_DESTINATIONS` | `false` | `true`, `1` or `yes` switches off the check that keeps outbound requests away from non-public addresses (loopback, private ranges, link-local and the like), for every request. Each boot logs a warning while it's on. Process environment only. |
 | `ALLOW_PRIVATE_HOSTS` | none | Hosts, separated by commas, that plugins and scripts may reach at non-public addresses. A bare name, such as `search`, allows any port; `host:port` or a URL allows that port only. Other requests still refuse them. Process environment only. |
 
 HappyView refuses outbound connections to non-public addresses, except to the hosts of `PLC_URL`, `RELAY_URL`, `JETSTREAM_URL`, `TELEMETRY_COLLECTOR_URL`, `PLUGIN_REGISTRY_URL`, `PLUGIN_URLS`, `HAPPYVIEW_DEFAULT_PLUGINS` and the `HTTP_PROXY`, `HTTPS_PROXY` and `ALL_PROXY` variables, each on its URL's port only. See [Keep outbound requests off private addresses](/docs/guides/hardening#keep-outbound-requests-off-private-addresses).
@@ -85,7 +85,7 @@ HappyView refuses outbound connections to non-public addresses, except to the ho
 | `BACKFILL_CONCURRENT_RESOLUTION` | `100` | DIDs resolved at once. Instance setting `backfill_concurrent_resolution`. |
 | `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. Held to the [`log_retention_days` limit](/docs/guides/instance-limits#log_retention_days) when one is set. |
 | `BACKFILL_DISCOVERY_WINDOW` | `50000` | Units of work discovered ahead of fetching. A unit is one account under one collection. |
-| `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it. |
+| `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it, and a value that isn't a number uses `4`; both log a warning. Records from the live stream always run their scripts one at a time. A record storage that applies fewer deltas at once lowers it, and HappyView logs a warning. See [Backfill](/docs/guides/backfill). |
 | `BACKFILL_SOURCE` | `crawl` | `crawl` fetches from each PDS, `replay` reads a Jetstream archive, and `auto` replays when the Jetstream has an archive and otherwise crawls. |
 | `BACKFILL_REPLAY_CONCURRENCY` | `8` | Archive segments read at once, `1` to `64`. |
 | `BACKFILL_REPLAY_DIR` | `<temp>/happyview-replay` | Where archive segments are kept while replaying. |
@@ -153,7 +153,7 @@ A grant asks for 60 minutes by default, or the maximum if that's shorter.
 | `HAPPYVIEW_LIMIT_SEATS` | unlimited | Most operators, the superadmin included. A whole number. |
 | `HAPPYVIEW_LIMIT_API_CLIENTS` | unlimited | Most active API clients. A whole number. |
 | `HAPPYVIEW_LIMIT_ANONYMOUS_XRPC` | allowed | `false` refuses XRPC calls from a caller who isn't identified. `true` or `false`. |
-| `HAPPYVIEW_LIMIT_LOG_RETENTION_DAYS` | unlimited | Most days the retention settings can keep logs. A whole number, at least `1`. |
+| `HAPPYVIEW_LIMIT_LOG_RETENTION_DAYS` | unlimited | A cap, in days, on `event_log_retention_days` and `backfill_retention_days`. A whole number, `1` or more. |
 
 The `HAPPYVIEW_LIMIT_*` variables are read once, at boot, and a value that can't be read stops boot.
 
