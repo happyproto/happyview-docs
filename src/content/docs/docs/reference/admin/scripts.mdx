@@ -1,6 +1,6 @@
 ---
 title: "Scripts"
-description: "Admin API endpoints for listing, creating, editing and deleting dashboard scripts, previewing the v3 codemod, and reading editor declarations."
+description: "Admin API endpoints for listing, creating, editing and deleting dashboard scripts, listing project modules, previewing the v3 codemod, and reading editor declarations."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -288,6 +288,94 @@ curl http://127.0.0.1:3000/admin/scripts/languages -H "$AUTH"
 
 ```json
 ["javascript", "lua", "typescript"]
+```
+
+## List project modules
+
+```
+GET /admin/scripts/modules
+```
+
+Requires `scripts:read`.
+
+The source of each interpreter module in the deployed project, sorted by `id`. A module is a file under `src/` that an installed interpreter claims and that isn't a handler, a test or a lexicon, such as a shared library that handlers import. With no project deployed, the response is an empty array.
+
+Compiled modules declared under `[modules.*]` in `happyview.toml` aren't listed, because the instance holds no source for them.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+interface ProjectModule {
+  id: string; // the project-relative path, which an import resolves to
+  path: string; // project-relative and /-separated, e.g. src/lib/format.lua
+  language: string; // language_id of the interpreter that claims the file
+  source: string; // the file's contents
+}
+
+const response = await fetch("http://127.0.0.1:3000/admin/scripts/modules", {
+  headers,
+});
+const modules: ProjectModule[] = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch("http://127.0.0.1:3000/admin/scripts/modules", {
+  headers,
+});
+const modules = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/scripts/modules")
+    .bearer_auth(token)
+    .send()
+    .await?;
+let modules: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/scripts/modules", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl http://127.0.0.1:3000/admin/scripts/modules -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+[
+  {
+    "id": "src/lib/format.lua",
+    "path": "src/lib/format.lua",
+    "language": "lua",
+    "source": "local M = {}\n\nfunction M.title(s)\n  return (s:gsub(\"^%l\", string.upper))\nend\n\nreturn M\n"
+  }
+]
 ```
 
 ## Get a script
