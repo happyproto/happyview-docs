@@ -560,7 +560,7 @@ Every import checks the plugin's declared capability first. Every `host_caller_*
 The two `host_records_index_*` imports answer with the record imports' codes (`INVALID_SPEC`, `DB_ERROR`, `BAD_INPUT`, `FORBIDDEN`, `HOST_ERROR`). The `host_caller_*` imports use these:
 
 - `FORBIDDEN`: the capability isn't declared.
-- `NO_SESSION`: the runner holds no session. `host_caller_get_session` and `host_caller_get_email` also return it for a service-auth caller, because such a caller runs on the user's own sign-in to this instance, which the calling service was never given.
+- `NO_SESSION`: the runner holds no session. `host_caller_get_session` and `host_caller_get_email` also return it for a service-auth caller. That call runs on the user's sign-in to this instance, and the session belongs to the user, not to the service that made the call.
 - `WRITABLE_REPO`: a write names a repo other than the caller's or the delegate's.
 - `BAD_INPUT`: the spec doesn't decode, or is invalid.
 - `AUTH_REQUIRED`: the session died.
