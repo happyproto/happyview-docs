@@ -140,7 +140,13 @@ let source = JetstreamSource::builder()
 - `live_filter` says which tracked collections to stream live. Leave claimed ones out. It is asked again only when the tracked list changes, so keep its answers stable.
 - `executor_for` says who runs a backfill for a collection. A `BackfillExecutor` has a `name()` and an async `run(JobHandle, collection) -> Result<JobTotals, String>`.
 
-An executor's job is an ordinary row in the job system. It is listed, paused, cancelled, resumed and swept like a crawl, and its `source` column holds the executor's `name()`. Through its `JobHandle` an executor reads the job's `id()` and the `host()`, reports `progress` and `stage`, calls `record_error`, polls `should_stop`, and keeps a resume point with `checkpoint`, which it reads back with `resume_from`. The checkpoint is stored per job and collection. `JobTotals.records` is added across resumes. An executor that panics fails its job. `record_error(None, ..)` is a single job-level slot; `Some(did)` keeps one row per DID.
+An executor's job is an ordinary row in the job system. It is listed, paused, cancelled, resumed and swept like a crawl, and its `source` column holds the executor's `name()`. Through its `JobHandle` an executor reads the job's `id()` and the `host()`, reports `progress` and `stage`, calls `record_error`, polls `should_stop`, and keeps a resume point with `checkpoint`, which it reads back with `resume_from`. The checkpoint is stored per job and collection. `JobTotals.records` is added across resumes. An executor that panics fails its job. `record_error(None, ..)` is a single job-level slot; `Some(did)` keeps one row per DID. `note` replaces the job's note, a sentence the dashboard shows with the job, for example to say why the job read no records.
+
+`stage` takes any string and stores it as the job's stage. While a job is running and its stage is `waiting_for_crawl`, the dashboard shows the job as waiting. Set that stage while the data the executor reads is still being filled.
+
+`observe(stage, elapsed, n)` records time HappyView can't measure itself, such as a page read from your store or a write to it. HappyView adds `elapsed`, spread over `n` records, to the stage you name in the job's [script stats](/docs/reference/admin/backfill#script-stats). Stage names are free-form, for example `page_read` and `write`. A stage whose name ends in `_skipped` counts records and ignores `elapsed`, so report a skipped write as `observe("write_skipped", Duration::ZERO, 1)`. A zero-length `write` would pull down the mean of the real writes. Observed time doesn't count towards a record's time or the script share.
+
+When an executor calls `progress` with a total, the job's stats include an ETA, based on how fast `processed` rises. The unit is whatever the executor counts.
 
 How the pieces fit:
 
@@ -149,6 +155,21 @@ How the pieces fit:
 - Account backfills leave those collections out.
 - A gap in the live stream is replayed for every collection the stream carries.
 - If you forget `live_filter`, HappyView's safety net refuses the unstored events and warns. No data is lost, but you get a warning for every record.
+
+### Describing a collection
+
+`describe(collection)` is optional, and the default returns `None`. An executor that implements it returns a `CollectionSummary`:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `message` | `String` | Shown to the operator as written |
+| `records` | `Option<i64>` | How many of the collection's records the executor holds, if known |
+| `state` | `Option<SummaryState>` | `Queued`, `Running`, `Complete` or `Failed`. `Queued` means filling is due and hasn't started |
+| `retry_at` | `Option<String>` | After an attempt to fill the collection found nothing, the time of the next attempt, as RFC 3339 with a `+00:00` offset. `None` when no attempt is scheduled |
+
+`CollectionSummary` implements `Default`, so you can set only the fields you know and end with `..Default::default()`.
+
+HappyView calls `describe` for [`GET /admin/backfill/collections/{nsid}`](/docs/reference/admin/backfill#backfill-state-of-a-collection), and the dashboard shows the summary next to the collection's backfills. The summary describes the collection as it is now, so it can change after the job ends.
 
 ## Running HappyView with your providers
 
