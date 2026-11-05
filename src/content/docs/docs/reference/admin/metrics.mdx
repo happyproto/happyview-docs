@@ -71,6 +71,23 @@ Stored metrics follow the event log's retention: `event_log_retention_days` (def
 
 Each stored row records the instance that wrote it, named by `HAPPYVIEW_INSTANCE_ID`, else the hostname, else a random id for that boot. Give each instance a stable, distinct `HAPPYVIEW_INSTANCE_ID`. A name that changes on every deploy still counts, but the instance can't read its own history back after a restart, so its last hour and day start empty.
 
+### Stored rows
+
+Stored metrics live in the `happyview_script_metrics` table, one row per key, bucket and instance:
+
+| Column | Meaning |
+| --- | --- |
+| `kind` | `script` or `ingest` |
+| `key` | The script's trigger, or the collection for ingest |
+| `variant` | For a script, its kind and layer as `<kind>/<layer>`, such as `record_event/dashboard`. For ingest, the action |
+| `resolution` | `minute`, or `hour` for folded rows |
+| `bucket_start` | The start of the bucket, as RFC 3339 text in UTC |
+| `counters` | The bucket's counts and sums, as a JSON object |
+| `sketches` | The bucket's latency sketches, as a JSON object |
+| `instance` | The instance that wrote the row |
+
+As an upper bound, a script with runs in every minute produces 1,440 minute rows per day. Those stay for two days and then fold into 24 hour rows per day. Fifty such scripts on a single instance come to roughly 72,000 minute rows and 1,200 hour rows daily. In practice most scripts don't run every minute, so the totals are smaller.
+
 ## What a run measures
 
 Durations are in milliseconds. A mean is over the runs that reached that stage. Percentiles are accurate to about 1%, and `max` is exact.

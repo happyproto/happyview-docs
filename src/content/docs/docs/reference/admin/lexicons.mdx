@@ -305,6 +305,8 @@ The check covers:
 - that an object's `required` and `nullable` name properties it has (a `nullable` naming a missing property is only a warning);
 - that the document is at most 256 KiB.
 
+Lexicon files in a project get the same checks. See [Project lexicon files](/docs/reference/lexicons#project-lexicon-files) for when a failed check stops a build.
+
 ## List lexicons
 
 ```
@@ -672,6 +674,8 @@ curl http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count -H
 ```
 
 `deletable` says whether `delete_records=true` would be accepted, and `not_deletable_reason` carries the refusal when it wouldn't.
+
+`count` is `null` when the collection can't be counted, for example because the count timed out. A delete doesn't need the count, so `deletable` is still set, and the delete job's progress then reports `total` as `null`.
 
 ## Lexicons a project file defines
 

@@ -177,6 +177,7 @@ The space inspector rows come from pull requests [#350](https://github.com/games
 | `GET /admin/scripts`                     | `scripts:read`             |
 | `POST /admin/scripts`                    | `scripts:manage`           |
 | `GET /admin/scripts/languages`           | `scripts:read`             |
+| `GET /admin/scripts/modules`             | `scripts:read`             |
 | `GET /admin/scripts/{id}`                | `scripts:read`             |
 | `PATCH /admin/scripts/{id}`              | `scripts:manage`           |
 | `DELETE /admin/scripts/{id}`             | `scripts:manage`           |
