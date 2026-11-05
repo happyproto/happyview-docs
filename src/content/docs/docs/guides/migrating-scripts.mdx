@@ -122,7 +122,7 @@ v3 gives a query or procedure no collection: `target_collection` is gone from le
 
 The NSID comes from the v2 lexicon. The migration that removes `target_collection` copies each lexicon's value into a table before it drops the column, and database mode, the admin API and the dashboard's **Migrate** look the script's trigger NSID up there. In `--file` or `--stdin` mode, pass it with `--collection NSID`. When the codemod doesn't know the collection, because the v2 lexicon named none or no `--collection` was given, it leaves a marker on the read: `-- codemod: v3 supplies no collection to a query or procedure -- write the NSID of the collection this script reads or writes`.
 
-[Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script) covers the rest of the change.
+[Upgrading to v3](/docs/guides/upgrading-to-v3#queries-and-procedures-need-a-script) covers the rest of the change.
 
 ## Run the codemod
 

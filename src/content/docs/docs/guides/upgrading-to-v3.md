@@ -1,6 +1,6 @@
 ---
 title: "Upgrading to v3"
-description: "What changes when an instance moves from v2 to v3, and the steps to upgrade one: the record format, interpreters, the codemod, libraries and plugins."
+description: "Upgrade a v2 instance to v3 with hpy hv pull, deploy and env push, and what changes: the record format, interpreters, the codemod, libraries and plugins."
 ---
 
 v3 takes script execution out of HappyView. In v2 a Lua interpreter was compiled into the binary; in v3 a script runs inside an **interpreter plugin**, and HappyView ships none. An instance with no interpreter installed can neither save nor run a script.
@@ -11,7 +11,7 @@ The database upgrades in place, but one way only: the first start moves every re
 
 This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
-v3 is in alpha. The interpreters and the official libraries are published to the plugin registry, on the `alpha` channel only, and neither `latest` nor `beta` resolves to anything yet. There is also no guided upgrade flow that detects a v2 database and walks you through the codemod; every step below is manual.
+v3 is in alpha. The interpreters and the official libraries are published to the plugin registry on the `alpha` channel only. The `hpy` commands this guide uses are on `hpy`'s own `alpha` channel too: `hpy hv pull` from `1.0.0-alpha.30` and `hpy hv env push` from `1.0.0-alpha.29`. No `beta` release of `hpy` has them yet (as of 2026-11-05).
 
 ## Architecture changes
 
@@ -29,23 +29,136 @@ v3 is in alpha. The interpreters and the official libraries are published to the
 
 ## Before you start
 
+The v3 instance you deploy to can be a new one, or this one upgraded in place. To upgrade in place, get the database ready first:
+
 1. Take a database backup. See [Backups](/docs/guides/self-hosting/production#backups). The only way back to v2 is to restore it.
 2. Check you have the free disk [the compact record format](/docs/guides/database/database-setup#before-you-upgrade) needs.
-3. On Postgres, stop every HappyView instance before starting v3.
+3. On Postgres, plan to stop every HappyView instance before starting v3.
 4. On either backend, if you built indexes, triggers or views on the record tables, read [the same section](/docs/guides/database/database-setup#before-you-upgrade): some of them have to go first.
 
-Then start v3. The upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page.
+## 1. Get `hpy` on the alpha channel
 
-## 1. Install an interpreter plugin
+`pull --legacy` isn't in `beta` yet, so switch `hpy` to `alpha`:
 
-Nothing runs a script until one is installed. Boot says so once:
+```sh
+hpy channel alpha
+```
+
+If you don't have `hpy` yet, `curl -fsSL https://happyproto.github.io/cli/install-alpha.sh | sh` installs it from `alpha`. [Installation](/docs/getting-started/installation) has the other ways.
+
+## 2. Create an API key on the v2 instance
+
+v2 has no `hpy` sign-in, so we use an API key. Create one at **API Keys** in the v2 dashboard's settings, with these permissions:
+
+- `lexicons:read`
+- `scripts:read`
+- `script-variables:read`
+- `plugins:read`
+- `labelers:read`
+- `users:read`
+- `settings:manage`
+
+A key without `settings:manage` still pulls everything except your app's name, with a warning.
+
+## 3. Pull the v2 instance into a project
+
+Let's pull the instance into a new directory, with the key in `HAPPYVIEW_API_KEY`:
+
+```sh
+HAPPYVIEW_API_KEY=hv_... hpy hv pull --legacy --url https://old.example.com my-app
+```
+
+Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env NAME` reads it from another variable. The key is **never** written into the project.
+
+This writes your lexicons, scripts, plugins, app name, superadmin and labelers into `my-app/`:
+
+- It runs each script through HappyView's v3 codemod, so it uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
+- It sets Lua as the project's interpreter, and adds and locks each `happyview.*` library the rewritten scripts `require`, from the registry's `alpha` channel.
+- It maps official plugins to their registry projects. A plugin with no official project is left out, with a warning naming it.
+- It lists any script that still needs a hand edit, under "To finish by hand".
+
+It finishes by running `hpy hv check` to verify the results will work on a v3 instance. You can use `--dry-run` to test: it prints what the pull would write and writes nothing. `--legacy` runs the codemod from HappyView's release archive, which has no Windows build, so pull from macOS or Linux.
+
+## 4. Finish the conversion
+
+- **Fix any flagged scripts.** Each `-- codemod:` marker says what it needs; [Migrating from v2](/docs/guides/migrating-scripts) covers every one. `hpy hv check` also warns about a query or procedure with no script, since v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)), and `hpy hv scaffold` writes a starter for each.
+- **Fill in your script variables.** Their names are pulled into `.env.example`, but their values are not. `hpy` respects `.env`, so copy `.env.example` to `.env` and fill in the values.
+- **Set any required plugin secrets.** The pull lists the secrets each plugin needs, and pulls none of their values. On a self-hosted v3 instance, set them as `PLUGIN_<ID>_` environment variables before you deploy. The dashboard's fields for them appear once the deploy in step 9 has installed the plugin. See [Plugin configuration](/docs/guides/plugins#plugin-configuration).
+
+Run `hpy hv check` until it's clean.
+
+## 5. Test it locally
+
+Run the project with `hpy hv dev` and try it out. Better a broken script on your laptop than in front of your users. `hpy hv dev` isn't available on Windows; use WSL there. If all is working, it's safe to revoke the v2 API key.
+
+## 6. Get the v3 instance ready
+
+If you're deploying to a new v3 instance, there's nothing to do here.
+
+To upgrade the v2 instance in place, upgrade the server the way it was installed (a new binary, or a new image tag) and start it. The record store upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page. The instance has no interpreter until the deploy, and its boot log says so.
+
+## 7. Sign in to the v3 instance
+
+Now we sign in with an Atmosphere account that has admin privileges on the target instance:
+
+```sh
+hpy hv login --url https://new.example.com
+```
+
+[Deploying](/docs/getting-started/deploying) covers signing in from CI.
+
+## 8. Send your script variables
+
+Push the values from `.env`:
+
+```sh
+hpy hv env push --dry-run   # lists whether each key is new or updated
+hpy hv env push             # asks before each key
+```
+
+`hpy` never prints a value. On an instance upgraded in place the values are already there, so the dry run shows each key as replacing an existing one; answer no to any you haven't changed.
+
+## 9. Deploy
+
+Let's preview the deploy, then run it:
+
+```sh
+hpy hv deploy --dry-run
+hpy hv deploy
+```
+
+Plugins install first. Then the project switches everything else over. If the instance refuses something, any existing version is left alone. This does not prune anything from the instance. To also uninstall interpreters and libraries `happyview.lock` doesn't list, add `--prune-plugins`.
+
+On an instance upgraded in place, your v2 scripts are still in the database, untouched. A script the project deploys answers in place of the stored one with the same trigger, and the script's page in the dashboard says "A dashboard version of this script is kept and runs again if the file is removed."
+
+Looking good! The rest of this page is what to know after the move, and what changes between v2 and v3.
+
+## Things to know
+
+- **Backfill:** a record lexicon only backfills from the network if `happyview.toml` sets `backfill = true` under `[lexicons."<nsid>"]`, and only on its first deploy. The deploy preview lists the backfills it will start.
+- **HappyProto hosted instances:** the deploy applies lexicons, scripts, modules, network lexicons and labelers. Instance settings and the HappyView version are unchanged.
+- **To compare:** run `hpy hv pull --diff .` inside the project to see what's changed on the instance. Without the `.`, `hpy` looks for the project in a directory named after the instance's host.
+
+## Doing it by hand
+
+If you'd rather not use a project, every step `hpy` takes has a dashboard and API equivalent:
+
+- **Interpreter and libraries:** install them at **Integrations > Plugins**, from the registry, on the `alpha` channel. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference. A `registry` install through `POST /admin/plugins` that names no channel asks for `latest` and resolves to nothing.
+- **Scripts:** the editor's **Migrate** button, `POST /admin/scripts/{id}/codemod`, or `happyview-codemod --database-url <url>` (in the Docker image at `/usr/local/bin/happyview-codemod`) for a dry run, then again with `--apply`. Saving refuses a Lua body that still references a removed global, with the names in `removed_globals`, unless you confirm markers with `"allow_markers": true` or `--allow-markers`.
+- **A fleet:** `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of plugin sources on the first boot that names them; see [Default plugins](/docs/guides/plugins#default-plugins).
+
+## What changes
+
+### With no interpreter installed
+
+An instance with no interpreter boots, and says so once in its log:
 
 ```
 no interpreter plugin is installed, so no script can be saved or run;
 install one from the plugins page in the dashboard
 ```
 
-Until then, every script surface refuses in its own way:
+Every script surface then refuses in its own way:
 
 | Surface | Behaviour with no interpreter |
 |---------|-------------------------------|
@@ -55,17 +168,9 @@ Until then, every script surface refuses in its own way:
 | Label event | Dead-lettered on the first attempt, and the label still persists unmodified |
 | Job | Fails, with the same message in its `error` column |
 
-Record and label events are let through rather than held, so indexing doesn't stop. The dead-letter rows are the record of what went unprocessed, at **Dead Letters** in the dashboard.
+Record and label events are let through rather than held, so indexing doesn't stop. The dead-letter rows are the record of what went unprocessed, at **Dead Letters** in the dashboard. The scripts list marks a row `runnable: false` when no installed interpreter claims its `script_type`.
 
-To see what's installed:
-
-```sh
-curl "http://127.0.0.1:3000/admin/plugins?type=interpreter" -H "$AUTH"
-```
-
-The scripts list also flags each row: `runnable` is `false` when no installed interpreter claims its `script_type`, and the dashboard marks those rows at **Integrations > Scripts**.
-
-### Which interpreter
+### Interpreters
 
 Three are published, each its own project in the registry:
 
@@ -77,63 +182,7 @@ Three are published, each its own project in the registry:
 
 An upgrade needs `happyview-lua`: every script a v2 instance stored is Lua. The other two are for scripts you write from here on, and all three can be installed at once. An interpreter claims a language id and a set of file extensions, and a second one claiming either is refused at install.
 
-### Installing it
-
-1. Go to **Integrations > Plugins**.
-2. Click **Add plugin**.
-3. Pick the project from the registry.
-4. Choose a channel.
-5. Review the capabilities it asks for.
-6. Install it.
-
-[Installing plugins](/docs/guides/plugins#from-the-registry) is the reference, and three of its details apply to an upgrade.
-
-**Use the `alpha` channel.** A project publishes up to three (`latest`, `beta` and `alpha`), and the official projects have published only `alpha` so far. The dashboard picks it for you, because it is the only one the project has. `POST /admin/plugins` does not, and a `registry` install naming no channel asks for `latest` and resolves to nothing. **Switch channel** moves an install later; see [Channels](/docs/guides/plugins#channels).
-
-**There is nothing to checksum.** A registry version names its manifest and its module by CID. HappyView fetches both from the registry, refuses either whose bytes don't match, and stores the CIDs with the install so it checks them again at every boot and reload. A registry install takes no `sha256`. [Verified by CID](/docs/guides/plugins#verified-by-cid) has the details.
-
-**The registry it came from is a boot dependency.** While the registry can't be reached, a plugin installed from it isn't loaded, which for an interpreter means no script runs. Setting `PLUGIN_REGISTRY_URL` to `off` doesn't change that; it stops HappyView reading the registry, not the stored install's own fetch. Install from a URL or the file system instead if you need an instance that depends on nothing.
-
-To install without the dashboard, see [`POST /admin/plugins`](/docs/reference/admin/plugins#install-a-plugin) with `registry`. To give a fleet its interpreter without anyone clicking, `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of sources on the first boot that names them; see [Default plugins](/docs/guides/plugins#default-plugins).
-
-An interpreter installed from a release URL needn't be reinstalled. The next registry refresh matches a URL install to the official publisher's project with the same plugin id, and its updates come from the registry from then on. One that matches nothing is marked **Unresolved** and keeps working. [From a URL](/docs/guides/plugins#from-a-url) covers both.
-
-## 2. Migrate your stored scripts
-
-A script stored before the upgrade stays in the table untouched and fails the first time it reads a removed global. The scripts list reports what each one still references in `needs_migration`, and the codemod rewrites it: from the editor's **Migrate** button, from `POST /admin/scripts/{id}/codemod`, or from the `happyview-codemod` CLI.
-
-[Migrating from v2](/docs/guides/migrating-scripts) is the reference for what the rewrite does and what it leaves behind as a `-- codemod:` marker for you to finish by hand.
-
-The codemod does not need an interpreter. It is a source rewrite, so you can migrate every stored script before installing one. Editing a script by hand afterwards does need an interpreter, because the save is validated through it.
-
-`happyview-codemod` is in the published Docker image, at `/usr/local/bin/happyview-codemod`. Run `docker run <image> happyview-codemod --database-url <url>` against the same database for a dry run, then again with `--apply` to write the rewrites. Or use `POST /admin/scripts/{id}/codemod` with `{"apply": true}`.
-
-Saving is stricter than running: `POST` / `PATCH /admin/scripts` refuse a Lua body that still references a removed global, with the names in `removed_globals`. The codemod's own apply is the one exception: a rewrite that still has markers is stored once you confirm it, with `"allow_markers": true` in the API or `--allow-markers` on the CLI.
-
-## 3. Install the libraries your scripts require
-
-The codemod rewrites a v2 global into a `require`, and each `happyview.*` name it requires is a library plugin. A migrated script therefore saves fine and then fails at run time on the first library it names that isn't installed. Do this before you let traffic reach a migrated script.
-
-The `require` block the codemod writes at the top of each script is the list of what that script needs. The `internal.*` modules in it come from the interpreter itself and need nothing installed; each `happyview.*` library is a project in the registry:
-
-| `require` | Registry project |
-|-----------|------------------|
-| `happyview.db` | `happyview-db` |
-| `happyview.sql` | `happyview-sql` |
-| `happyview.backlinks` | `happyview-backlinks` |
-| `happyview.record` | `happyview-record` |
-| `happyview.xrpc` | `happyview-xrpc` |
-| `happyview.atproto` | `happyview-atproto` |
-| `happyview.spaces` | `happyview-spaces` |
-| `happyview.linked_repos` | `happyview-linked-repos` |
-| `happyview.jobs` | `happyview-jobs` |
-| `happyview.http` | `happyview-http` |
-
-They install exactly as an interpreter does, from the same registry and the same `alpha` channel. The registry carries libraries the codemod never writes a `require` for, `happyview-blobs` among them; install those if you reach for them in a script you write yourself.
-
-The codemod's polyfills depend on libraries too. The `Record` polyfill needs `happyview-record` at the version shipped with v3, the one exporting `lexicon`, and says so by name if it meets an older one. The row-shape polyfill reads through `happyview-db`, `happyview-backlinks` or both. [Polyfills](/docs/guides/migrating-scripts#libraries) says which polyfill a script got and why.
-
-## 4. Rebuild or replace your plugins
+### Plugins need a v3 manifest
 
 v2 loaded plugins whose manifest declared `api_version` `"1"`. v3 requires `"2"`, and a manifest below it is refused at load with a message naming the plugin type:
 
@@ -148,13 +197,13 @@ The instance still boots. A refused plugin logs an error starting `Failed to loa
 
 The official plugins are published in the registry on the `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
-## 5. Script limits now apply
+### Script limits now apply
 
 v3 runs every script under an instruction limit, a wall clock and a memory ceiling. A script that ran long in v2 can fail in v3. [Limits](/docs/reference/scripts/limits) has the defaults and the settings, and `ctx.job.should_stop()` is how a job stops.
 
 A run that spends either budget fails with `timeout`; one that exhausts its memory fails with `memory`. An XRPC caller sees `{"error": "script_error", "errorType": "timeout"}` at 408, or `"memory"` at 500.
 
-## 6. Error text where you grep it
+### Error text where you grep it
 
 If you have alerting or log queries over script failures, two things changed.
 
@@ -162,21 +211,21 @@ If you have alerting or log queries over script failures, two things changed.
 
 **An unrecognised `script_type`.** v2 refused an unknown language with a 422 from the request body. v3 accepts any string in the body and then refuses it with a 400 naming the language, because what is valid now depends on which interpreters are installed.
 
-## 7. `spaceType` on the plugin and script surfaces
+### `spaceType` on the plugin and script surfaces
 
 atproto spaces are off by default; see [Spaces](/docs/guides/spaces). An atproto space's type NSID is named `spaceType` everywhere the protocol names it: the plugin SDK's `SpaceInfo` and `SpacesCreate`, and `ctx.space.spaceType` in a script. It was `type` on the SDK and `type_nsid` on `ctx.space`.
 
 The HTTP surface is unaffected. `createSpace` and `listSpaces` accept `spaceType` and still accept `type`, and a space in a response still carries `type`.
 
-## 8. Library record reads return an envelope
+### Library record reads return an envelope
 
 A record read through a library answers `{uri, did, collection, rkey, cid, indexed_at, record}`, with the stored body verbatim under `record`. That covers `require("happyview.db")`'s `get`, `search` and `records(…)` chains, and `require("happyview.backlinks")`. v2 answered the body with `uri` written onto it. `cid` is null while the row holds a local write's placeholder, and `indexed_at` is null until Jetstream has echoed the record.
 
-The public XRPC query routes keep their flat body-plus-`uri` shape. A query with no script still answers a `uri` lookup as it did in v2, but nothing else; see [Queries and procedures need a script](#9-queries-and-procedures-need-a-script).
+The public XRPC query routes keep their flat body-plus-`uri` shape. A query with no script still answers a `uri` lookup as it did in v2, but nothing else; see [Queries and procedures need a script](#queries-and-procedures-need-a-script).
 
 A script the codemod migrated keeps v2's flat rows, through a polyfill the codemod inlines; [Migrating from v2](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
 
-## 9. Queries and procedures need a script
+### Queries and procedures need a script
 
 In v3, a query or procedure lexicon names no collection. `target_collection` and the procedure `action` setting (`create`, `update`, `delete`, `upsert`) are gone from the lexicon, the admin API, `happyview.toml` and the dashboard. A script names the collection it reads or writes as a literal NSID, such as `db.records("xyz.statusphere.status")`, and `ctx.collection` is set only for record events.
 
@@ -206,7 +255,7 @@ happyview.toml:2: unknown field `target_collection`
 
 `happyview check`, boot and a project deploy all fail on it.
 
-## 10. Building from source
+### Building from source
 
 A default build compiles no Lua interpreter at all: `mlua` sits behind a non-default `lua-reference` feature. The resulting binary cannot run a script without an interpreter plugin.
 
@@ -214,7 +263,7 @@ A default build compiles no Lua interpreter at all: `mlua` sits behind a non-def
 
 v3 adds environment variables of its own, all optional. Two are about plugins: `PLUGIN_CACHE_DIR` and `HAPPYVIEW_DEFAULT_PLUGINS`. A Postgres instance keeps compiled plugins in memory unless you set the first. `HAPPYVIEW_DEFAULT_PLUGINS` installs each source once; `PLUGIN_URLS`, which v2 also read, loads its plugins again at every boot. See the [Configuration reference](/docs/reference/configuration#plugins).
 
-## 11. Rolling back
+### Rolling back
 
 There is no in-place way back. Restore the backup you took before the upgrade, and run v2 against it:
 
@@ -227,12 +276,14 @@ Anything written after the upgrade, including operators, scripts and settings, i
 
 ## Checklist
 
-- [ ] Take a database backup, and confirm `record store upgrade complete` in the first boot's log
-- [ ] Install an interpreter plugin from the registry on the `alpha` channel, and confirm boot no longer warns
-- [ ] Run the codemod over every stored script, and finish any `-- codemod:` markers by hand
-- [ ] Add a script to every query or procedure that has none, and remove `target_collection` and `action` from `happyview.toml`
-- [ ] Install a library plugin for every `happyview.*` name the rewritten scripts require
-- [ ] Confirm `needs_migration` is empty and `runnable` is true for every script
+- [ ] To upgrade in place, take a database backup
+- [ ] Switch `hpy` to the `alpha` channel
+- [ ] Create a v2 API key with the seven permissions
+- [ ] Pull the v2 instance with `hpy hv pull --legacy`
+- [ ] Fix flagged scripts, fill in `.env` and set plugin secrets, until `hpy hv check` is clean
+- [ ] Test with `hpy hv dev`, then revoke the v2 API key
+- [ ] To upgrade in place, start v3 and confirm `record store upgrade complete` in the first boot's log
+- [ ] Sign in with `hpy hv login`, push script variables with `hpy hv env push`, and deploy with `hpy hv deploy`
 - [ ] Replace any plugin whose manifest is `api_version` `"1"`, and check the boot log for refusals
 - [ ] Review long-running scripts against the instruction limit and the wall clock
 - [ ] Update any alerting that matches the old stage prefixes in dead-letter or job `error` text
