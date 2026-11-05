@@ -11,7 +11,7 @@ The database upgrades in place, but one way only: the first start moves every re
 
 This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
-v3 is in alpha. The interpreters and the official libraries are published to the plugin registry on the `alpha` channel only. The `hpy` commands this guide uses are on `hpy`'s own `alpha` channel too: `hpy hv pull` from `1.0.0-alpha.30` and `hpy hv env push` from `1.0.0-alpha.29`. No `beta` release of `hpy` has them yet (as of 2026-11-05).
+v3 is in alpha. The interpreters and the official libraries are published to the plugin registry on the `alpha` channel only. The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
 
 ## Architecture changes
 
@@ -36,15 +36,16 @@ The v3 instance you deploy to can be a new one, or this one upgraded in place. T
 3. On Postgres, plan to stop every HappyView instance before starting v3.
 4. On either backend, if you built indexes, triggers or views on the record tables, read [the same section](/docs/guides/database/database-setup#before-you-upgrade): some of them have to go first.
 
-## 1. Get `hpy` on the alpha channel
+## 1. Get `hpy` 1.0.0-beta.5 or later
 
-`pull --legacy` isn't in `beta` yet, so switch `hpy` to `alpha`:
+`pull --legacy` arrived in `1.0.0-beta.5`, so let's bring `hpy` up to date:
 
 ```sh
-hpy channel alpha
+hpy update
+hpy --version   # 1.0.0-beta.5 or later, or 1.0.0-alpha.30 or later on the alpha channel
 ```
 
-If you don't have `hpy` yet, `curl -fsSL https://happyproto.github.io/cli/install-alpha.sh | sh` installs it from `alpha`. [Installation](/docs/getting-started/installation) has the other ways.
+On `1.0.0-beta.4`, `hpy update` can't replace a copy in `/usr/local/bin`, so it prints the install command to run instead. If you don't have `hpy` yet, `curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh` installs it. [Installation](/docs/getting-started/installation) has the other ways.
 
 ## 2. Create an API key on the v2 instance
 
@@ -277,7 +278,7 @@ Anything written after the upgrade, including operators, scripts and settings, i
 ## Checklist
 
 - [ ] To upgrade in place, take a database backup
-- [ ] Switch `hpy` to the `alpha` channel
+- [ ] Update `hpy` to `1.0.0-beta.5` or later
 - [ ] Create a v2 API key with the seven permissions
 - [ ] Pull the v2 instance with `hpy hv pull --legacy`
 - [ ] Fix flagged scripts, fill in `.env` and set plugin secrets, until `hpy hv check` is clean
