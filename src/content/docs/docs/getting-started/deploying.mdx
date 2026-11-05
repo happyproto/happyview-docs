@@ -129,7 +129,6 @@ jobs:
       - name: Install hpy
         run: |
           curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
-          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
 
       - name: Check
         run: hpy happyview check --locked

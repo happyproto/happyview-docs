@@ -40,13 +40,21 @@ curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
 </TabItem>
 </Tabs>
 
-The install script puts `hpy` in `~/.cargo/bin`. If it isn't on your `PATH` yet, open a new terminal. It's the command-line version of turning it off and on again. Let's check that it worked:
+The install script puts `hpy` in `/usr/local/bin`, which is already on your `PATH`. That folder belongs to root on most machines, so the script asks for your password once, through `sudo`, to copy `hpy` there. Only that copy runs as root.
+
+If you'd rather skip `sudo`, install into a folder you own. This puts `hpy` in `~/.local/bin`:
+
+```sh
+curl -fsSL https://happyproto.github.io/cli/install-beta.sh | HPY_CLI_INSTALL_DIR="$HOME/.local" sh
+```
+
+If an earlier install left `hpy` in `~/.cargo/bin`, the script offers to remove that copy, so it doesn't shadow the new one. Let's check that it worked:
 
 ```sh
 hpy --version
 ```
 
-Excellent! `hpy update` keeps it up to date on the `beta` channel. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
+Excellent! `hpy update` keeps it up to date on its channel. On the `beta` channel (as of 2026-11-05), `hpy update` can't replace a copy in `/usr/local/bin` yet, so run the install command again to update until the next beta release. From `1.0.0-alpha.31`, the `alpha` channel's `hpy update` asks for `sudo` itself. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
 
 ## Create a project
 
