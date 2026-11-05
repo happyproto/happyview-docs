@@ -9,6 +9,10 @@ Manage the ES256 key HappyView signs OAuth client assertions with. As a confiden
 
 Every session records the `kid` of the key that established it, and is refreshed with that key even after a newer key becomes current. An authorization server destroys a session whose refresh carries a mismatched `kid`, so this pinning is what keeps sessions alive through a rotation.
 
+A sign-in that is in progress when a new key becomes current finishes with the key it started with, and its session is pinned to that key.
+
+The key sets at `/oauth/clients/{id}/jwks.json`, the instance's included, are served with `Cache-Control: public, max-age=600`. A server that honours the header fetches the set again well within the 75 minutes before a pending key becomes current.
+
 Rotating and revoking a key have different consequences:
 
 - **Rotate** mints a new key, which becomes `current` after 75 minutes (or at once with `immediate`) and marks the previous one `retiring`. A retiring key stays published in the JWKS and keeps signing every session established with it, so nothing is logged out.
