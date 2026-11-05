@@ -110,7 +110,7 @@ Configure instance-level settings:
 - **Instance Identity**: the instance's name, URI, logo, terms of service and privacy policy, shown on OAuth authorization screens.
 - **Data Retention**: how long a finished backfill's details are kept.
 - **Backfill Performance**: the concurrency of a backfill.
-- **Scripts**: **Instruction limit** and **Request wall clock (seconds)**.
+- **Scripts**: **Instruction limit** and **Script wall clock (seconds)**.
 - **Space Inspector**: **Enable Space Inspector**, and **Maximum Access Length (minutes)**, the longest access an operator can request. See [Moderating spaces](/docs/guides/spaces#moderating-spaces).
 - **Event Logs**: **Event Log Retention (days)**, **Space Access Log Retention (days)** for [protected events](/docs/guides/event-logs#protected-events), verbose logging and, with `events:purge`, **Purge Event Logs**.
 
