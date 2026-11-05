@@ -115,21 +115,23 @@ console.log(info.scopes);
 
 ## Making authenticated requests
 
-`HappyViewSession.fetchHandler` works like `fetch` but automatically attaches DPoP proof, authorization, and client key headers to every request, whatever its URL, so pass it only URLs on your HappyView instance:
+`HappyViewSession.fetchHandler` works like `fetch` but automatically attaches DPoP proof, authorization, and client key headers:
 
 ```typescript
-// Relative path — prepends the HappyView instance URL
+// Relative path: prepends the HappyView instance URL
 const response = await session.fetchHandler(
   "/xrpc/com.example.getStuff?limit=10",
   { method: "GET" },
 );
 
-// Absolute URL — used as-is
+// Absolute URL on the instance: used as-is
 const sameResponse = await session.fetchHandler(
   "https://happyview.example.com/xrpc/com.example.getStuff",
   { method: "GET" },
 );
 ```
+
+The URL must be on the session's HappyView instance: the same origin, and under the instance's base path when its URL has one. For any other URL, `fetchHandler` throws `fetchHandler only sends requests to <instance URL>` without making a request, so the access token, DPoP proof and client key go only to the instance.
 
 ## Session restoration
 
