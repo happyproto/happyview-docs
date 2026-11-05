@@ -22,6 +22,8 @@ A run can't recover from a spent budget. `pcall` and `try`/`catch` don't stop it
 
 ## Wall clock
 
+The wall clock counts only the time the script's own code runs. Time the run spends waiting on HappyView, such as for an HTTP request or a database read, isn't counted.
+
 A run that hits the wall clock fails with `timeout`. Library calls still in flight when the run is cut short are dropped with it.
 
 ## Memory
@@ -45,7 +47,7 @@ For a record or label script, the failure is retried and then dead-lettered. For
 
 ## Change the limits
 
-Set the instruction limit and wall clock in the dashboard under **System > General**, in the **Instruction limit** and **Request wall clock (seconds)** fields. You can also set them with environment variables:
+Set the instruction limit and wall clock in the dashboard under **System > General**, in the **Instruction limit** and **Script wall clock (seconds)** fields. You can also set them with environment variables:
 
 ```sh
 SCRIPT_INSTRUCTION_LIMIT=5000000

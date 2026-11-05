@@ -23,6 +23,16 @@ For a record lexicon, **Index records from the network** decides whether the ins
 
 **Network** lexicons are fetched from the atproto network. Enter an NSID (e.g. `xyz.statusphere.status`) and HappyView resolves it automatically. If found, the lexicon JSON is displayed in a read-only editor. Click **Add** to track it. See [Lexicons: Network lexicons](/docs/reference/lexicons#network-lexicons) for how resolution works.
 
+#### Indexing a lexicon's collection
+
+A record lexicon's page has an **Indexed** switch, which sets whether the instance ingests the collection from the network. It works for local and network lexicons, including a network lexicon listed in `happyview.toml`, and needs `lexicons:create`. A lexicon from a project file shows **Indexed** as read-only; set `indexed` in its [`[lexicons."<nsid>"]` table](/docs/guides/configuration) instead.
+
+Turning the switch on indexes new records from then on. It doesn't fetch older ones; start a [backfill](#backfills) for those. Turning it off stops ingesting and keeps the records already stored. For a network lexicon, changing the switch also fetches the lexicon's current version from the network.
+
+#### Deleting a lexicon
+
+Deleting a lexicon stops indexing its collection. For a record lexicon, the confirmation dialog also offers to delete the collection's indexed records and shows how many there are. The option needs `records:delete-collection` and `records:delete`, and isn't offered for a collection served by external record storage. The records are deleted by a background job. See [Delete a lexicon](/docs/reference/admin/lexicons#delete-a-lexicon) for the admin API equivalent.
+
 #### JSON editor
 
 The JSON editor validates against the atproto Lexicon v1 schema as you type, and requires the top-level `lexicon`, `id` and `defs.main`. It completes definition types (`record`, `query`, `procedure`, `subscription`), property types (`string`, `integer`, `boolean`, `ref`, `union`, `blob`, `cid-link`, etc.) and schema structure (`defs`, `main`, `properties`, `required`).
@@ -77,7 +87,7 @@ Register and manage API clients. Each client gets an `hvc_…` client key and `h
 
 ### Scripts
 
-Navigate to **Scripts** to list, create and edit the instance's scripts. A row is marked when no installed interpreter can run it. A script that still reads v2 globals offers **Migrate**; see [Migrating scripts to v3](/docs/guides/migrating-scripts). A script's own page shows a summary of its [performance](#script-performance).
+Navigate to **Scripts** to list, create and edit the instance's scripts. A row is marked when no installed interpreter can run it. A script that still reads v2 globals offers **Migrate**; see [Migrating scripts to v3](/docs/guides/migrating-scripts). A script's own page shows one line about its last hour, such as "Last hour: 12,400 runs · p95 3.1 ms · 0 errors", which links to its graphs on [Script performance](#script-performance). The line also counts timeouts when there were any. It's hidden when the script hasn't run in the last hour, and needs `metrics:read`.
 
 The Lua editor offers completion, hover and signature help from the declarations the interpreter provides, so it covers the libraries installed on the instance. See [Scripts](/docs/getting-started/scripts) for how a script is written.
 
@@ -110,7 +120,7 @@ Configure instance-level settings:
 - **Instance Identity**: the instance's name, URI, logo, terms of service and privacy policy, shown on OAuth authorization screens.
 - **Data Retention**: how long a finished backfill's details are kept.
 - **Backfill Performance**: the concurrency of a backfill.
-- **Scripts**: **Instruction limit** and **Request wall clock (seconds)**.
+- **Scripts**: **Instruction limit** and **Script wall clock (seconds)**.
 - **Space Inspector**: **Enable Space Inspector**, and **Maximum Access Length (minutes)**, the longest access an operator can request. See [Moderating spaces](/docs/guides/spaces#moderating-spaces).
 - **Event Logs**: **Event Log Retention (days)**, **Space Access Log Retention (days)** for [protected events](/docs/guides/event-logs#protected-events), verbose logging and, with `events:purge`, **Purge Event Logs**.
 
