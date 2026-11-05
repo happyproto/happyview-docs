@@ -560,7 +560,7 @@ Every import checks the plugin's declared capability first. Every `host_caller_*
 The two `host_records_index_*` imports answer with the record imports' codes (`INVALID_SPEC`, `DB_ERROR`, `BAD_INPUT`, `FORBIDDEN`, `HOST_ERROR`). The `host_caller_*` imports use these:
 
 - `FORBIDDEN`: the capability isn't declared.
-- `NO_SESSION`: the runner holds no session.
+- `NO_SESSION`: the runner holds no session. `host_caller_get_session` and `host_caller_get_email` also return it for a service-auth caller, because such a caller runs on the user's own sign-in to this instance, which the calling service was never given.
 - `WRITABLE_REPO`: a write names a repo other than the caller's or the delegate's.
 - `BAD_INPUT`: the spec doesn't decode, or is invalid.
 - `AUTH_REQUIRED`: the session died.
@@ -568,7 +568,7 @@ The two `host_records_index_*` imports answer with the record imports' codes (`I
 - `XRPC_ERROR`: the local handler or proxy rejected the call.
 - `HOST_ERROR`: a failure with no PDS or XRPC status to report.
 
-`caller:call` is Critical because an arbitrary procedure carries the same power as the user's whole session, including ones that change their account. `caller:write` is High because it is bounded to repo writes the PDS's own scope check still governs.
+`caller:call` is Critical because an arbitrary procedure carries the same power as the user's whole session, including ones that change their account. `caller:email` is High because an email address is personal data. A job that returns the address, or reports it through `ctx.job.progress`, stores it in the job's row, where anyone with `jobs:read` can see it. `caller:write` is High because it is bounded to repo writes the PDS's own scope check still governs.
 
 ### AT Protocol reads and attestation
 
