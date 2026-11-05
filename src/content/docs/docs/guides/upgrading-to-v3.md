@@ -43,23 +43,23 @@ If you already have `hpy`, switch it with `hpy channel alpha` instead. [Installa
 
 ## 1. Pull your v2 instance into a project
 
-We start while the instance still runs v2. `hpy hv pull --legacy` reads its lexicons, scripts, plugins and settings through the admin API and writes a v3 project from them.
+We start while the instance still runs v2, because the pull reads it through v2's admin API. `hpy hv pull --legacy` reads its lexicons, scripts, plugins and settings and writes a v3 project from them.
 
-v2 has no `hpy` sign-in, so the pull uses an API key. Create one at **API Keys** in the v2 dashboard's settings, with `lexicons:read`, `scripts:read`, `script-variables:read`, `plugins:read`, `labelers:read`, `users:read` and `settings:manage`. Then, with the key in `HAPPYVIEW_API_KEY`:
+v2 has no `hpy` sign-in, so we use an API key. Create one at **API Keys** in the v2 dashboard's settings, with `lexicons:read`, `scripts:read`, `script-variables:read`, `plugins:read`, `labelers:read`, `users:read` and `settings:manage`. Then, with the key in `HAPPYVIEW_API_KEY`:
 
 ```sh
 HAPPYVIEW_API_KEY=hv_... hpy hv pull --legacy --url https://happyview.example.com my-app
 ```
 
-Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env NAME` reads it from another variable. The key is never written into the project, so revoke it once the pull is done. A key without `settings:manage` still pulls everything except your app's name, with a warning.
+Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env NAME` reads it from another variable. The key is **never** written into the project, so revoke it once the pull is done. A key without `settings:manage` still pulls everything except your app's name, with a warning.
 
 Between them, the pull and the deploy in step 3 replace the old manual steps. The pull prepares the project:
 
-- **Every script goes through the codemod**, the same `happyview-codemod` the v3 release ships, so it uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
-- **Lua is the project's interpreter**, since every v2 script is Lua.
-- **Each `happyview.*` library the rewritten scripts `require`** is added to `happyview.toml` and locked, from the registry's `alpha` channel.
-- **Official plugins** map to their registry projects. A plugin with no official project is left out, with a warning naming it.
-- **Your script variables' keys** go to `.env.example`. Their values are never read.
+- It runs every script through the codemod, the same `happyview-codemod` the v3 release ships, so each one uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
+- It sets Lua as the project's interpreter, since every v2 script is Lua.
+- It adds each `happyview.*` library the rewritten scripts `require` to `happyview.toml`, and locks it from the registry's `alpha` channel.
+- It maps official plugins to their registry projects. A plugin with no official project is left out, with a warning naming it.
+- It writes your script variables' keys to `.env.example`, and never reads their values.
 
 It ends by running `hpy hv check` on the new project. The check warns about every query or procedure lexicon with no script, because v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)). `hpy hv scaffold` writes a starter script for each one, and asks which collection it reads or writes. A script the codemod left `-- codemod:` markers in is listed under "To finish by hand"; [Migrating from v2](/docs/guides/migrating-scripts) says what each marker asks for. Fix those and run `hpy hv check` until it's clean.
 
@@ -67,13 +67,13 @@ It ends by running `hpy hv check` on the new project. The check warns about ever
 
 ## 2. Start v3
 
-Upgrade the server the way you installed it (a new binary, or a new image tag), then start it. The record store upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page.
+Now we upgrade the server the way it was installed (a new binary, or a new image tag) and start it. The record store upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page.
 
 The instance has no interpreter yet, so its scripts can't run, and its boot log says so. The next step fixes that.
 
 ## 3. Deploy the project
 
-Sign in to the upgraded instance, then preview and run the deploy:
+Let's sign in to the upgraded instance, then preview the deploy and run it:
 
 ```sh
 hpy hv login --url https://happyview.example.com
@@ -89,7 +89,7 @@ Your v2 scripts are still in the database, untouched. A script the project deplo
 
 Script variables stay in the database through the upgrade, values included, so an instance upgraded in place needs nothing here.
 
-To set them on a fresh v3 instance instead, copy `.env.example` to `.env`, fill in the values, and push them:
+If you're setting up a fresh v3 instance instead, copy `.env.example` to `.env`, fill in the values, and push them:
 
 ```sh
 hpy hv env push --dry-run
@@ -102,7 +102,7 @@ Looking good! The rest of this page is what changes between v2 and v3, for scrip
 
 ## Doing it by hand
 
-Every step `hpy` takes has a dashboard and API equivalent, if you'd rather not use a project:
+If you'd rather not use a project, every step `hpy` takes has a dashboard and API equivalent:
 
 - **Interpreter and libraries:** install them at **Integrations > Plugins**, from the registry, on the `alpha` channel. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference. A `registry` install through `POST /admin/plugins` that names no channel asks for `latest` and resolves to nothing.
 - **Scripts:** the editor's **Migrate** button, `POST /admin/scripts/{id}/codemod`, or `happyview-codemod --database-url <url>` (in the Docker image at `/usr/local/bin/happyview-codemod`) for a dry run, then again with `--apply`. Saving refuses a Lua body that still references a removed global, with the names in `removed_globals`, unless you confirm markers with `"allow_markers": true` or `--allow-markers`.
@@ -110,7 +110,7 @@ Every step `hpy` takes has a dashboard and API equivalent, if you'd rather not u
 
 ## What changes
 
-### No interpreter, no scripts
+### With no interpreter installed
 
 An instance with no interpreter boots, and says so once in its log:
 
