@@ -228,4 +228,4 @@ The keys a project's `happyview.toml` can set. Every table is optional, and an u
 
 A deploy ignores `[happyview]`, `[instance]`, `[interpreters]`, `[libraries]`, `[dev]` and `[jetstream]`; see [Deploying](/docs/getting-started/deploying).
 
-In v3, `[lexicons."<NSID>"]` takes no `target_collection` or `action`. A file that still sets either fails to load with ``happyview.toml:2: unknown field `target_collection` ``. A query or procedure names its collection in its script; see [Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script).
+In v3, `[lexicons."<NSID>"]` takes no `target_collection` or `action`. A file that still sets either fails to load with ``happyview.toml:2: unknown field `target_collection` ``. A query or procedure names its collection in its script; see [Upgrading to v3](/docs/guides/upgrading-to-v3#queries-and-procedures-need-a-script).
