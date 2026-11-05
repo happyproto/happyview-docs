@@ -87,7 +87,7 @@ Compose refuses to start without these:
 
 - **`PUBLIC_URL`**: the public HTTPS URL people reach, scheme included. It's used to build OAuth redirect URIs, so a mismatch breaks login. Do **not** include `BASE_PATH` here.
 - **`SESSION_SECRET`**: signs the dashboard session cookie. An unset or too-short value doesn't stop HappyView booting. It disables cookie login, which is why the Compose files require it explicitly.
-- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [atproto spaces](/docs/guides/spaces) (off by default), and service identity don't work. Rotating it makes everything already encrypted unreadable.
+- **`TOKEN_ENCRYPTION_KEY`**: the AES-256-GCM key protecting OAuth tokens, DPoP private keys, and plugin secrets at rest. Without it, app sign-in, [atproto spaces](/docs/guides/spaces) (off by default), and service identity don't work. Changing it on its own makes everything already encrypted unreadable; to replace it, see [Rotating the encryption key](/docs/guides/rotating-the-encryption-key).
 
 :::caution[Deploying from a clone of the repository instead]
 The steps above assume a directory containing nothing but the Compose file and your `.env`, which is why the plain filenames are safe. In a clone of the repository they are not. A development `.env` left beside the Compose files is auto-loaded too, and supplies these values, including the `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` that `.env.example` ships. If you deploy from a clone, keep production values in their own file and name both explicitly on every command:

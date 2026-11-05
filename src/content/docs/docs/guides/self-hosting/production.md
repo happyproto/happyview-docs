@@ -23,7 +23,7 @@ Set `TOKEN_ENCRYPTION_KEY` to a base64-encoded 32-byte key. It encrypts at rest,
 openssl rand -base64 32
 ```
 
-Without a valid key, app sign-in, atproto spaces (off by default) and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Sessions, script variables and the attestation key are stored unencrypted until a key is set; the first boot with one encrypts them. Changing the key makes everything already encrypted unreadable.
+Without a valid key, app sign-in, atproto spaces (off by default) and service identity don't work, the dashboard's plugin secret fields are disabled, and plugins can only read secrets from environment variables. Sessions, script variables and the attestation key are stored unencrypted until a key is set; the first boot with one encrypts them. Changing the key on its own makes everything already encrypted unreadable, so replace it as in [Rotating the encryption key](/docs/guides/rotating-the-encryption-key).
 
 ## TLS and `PUBLIC_URL`
 

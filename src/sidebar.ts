@@ -99,6 +99,7 @@ export const v3Sidebar: Sidebar = [
           d('guides/service-identity'),
           d('guides/hardening'),
           d('guides/instance-limits'),
+          d('guides/rotating-the-encryption-key'),
           d('guides/event-logs'),
           d('guides/telemetry'),
           d('guides/record-providers'),
