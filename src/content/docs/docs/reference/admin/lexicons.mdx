@@ -673,6 +673,8 @@ curl http://127.0.0.1:3000/admin/lexicons/xyz.statusphere.status/record-count -H
 
 `deletable` says whether `delete_records=true` would be accepted, and `not_deletable_reason` carries the refusal when it wouldn't.
 
+`count` is `null` when the collection can't be counted, for example because the count timed out. A delete doesn't need the count, so `deletable` is still set, and the delete job's progress then reports `total` as `null`.
+
 ## Lexicons a project file defines
 
 When the instance runs a project, a lexicon defined by a file under `src/` answers ahead of any stored row with the same id. Uploading, deleting, adding as a network lexicon or removing as one is refused with `409 Conflict`:
