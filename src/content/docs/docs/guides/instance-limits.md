@@ -16,7 +16,7 @@ HappyView keeps its limits in memory and checks against that copy. A check never
 | `anonymous_xrpc` | `allowed`, `true` or `false` | With `false`, XRPC calls from a caller who isn't identified |
 | `log_retention_days` | `max`, a whole number from `1` | Keeping logs for more than `max` days |
 
-A limit you leave out is unlimited, or for `anonymous_xrpc`, allowed. Lowering a limit below what the instance already has removes nothing: the instance keeps what it has and refuses to add more.
+Leaving a limit out of the file sets no limit; leaving out `anonymous_xrpc` lets anonymous calls through. If you set a limit lower than the instance's current count, existing operators and clients stay. Only new ones are refused, until the count is under the limit again.
 
 ### `seats`
 
@@ -36,11 +36,11 @@ HappyView's built-in XRPC methods, such as `app.bsky.actor.getProfile`, `com.atp
 
 ### `log_retention_days`
 
-The ceiling applies to two [instance settings](/docs/reference/configuration#instance-settings), `event_log_retention_days` and `backfill_retention_days`. Saving either above `max`, or as `0`, which keeps logs forever, is refused. Whatever the settings hold, the retention sweeps delete event logs, job logs, stored script metrics and backfill history older than `max` days.
+The ceiling applies to two [instance settings](/docs/reference/configuration#instance-settings), `event_log_retention_days` and `backfill_retention_days`. An operator can save a shorter retention, but saving more than `max` days, or `0` (keep forever), is refused. The retention sweeps also enforce it: event logs, job logs, stored script metrics and backfill history are deleted after `max` days even when a setting, or its environment variable, asks for longer.
 
 [Protected events](/docs/guides/event-logs#protected-events) aren't capped. They follow `space_access_log_retention_days` as before.
 
-`max` must be at least `1`. A limits file or variable that sets `0` is refused: at boot, boot stops, and on a changed file, the instance keeps its last limits.
+Its `max` can't be `0`. A `0` in the variable or in the limits file stops boot, and a `0` written into the file later is ignored in favour of the limits already loaded.
 
 ## Set the limits
 
@@ -71,7 +71,7 @@ Each limit can also carry the wording shown when it's reached:
 
 An unknown key anywhere in the file is an error, so a misspelt limit can't be read as unlimited.
 
-HappyView reads the file at boot, and boot stops if it's missing or invalid. After that it checks the file every 2 seconds and applies any change, so you can raise or lower a limit without a restart. When a changed file is invalid, or the file can't be read, the instance keeps the limits it last read and logs a warning.
+The file has to exist and parse when HappyView starts, or it won't start. While it runs, HappyView rereads the file every 2 seconds, so an edit takes effect without a restart. An edit that doesn't parse, or a deleted file, logs a warning, and the limits loaded before it stay in force.
 
 ### With environment variables
 

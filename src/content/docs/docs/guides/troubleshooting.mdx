@@ -166,13 +166,15 @@ where an already-installed plugin fetches from.
 Failed to load OAuth client authentication key: Internal("failed to decrypt client key: Decryption failed")
 ```
 
-**Why.** Stored values open only with the key that sealed them. `TOKEN_ENCRYPTION_KEY`
-changed without the old key set as `TOKEN_ENCRYPTION_KEY_PREVIOUS`, or the old
-key was removed before every value was re-sealed under the new one.
+**Why.** At startup HappyView decrypts its OAuth client key, and the current
+`TOKEN_ENCRYPTION_KEY` can't open it. Either the key was swapped with no
+`TOKEN_ENCRYPTION_KEY_PREVIOUS` beside it, or `TOKEN_ENCRYPTION_KEY_PREVIOUS`
+was unset while the re-seal still had values to move.
 
-**Fix.** Set the old key as `TOKEN_ENCRYPTION_KEY_PREVIOUS` and restart, then
-continue from step 4 of [Rotating the encryption key](/docs/guides/rotating-the-encryption-key#rotate-the-key).
-Without the old key, the values it sealed can't be recovered.
+**Fix.** Put the key the instance used before back in
+`TOKEN_ENCRYPTION_KEY_PREVIOUS`, restart, and pick up the
+[rotation](/docs/guides/rotating-the-encryption-key#rotate-the-key) at step 4.
+If that key is gone, nothing it sealed can be decrypted again.
 
 ## Lexicon publishing
 

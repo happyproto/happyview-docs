@@ -41,9 +41,9 @@ curl -s http://127.0.0.1:3000/admin/encryption/rotation \
 | --- | --- | --- |
 | `key_configured` | boolean | Whether `TOKEN_ENCRYPTION_KEY` is set |
 | `previous_key_configured` | boolean | Whether `TOKEN_ENCRYPTION_KEY_PREVIOUS` is set to a key other than `TOKEN_ENCRYPTION_KEY` |
-| `previous_key_can_go` | boolean | `true` when the previous key is set and no stored value needs it |
+| `previous_key_can_go` | boolean | Safe to unset `TOKEN_ENCRYPTION_KEY_PREVIOUS`: it's configured, and `remaining` is `0`. Always `false` when it isn't configured |
 | `remaining` | integer | Values only the previous key opens |
-| `unsealed` | integer | Values stored in plaintext from before the instance had a key. HappyView seals them at the next start |
+| `unsealed` | integer | Plaintext values, written while the instance ran without a key. The next boot's re-seal encrypts them |
 | `unreadable` | integer | Values neither key opens. They can't be re-sealed |
 | `stores` | array | `previous`, `unsealed` and `unreadable` for each store. See below |
 | `job` | object or `null` | The `happyview.reseal` [job](/docs/reference/admin/jobs) that is `pending`, `running`, `pausing` or `paused`, as `id`, `status` and `progress`. `progress` is `null` until the job has finished its pass. `null` when there's no such job |
@@ -69,7 +69,7 @@ When `TOKEN_ENCRYPTION_KEY` isn't set, the response has no `unsealed` or `unread
 POST /admin/encryption/rotation
 ```
 
-Requires `settings:manage`. Starts a `happyview.reseal` job, or returns the one that is already pending, running, pausing or paused. HappyView starts this job by itself at startup whenever a value needs re-sealing, so you need this endpoint only to start one again after it stopped.
+Requires `settings:manage`. If a `happyview.reseal` job is pending, running, pausing or paused, the response names that job and no new one is created; otherwise a new job is queued. Boot already queues one when anything needs re-sealing, so call this only when that job ended before finishing.
 
 ```sh
 curl -s -X POST http://127.0.0.1:3000/admin/encryption/rotation \
@@ -82,4 +82,4 @@ curl -s -X POST http://127.0.0.1:3000/admin/encryption/rotation \
 { "job_id": "ffd3922d-db8d-4fd9-a287-be128500c3be" }
 ```
 
-Returns `400` when `TOKEN_ENCRYPTION_KEY` isn't set, and `403` for the platform principal.
+With no `TOKEN_ENCRYPTION_KEY` there's nothing to re-seal with, and the answer is `400`. The platform principal can read the status but not start a job, so it gets `403`.

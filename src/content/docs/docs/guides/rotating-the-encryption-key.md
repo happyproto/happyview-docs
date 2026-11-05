@@ -42,14 +42,14 @@ You need:
    openssl rand -base64 32
    ```
 
-2. Set the new key as `TOKEN_ENCRYPTION_KEY` and the current key as `TOKEN_ENCRYPTION_KEY_PREVIOUS`, both before you restart:
+2. In the instance's environment, move the key in use today to `TOKEN_ENCRYPTION_KEY_PREVIOUS` and put the new one in `TOKEN_ENCRYPTION_KEY`. Change both in the same edit, with no restart in between:
 
    ```sh
    TOKEN_ENCRYPTION_KEY=<new key>
    TOKEN_ENCRYPTION_KEY_PREVIOUS=<current key>
    ```
 
-3. Restart HappyView. At startup it counts the values that only the previous key opens, and the values still stored in plaintext. If there are any, it starts a `happyview.reseal` [background job](/docs/reference/admin/jobs) that re-seals them under the new key, 200 rows at a time. New writes are sealed under the new key. A value written while the job runs keeps what was written.
+3. Restart HappyView. Anything saved from now on is sealed with the new key. Older values still open, through the previous key. Shortly after boot, HappyView looks for values sealed with the previous key or stored as plaintext, and when it finds some it queues a `happyview.reseal` [background job](/docs/reference/admin/jobs). The job rewrites them under the new key in batches of 200 rows. If a value is saved again while the job runs, the job skips it, because the saved value already uses the new key.
 
 4. Check the [rotation status](/docs/reference/admin/encryption#rotation-status) until `previous_key_can_go` is `true`:
 
@@ -78,7 +78,7 @@ After the second restart, the status shows `previous_key_configured: false`, wit
 
 ## Roll back
 
-Before step 5, you can return to the old key. Set the old key as `TOKEN_ENCRYPTION_KEY` and the new one as `TOKEN_ENCRYPTION_KEY_PREVIOUS`, then restart. HappyView re-seals everything under the old key in the same way.
+Until you remove the previous key in step 5, a rollback is the same rotation run backwards: swap the two variables' values and restart. The re-seal job then moves every value back to the old key.
 
 After step 5, nothing the instance holds opens with the old key, so going back to it is a new rotation.
 
@@ -86,7 +86,7 @@ After step 5, nothing the instance holds opens with the old key, so going back t
 
 A backup holds values sealed under the key that was current when it was taken. Keep each old key for as long as you keep backups sealed under it.
 
-To restore a backup taken before a rotation, start the restored instance with the current key as `TOKEN_ENCRYPTION_KEY` and the backup's key as `TOKEN_ENCRYPTION_KEY_PREVIOUS`. Then continue from step 4.
+An older backup can still be restored after a rotation. Give the restored instance two keys: today's key in `TOKEN_ENCRYPTION_KEY`, and the key in use when the backup was taken in `TOKEN_ENCRYPTION_KEY_PREVIOUS`. It re-seals the restored values on boot, and you finish from step 4.
 
 Rotation limits what an old key can open from now on. If a database and the key that sealed it leak together, every value in that database can be read.
 
@@ -110,6 +110,6 @@ TOKEN_ENCRYPTION_KEY_PREVIOUS is set without TOKEN_ENCRYPTION_KEY, which seals e
 stored values open under no configured TOKEN_ENCRYPTION_KEY and cannot be re-sealed
 ```
 
-**Why.** Some values open with neither key. They were sealed under a third key, or they're damaged, and the re-seal job leaves them as they are.
+**Why.** HappyView tried both configured keys on these values and neither worked. Either a key you no longer have configured sealed them, or the stored bytes are corrupt. The re-seal job can't move them, so it leaves them in place.
 
 **Fix.** `stores` in the status shows where they are. If you still have the key that sealed them, set it as `TOKEN_ENCRYPTION_KEY_PREVIOUS` and restart. Otherwise those values are lost, and have to be set again: save the script variable or plugin secret again, for example.
