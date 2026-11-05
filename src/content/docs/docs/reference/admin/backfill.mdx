@@ -576,7 +576,7 @@ A replay job looks like this:
 
 `source` is the source the job was created with. A job created with `dids` is `crawl`, except a retry of a replay job's failed blocks. `auto` stays until the job's first request to the archive, then becomes `replay` or, for a Jetstream with no archive, `crawl`. `replay` is `null` for a crawl job and for a record source's own job. For a replay job, `after_seq` is where it started: `0`, or the last applied seq of a gap replay. `through_seq` and `tip_seq` are the running sweep's position and the tip it is working towards. `bytes` is what it has downloaded from the archive, and `blocks_failed` counts blocks that failed after retries. `through_seq` and `tip_seq` are `null` until the first plan answers.
 
-The `status` field tracks the overall job state (`running`, `pausing`, `paused`, `cancelling`, `cancelled`, `completed`, `failed`). The `stage` field tracks the current processing phase: `pending` (a new network job), `resolving_pds` (a new job for specific accounts), `resolving_and_fetching`, `replaying`, `retrying_blocks`, `replaying_accounts` or `completed`. A job that fails or is cancelled keeps the stage it was in. A record source's own job reports the record source's stages, and a job created by an older version may still show `discovering_repos`, `fetching_records` or `failed`. A replay job counts no accounts, so its `*_repos` counters stay `0` or `null`, and `total_records` counts the records it has written. The `resolved_repos` counter tracks PDS resolution progress during the pipelined phase, while `processed_repos` tracks record fetching progress.
+The `status` field tracks the overall job state (`running`, `pausing`, `paused`, `cancelling`, `cancelled`, `completed`, `failed`). The `stage` field tracks the current processing phase: `pending` (a new network job), `resolving_pds` (a new job for specific accounts), `resolving_and_fetching`, `replaying`, `retrying_blocks`, `replaying_accounts` or `completed`. A job that fails or is cancelled keeps the stage it was in. A record source's own job reports the record source's stages. A running job whose stage is `waiting_for_crawl` is waiting for the record source's own data to be filled, and the dashboard shows it as waiting. A job created by an older version may still show `discovering_repos`, `fetching_records` or `failed`. A replay job counts no accounts, so its `*_repos` counters stay `0` or `null`, and `total_records` counts the records it has written. The `resolved_repos` counter tracks PDS resolution progress during the pipelined phase, while `processed_repos` tracks record fetching progress.
 
 The three `*_repos` counters count work units. A unit is one account under one collection: a network backfill discovers accounts per collection, so an account found under two collections is two units and counts twice. A unit for an account-targeted job covers every collection the job targets, so there one unit is one account. `total_repos` is the number discovered so far while a network backfill is still listing accounts from the relay.
 
@@ -636,7 +636,7 @@ A record source can backfill some collections itself rather than crawl or replay
 GET /admin/backfill/collections/{nsid}
 ```
 
-How a collection's backfill stands, as the record source describes it. Requires `backfill:read`.
+How a collection's backfill stands, as the record source describes it. The summary reflects the collection now, so it can change after the collection's last job has ended. Requires `backfill:read`.
 
 **Response**: `200 OK`
 
@@ -644,11 +644,16 @@ How a collection's backfill stands, as the record source describes it. Requires 
 {
   "collection": "xyz.statusphere.status",
   "executor": "store-pass",
-  "summary": { "message": "…", "records": 1840, "state": "running" }
+  "summary": {
+    "message": "Filling the store's copy of this collection.",
+    "records": 594312,
+    "state": "running",
+    "retry_at": null
+  }
 }
 ```
 
-`executor` names what backfills this collection when a record source does it itself, and is `null` for a collection HappyView crawls or replays; `summary` is then `null` too. A record source that says nothing about the collection also answers `null`. In a summary, `records` and `state` are `null` when the record source doesn't know them, and `state` is otherwise `running`, `complete` or `failed`.
+`executor` names what backfills this collection when a record source does it itself, and is `null` for a collection HappyView crawls or replays; `summary` is then `null` too. A record source that says nothing about the collection also answers `null`. In a summary, `records` and `state` are `null` when the record source doesn't know them. `state` is otherwise `queued`, `running`, `complete` or `failed`, where `queued` means filling is due but hasn't started. When the record source's last attempt to fill the collection found nothing, `retry_at` is the RFC 3339 time of its next attempt. Otherwise it's `null`.
 
 ## List errors for a job
 

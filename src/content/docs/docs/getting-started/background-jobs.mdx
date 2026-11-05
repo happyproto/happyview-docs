@@ -211,6 +211,8 @@ Cancelling or pausing is cooperative. **Cancel Job** or **Pause Job** in the das
 **Resume Job** (`POST /admin/jobs/{id}/resume`) puts a paused job back to `pending`, and the script runs again **from the beginning** with the same input. A job that was running when the instance stopped is also queued again and starts over. If its worker stops three times before it finishes, the job fails instead. Save enough in `ctx.job.progress` to skip finished work, read it back with `get(ctx.job.id)`, and make each step safe to repeat.
 :::
 
+If we run more than one instance on the same database, [Leases and recovery](/docs/reference/admin/jobs#leases-and-recovery) covers how they hand jobs over, and the clock and upgrade rules that go with it.
+
 Cancelling, pausing and resuming need the `jobs:manage` permission. Viewing jobs needs `jobs:read`.
 
 ## Limits
