@@ -29,76 +29,115 @@ v3 is in alpha. The interpreters and the official libraries are published to the
 
 ## Before you start
 
+The v3 instance you deploy to can be a new one, or this one upgraded in place. To upgrade in place, get the database ready first:
+
 1. Take a database backup. See [Backups](/docs/guides/self-hosting/production#backups). The only way back to v2 is to restore it.
 2. Check you have the free disk [the compact record format](/docs/guides/database/database-setup#before-you-upgrade) needs.
 3. On Postgres, plan to stop every HappyView instance before starting v3.
 4. On either backend, if you built indexes, triggers or views on the record tables, read [the same section](/docs/guides/database/database-setup#before-you-upgrade): some of them have to go first.
-5. Install `hpy` from the `alpha` channel:
+
+## 1. Get `hpy` on the alpha channel
+
+`pull --legacy` isn't in `beta` yet, so switch `hpy` to `alpha`:
 
 ```sh
-curl -fsSL https://happyproto.github.io/cli/install-alpha.sh | sh
+hpy channel alpha
 ```
 
-If you already have `hpy`, switch it with `hpy channel alpha` instead. [Installation](/docs/getting-started/installation) has the other ways to install it.
+If you don't have `hpy` yet, `curl -fsSL https://happyproto.github.io/cli/install-alpha.sh | sh` installs it from `alpha`. [Installation](/docs/getting-started/installation) has the other ways.
 
-## 1. Pull your v2 instance into a project
+## 2. Create an API key on the v2 instance
 
-We start while the instance still runs v2, because the pull reads it through v2's admin API. `hpy hv pull --legacy` reads its lexicons, scripts, plugins and settings and writes a v3 project from them.
+v2 has no `hpy` sign-in, so we use an API key. Create one at **API Keys** in the v2 dashboard's settings, with these permissions:
 
-v2 has no `hpy` sign-in, so we use an API key. Create one at **API Keys** in the v2 dashboard's settings, with `lexicons:read`, `scripts:read`, `script-variables:read`, `plugins:read`, `labelers:read`, `users:read` and `settings:manage`. Then, with the key in `HAPPYVIEW_API_KEY`:
+- `lexicons:read`
+- `scripts:read`
+- `script-variables:read`
+- `plugins:read`
+- `labelers:read`
+- `users:read`
+- `settings:manage`
+
+A key without `settings:manage` still pulls everything except your app's name, with a warning.
+
+## 3. Pull the v2 instance into a project
+
+Let's pull the instance into a new directory, with the key in `HAPPYVIEW_API_KEY`:
 
 ```sh
-HAPPYVIEW_API_KEY=hv_... hpy hv pull --legacy --url https://happyview.example.com my-app
+HAPPYVIEW_API_KEY=hv_... hpy hv pull --legacy --url https://old.example.com my-app
 ```
 
-Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env NAME` reads it from another variable. The key is **never** written into the project, so revoke it once the pull is done. A key without `settings:manage` still pulls everything except your app's name, with a warning.
+Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env NAME` reads it from another variable. The key is **never** written into the project.
 
-Between them, the pull and the deploy in step 3 replace the old manual steps. The pull prepares the project:
+This writes your lexicons, scripts, plugins, app name, superadmin and labelers into `my-app/`:
 
-- It runs every script through the codemod, the same `happyview-codemod` the v3 release ships, so each one uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
-- It sets Lua as the project's interpreter, since every v2 script is Lua.
-- It adds each `happyview.*` library the rewritten scripts `require` to `happyview.toml`, and locks it from the registry's `alpha` channel.
+- It runs each script through HappyView's v3 codemod, so it uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
+- It sets Lua as the project's interpreter, and adds and locks each `happyview.*` library the rewritten scripts `require`, from the registry's `alpha` channel.
 - It maps official plugins to their registry projects. A plugin with no official project is left out, with a warning naming it.
-- It writes your script variables' keys to `.env.example`, and never reads their values.
+- It lists any script that still needs a hand edit, under "To finish by hand".
 
-It ends by running `hpy hv check` on the new project. The check warns about every query or procedure lexicon with no script, because v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)). `hpy hv scaffold` writes a starter script for each one, and asks which collection it reads or writes. A script the codemod left `-- codemod:` markers in is listed under "To finish by hand"; [Migrating from v2](/docs/guides/migrating-scripts) says what each marker asks for. Fix those and run `hpy hv check` until it's clean.
+It finishes by running `hpy hv check` to verify the results will work on a v3 instance. You can use `--dry-run` to test: it prints what the pull would write and writes nothing. `--legacy` runs the codemod from HappyView's release archive, which has no Windows build, so pull from macOS or Linux.
 
-`--dry-run` prints what the pull would write, and `--diff` compares the instance with a project you already have, without writing anything. `--legacy` runs the codemod binary from HappyView's release archive, which has no Windows build, so pull from macOS or Linux.
+## 4. Finish the conversion
 
-## 2. Start v3
+- **Fix any flagged scripts.** Each `-- codemod:` marker says what it needs; [Migrating from v2](/docs/guides/migrating-scripts) covers every one. `hpy hv check` also warns about a query or procedure with no script, since v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)), and `hpy hv scaffold` writes a starter for each.
+- **Fill in your script variables.** Their names are pulled into `.env.example`, but their values are not. `hpy` respects `.env`, so copy `.env.example` to `.env` and fill in the values.
+- **Set any required plugin secrets.** The pull lists the secrets each plugin needs, and pulls none of their values. On a self-hosted v3 instance, set them as `PLUGIN_<ID>_` environment variables before you deploy. The dashboard's fields for them appear once the deploy in step 9 has installed the plugin. See [Plugin configuration](/docs/guides/plugins#plugin-configuration).
 
-Now we upgrade the server the way it was installed (a new binary, or a new image tag) and start it. The record store upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page.
+Run `hpy hv check` until it's clean.
 
-The instance has no interpreter yet, so its scripts can't run, and its boot log says so. The next step fixes that.
+## 5. Test it locally
 
-## 3. Deploy the project
+Run the project with `hpy hv dev` and try it out. Better a broken script on your laptop than in front of your users. `hpy hv dev` isn't available on Windows; use WSL there. If all is working, it's safe to revoke the v2 API key.
 
-Let's sign in to the upgraded instance, then preview the deploy and run it:
+## 6. Get the v3 instance ready
+
+If you're deploying to a new v3 instance, there's nothing to do here.
+
+To upgrade the v2 instance in place, upgrade the server the way it was installed (a new binary, or a new image tag) and start it. The record store upgrade runs once, before the instance accepts requests, and its log ends with `record store upgrade complete`. A pagination cursor issued before it is refused once, so callers start again from the first page. The instance has no interpreter until the deploy, and its boot log says so.
+
+## 7. Sign in to the v3 instance
+
+Now we sign in with an Atmosphere account that has admin privileges on the target instance:
 
 ```sh
-hpy hv login --url https://happyview.example.com
+hpy hv login --url https://new.example.com
+```
+
+[Deploying](/docs/getting-started/deploying) covers signing in from CI.
+
+## 8. Send your script variables
+
+Push the values from `.env`:
+
+```sh
+hpy hv env push --dry-run   # lists whether each key is new or updated
+hpy hv env push             # asks before each key
+```
+
+`hpy` never prints a value. On an instance upgraded in place the values are already there, so the dry run shows each key as replacing an existing one; answer no to any you haven't changed.
+
+## 9. Deploy
+
+Let's preview the deploy, then run it:
+
+```sh
 hpy hv deploy --dry-run
 hpy hv deploy
 ```
 
-The deploy installs the interpreter and the libraries `happyview.lock` names, then the project's lexicons and scripts. [Deploying](/docs/getting-started/deploying) covers signing in, including from CI.
+Plugins install first. Then the project switches everything else over. If the instance refuses something, any existing version is left alone. This does not prune anything from the instance. To also uninstall interpreters and libraries `happyview.lock` doesn't list, add `--prune-plugins`.
 
-Your v2 scripts are still in the database, untouched. A script the project deploys answers in place of the stored one with the same trigger, and the script's page in the dashboard says "A dashboard version of this script is kept and runs again if the file is removed."
+On an instance upgraded in place, your v2 scripts are still in the database, untouched. A script the project deploys answers in place of the stored one with the same trigger, and the script's page in the dashboard says "A dashboard version of this script is kept and runs again if the file is removed."
 
-## 4. Script variables
+Looking good! The rest of this page is what to know after the move, and what changes between v2 and v3.
 
-Script variables stay in the database through the upgrade, values included, so an instance upgraded in place needs nothing here.
+## Things to know
 
-If you're setting up a fresh v3 instance instead, copy `.env.example` to `.env`, fill in the values, and push them:
-
-```sh
-hpy hv env push --dry-run
-hpy hv env push
-```
-
-`hpy` asks before sending each key, and never prints a value. `--yes` skips the questions, and `hpy hv env push KEY` sends only the keys you name.
-
-Looking good! The rest of this page is what changes between v2 and v3, for scripts and plugins you write or run from here on.
+- **Backfill:** a record lexicon only backfills from the network if `happyview.toml` sets `backfill = true` under `[lexicons."<nsid>"]`, and only on its first deploy. The deploy preview lists the backfills it will start.
+- **HappyProto hosted instances:** the deploy applies lexicons, scripts, modules, network lexicons and labelers. Instance settings and the HappyView version are unchanged.
+- **To compare:** run `hpy hv pull --diff .` inside the project to see what's changed on the instance. Without the `.`, `hpy` looks for the project in a directory named after the instance's host.
 
 ## Doing it by hand
 
@@ -237,13 +276,14 @@ Anything written after the upgrade, including operators, scripts and settings, i
 
 ## Checklist
 
-- [ ] Take a database backup
-- [ ] Pull the v2 instance with `hpy hv pull --legacy`, then revoke the API key
-- [ ] Finish any `-- codemod:` markers, until `hpy hv check` is clean
-- [ ] Add a script to every query or procedure your clients call that has none
-- [ ] Start v3, and confirm `record store upgrade complete` in the first boot's log
-- [ ] Deploy the project with `hpy hv deploy`, and confirm boot no longer warns about a missing interpreter
-- [ ] On a fresh instance, push your script variables with `hpy hv env push`
+- [ ] To upgrade in place, take a database backup
+- [ ] Switch `hpy` to the `alpha` channel
+- [ ] Create a v2 API key with the seven permissions
+- [ ] Pull the v2 instance with `hpy hv pull --legacy`
+- [ ] Fix flagged scripts, fill in `.env` and set plugin secrets, until `hpy hv check` is clean
+- [ ] Test with `hpy hv dev`, then revoke the v2 API key
+- [ ] To upgrade in place, start v3 and confirm `record store upgrade complete` in the first boot's log
+- [ ] Sign in with `hpy hv login`, push script variables with `hpy hv env push`, and deploy with `hpy hv deploy`
 - [ ] Replace any plugin whose manifest is `api_version` `"1"`, and check the boot log for refusals
 - [ ] Review long-running scripts against the instruction limit and the wall clock
 - [ ] Update any alerting that matches the old stage prefixes in dead-letter or job `error` text
