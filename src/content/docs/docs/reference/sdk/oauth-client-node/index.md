@@ -3,7 +3,7 @@ title: Node client
 description: "HappyViewNodeClient: the server-side OAuth flow for Node.js apps signing users in to a HappyView instance."
 ---
 
-The Node client is a server-side OAuth client for authenticating with a HappyView instance using atproto. It is built on top of [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) and matches the API surface of [`@atproto/oauth-client-node`](https://www.npmjs.com/package/@atproto/oauth-client-node).
+The Node client signs users in to a HappyView instance from your server, using atproto OAuth. It is built on top of [`@happyview/oauth-client`](/docs/reference/sdk/oauth-client) and matches the API surface of [`@atproto/oauth-client-node`](https://www.npmjs.com/package/@atproto/oauth-client-node).
 
 The Node client signs no client assertion, so it authenticates to a user's PDS as a public atproto OAuth client, whatever kind of API client it is registered as on HappyView. [`@happyview/oauth-client-browser`](/docs/reference/sdk/oauth-client-browser) signs one for a confidential client.
 
@@ -274,7 +274,7 @@ Or from the session itself:
 await session.signOut();
 ```
 
-The stored session is always cleared, even if HappyView refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local cleanup, so a failed revocation can never leave the session stored and restorable.
+The stored session is always cleared, even if HappyView refuses the revocation. `404`, `401`, and `403` count as a completed logout, because the credential is already gone or unusable. `5xx` and network errors still throw, after the local session is cleared.
 
 To clear a session locally without contacting HappyView:
 

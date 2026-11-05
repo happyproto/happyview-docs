@@ -3,6 +3,8 @@ title: Reference
 description: The exact shape of HappyView's commands, configuration, script API and HTTP APIs.
 ---
 
+These pages give the exact shape of HappyView's commands, configuration, script API and HTTP APIs:
+
 - [CLI](/docs/reference/cli): the `happyview` and `hpy` commands.
 - [Configuration](/docs/reference/configuration): `happyview.toml` and environment variables.
 - [Script API](/docs/reference/scripts/contract): the `handle(input, ctx)` contract, triggers, languages, limits and libraries.

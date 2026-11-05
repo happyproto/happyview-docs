@@ -159,7 +159,9 @@ The `primaryKey=id` query parameter names `id` as the index's primary key. Witho
 
 Meilisearch answers a write with `202 Accepted` and applies it later as a task, so a document it refuses while processing the task does not fail the script. Check failed tasks in Meilisearch itself.
 
-`input` is the [record event](/docs/reference/scripts/contract#input-by-script-type). Meilisearch expects an array of documents, which Lua's `json.to_array` guarantees ([JSON](/docs/reference/scripts/json)). `happyview.http` returns a 4xx or 5xx answer as an ordinary result, so the script checks `status` and raises for it. A failed record script is [retried and then dead-lettered](/docs/reference/scripts/types-and-triggers#failures-and-retries).
+`input` is the [record event](/docs/reference/scripts/contract#input-by-script-type). Meilisearch expects an array of documents, and Lua's `json.to_array` ensures it gets one; see [JSON](/docs/reference/scripts/json).
+
+`happyview.http` returns a 4xx or 5xx answer as an ordinary result, so the script checks `status` and raises for it. A failed record script is [retried and then dead-lettered](/docs/reference/scripts/types-and-triggers#failures-and-retries).
 
 ## Configuration
 
@@ -173,8 +175,6 @@ Set these as [script variables](/docs/reference/admin/script-variables) from the
 A script reads them as `ctx.env.MEILISEARCH_URL` and `ctx.env.MEILISEARCH_API_KEY`.
 
 ## Use case
-
-This record script keeps an external search index in step with your indexed records as events arrive, with no polling or scheduled jobs.
 
 Meilisearch can be self-hosted, so you can run it on the same network as your instance.
 

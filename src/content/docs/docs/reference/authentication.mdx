@@ -5,9 +5,9 @@ description: "How users, third-party apps and API clients authenticate to HappyV
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-HappyView has two distinct authentication surfaces:
+HappyView has two authentication surfaces:
 
-- **XRPC** (`/xrpc/*`): client-level identification with an **API client key**, plus user-level atproto OAuth for endpoints that need a specific user's identity, such as procedures that write to a PDS.
+- **XRPC** (`/xrpc/*`): client-level identification with an API client key, plus user-level atproto OAuth for endpoints that need a specific user's identity, such as procedures that write to a PDS.
 - **Admin API** (`/admin/*`): operator-level authentication with an admin API key, a dashboard session or an app's granted session, gated by [permissions](/docs/guides/permissions).
 
 ## Requirements by endpoint
@@ -21,9 +21,9 @@ HappyView has two distinct authentication surfaces:
 
 ## XRPC: API client identification
 
-An XRPC request identifies itself with a registered API client. The client key is HappyView's way of knowing which app is calling, and the rate-limit bucket a request proven to come from that app is charged to. An authenticated request without one returns `401 Unauthorized`: a DPoP request with `DPoP auth requires X-Client-Key header`, a dashboard session with `Missing client identification`. An anonymous query without one still runs, and every such request shares one `anonymous` rate-limit bucket.
+An XRPC request identifies itself with a registered API client. The client key identifies which app is calling. It also selects the rate-limit bucket, but only for a request proven to come from that app. An authenticated request without one returns `401 Unauthorized`: a DPoP request with `DPoP auth requires X-Client-Key header`, a dashboard session with `Missing client identification`. An anonymous query without one still runs, and every such request shares one `anonymous` rate-limit bucket.
 
-Register a client in the dashboard (**Access > API Clients**, then **Create API Client**) or via `POST /admin/api-clients`. The response contains an `hvc_…` client key and, for a confidential client, an `hvs_…` client secret. A public client has no secret. **The secret is shown only once.**
+Register a client in the dashboard (**Access > API Clients**, then **Create API Client**) or via `POST /admin/api-clients`. The response contains an `hvc_…` client key and, for a confidential client, an `hvs_…` client secret. A public client has no secret. The secret is shown only once.
 
 HappyView resolves the client key from the first of:
 
@@ -194,11 +194,11 @@ XRPC routes accept several auth methods, resolved in this order:
 
 1. **DPoP auth** (`Authorization: DPoP <token>`, a `DPoP` proof header and `X-Client-Key`), used by third-party apps that went through the [DPoP key provisioning](#dpop-key-provisioning-for-third-party-apps) flow.
 2. **Bearer service auth JWT** (`Authorization: Bearer <service_auth_jwt>`), a standard atproto inter-service JWT. See [Service auth JWT](#service-auth-jwt).
-3. **Space credential** (`Authorization: Atproto-Space <credential>`), a signed JWT granting read access to a specific space, sent with an `Atproto-Space-Audience` header and an HTTP Message Signature by the key the credential is bound to. Accepted on space routes. See [Space credentials](/docs/guides/spaces/credentials).
+3. **Space credential** (`Authorization: Atproto-Space <credential>`), a signed JWT granting read access to a specific atproto space, sent with an `Atproto-Space-Audience` header and an HTTP Message Signature by the key the credential is bound to. Accepted on atproto space routes. See [Space credentials](/docs/guides/spaces/credentials).
 4. **Cookie session**. When no `Authorization` header is present, HappyView falls back to the signed session cookie set after dashboard login, on a request from the instance's own pages only.
 5. **Anonymous**. If none of the above is present, the request proceeds with no identity. The endpoint's script determines whether that is acceptable.
 
-Bearer API keys (`hv_*`) are **not** accepted on XRPC endpoints. They are for admin API access only.
+Bearer API keys (`hv_*`) aren't accepted on XRPC endpoints. They are for admin API access only.
 
 Third-party apps authenticate users through the [DPoP key provisioning](#dpop-key-provisioning-for-third-party-apps) flow.
 
@@ -243,7 +243,7 @@ For a service auth JWT to validate:
 
 - `alg` must be `ES256` or `ES256K`.
 - `typ` must not be `at+jwt`, `refresh+jwt` or `dpop+jwt`, which are other token types.
-- `aud` must start with this instance's DID. The fragment after it names the [service entry](/docs/reference/admin/service-entries) the token is for, and that entry must be allowed to call the method. A space route also accepts the bare DID.
+- `aud` must start with this instance's DID. The fragment after it names the [service entry](/docs/reference/admin/service-entries) the token is for, and that entry must be allowed to call the method. An atproto space route also accepts the bare DID.
 - `exp` must be in the future, and at most an hour away.
 - `lxm`, when present, must name the method being called.
 - The signature must verify against the issuer DID's atproto signing key.
@@ -624,7 +624,7 @@ HappyView validates the DPoP proof, looks up the stored session, and proxies the
 
 #### 5. Logout
 
-Confidential clients authenticate with `X-Client-Key` + `X-Client-Secret`, and the request revokes **all** device sessions for the user under this client, for a full sign-out:
+Confidential clients authenticate with `X-Client-Key` + `X-Client-Secret`, and the request revokes all device sessions for the user under this client, for a full sign-out:
 
 ```
 DELETE /oauth/sessions/did:plc:user123
@@ -653,9 +653,9 @@ To revoke a specific device session (for either client type), use the [device ma
 
 When an app registers sessions for one user from multiple devices (each with its own DPoP keypair), HappyView tracks each session separately. You can list and revoke individual device sessions without affecting the others.
 
-**List device sessions:**
-
 Confidential clients authenticate with `X-Client-Key` + `X-Client-Secret`. Any client can authenticate with a DPoP proof instead, as on logout.
+
+To list a user's device sessions:
 
 ```
 GET /oauth/sessions/did:plc:user123/devices
@@ -684,7 +684,7 @@ Response:
 ]
 ```
 
-**Delete a specific device session:**
+To delete one device session:
 
 ```
 DELETE /oauth/sessions/did:plc:user123/devices/uuid-session-1

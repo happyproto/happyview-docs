@@ -119,7 +119,7 @@ Mints a single-use invite link for the grant. The link stays usable until someon
 ```
 
 :::caution
-This is the **only** response that ever contains the invite URL, and it cannot be recovered afterwards: only a hash is stored. A headless caller must capture it here. If it's lost, revoke the invite and mint another.
+This is the only response that contains the invite URL, and it cannot be recovered afterwards: only a hash is stored. A headless caller must capture it here. If it's lost, revoke the invite and mint another.
 :::
 
 ## List invites
@@ -163,7 +163,7 @@ Revoking uses the same permission as minting, since they're one lifecycle: whoev
 { "revoked": true }
 ```
 
-Returns `404` if no matching invite exists for that grant, which includes an invite that has already been used or revoked. An expired invite answers `404` once HappyView's hourly cleanup has removed it; until then, revoking it succeeds.
+Returns `404` if no matching invite exists for that grant, which includes an invite that has already been used or revoked. An expired invite returns `404` once HappyView's hourly cleanup has removed it; until then, revoking it succeeds.
 
 ## Delete a grant
 

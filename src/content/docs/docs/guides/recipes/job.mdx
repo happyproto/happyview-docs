@@ -11,7 +11,7 @@ A procedure that queues a job, and the job script that does the work in the back
 
 ## Queue the job
 
-The procedure returns straight away with the job's id.
+The procedure queues the job and returns straight away with its id:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -54,7 +54,7 @@ export default async function handle(input: { items: unknown[] }) {
 
 ## Run the job
 
-The job script works through `input.items`, saves progress as it goes, and stops early if the job is cancelled or paused.
+The job script works through `input.items`, saves progress as it goes, and stops early if the job is cancelled or paused:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">

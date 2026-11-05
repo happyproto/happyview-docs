@@ -32,4 +32,4 @@ The archive also holds `happyview-codemod`, `migrate-lua-sql` and `migrate-space
 
 The dashboard is served from inside the binary, and `BASE_PATH` is applied to it as it is served. Set `STATIC_DIR` to serve a different build from disk instead. HappyView does not rewrite files read from a directory, so that build has to be exported for the subpath you serve it under. The Docker image rewrites its own copy at startup, which is why `BASE_PATH` works there. A `STATIC_DIR` that is set but empty counts as unset.
 
-Set `PLUGIN_REGISTRY_URL=off` on an instance with no outbound network to stop it reading the official registry.
+If your instance has no outbound network, set `PLUGIN_REGISTRY_URL=off` so it doesn't try to read the official registry.

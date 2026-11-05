@@ -48,7 +48,7 @@ const client = new HappyViewBrowserClient({
 ```
 
 :::note
-The API client must be registered as a **public** client (no secret) If the client sets `allowed_origins`, your app's origin must be in it. See [API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
+The API client must be registered as a **public** client (no secret). If the client sets `allowed_origins`, your app's origin must be in it. See [API clients](/docs/reference/authentication#api-clients-confidential-vs-public).
 :::
 
 ## Sign in
@@ -92,7 +92,7 @@ const { authorizationUrl, did, state } =
 ```
 
 :::note
-`login()` still works as an alias for `signInRedirect()`.
+`login()` is an alias for `signInRedirect()`.
 :::
 
 ### Sign-in steps
@@ -192,24 +192,6 @@ const data = await response.json();
 
 Pass a relative path (prepends the HappyView instance URL) or a full URL (used as-is). The DPoP and authorization headers go with every request, so pass only URLs on your HappyView instance.
 
-## Revoke session
-
-```typescript
-await client.revoke(session.did);
-```
-
-:::note
-`logout()` still works as an alias for `revoke()`.
-:::
-
-The stored session is always cleared, even when HappyView refuses the revocation. `404`, `401`, and `403` are treated as a completed logout, because there is no live credential left to revoke. `5xx` and network errors still throw so you know the revocation may not have gone through. They throw after the local session is gone, so the user is never left signed in by a failed logout.
-
-To clear a session locally without contacting HappyView at all:
-
-```typescript
-await client.forgetSession(session.did);
-```
-
 ### Session properties
 
 | Property | Type     | Description                              |
@@ -226,6 +208,24 @@ await session.signOut();
 ```
 
 This is equivalent to calling `client.revoke(session.did)`.
+
+## Revoke session
+
+```typescript
+await client.revoke(session.did);
+```
+
+:::note
+`logout()` is an alias for `revoke()`.
+:::
+
+The stored session is always cleared, even when HappyView refuses the revocation. `404`, `401`, and `403` are treated as a completed logout, because there is no live credential left to revoke. `5xx` and network errors still throw so you know the revocation may not have gone through. They throw after the local session is cleared.
+
+To clear a session locally without contacting HappyView at all:
+
+```typescript
+await client.forgetSession(session.did);
+```
 
 ## Session event hooks
 

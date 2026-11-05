@@ -5,9 +5,9 @@ prerequisites:
   - /docs/getting-started/running-locally
 ---
 
-A project is a directory with a `happyview.toml` at its root and your code under `src/`. HappyView decides what each file is from its path alone.
+A project is a directory with a `happyview.toml` at its root and our code under `src/`. HappyView decides what each file is from its path alone.
 
-A project as it grows, after `create` and the next few pages:
+Here's how our project will look after `create` and the next few pages:
 
 ```text
 my-app/
@@ -46,6 +46,8 @@ The build refuses a project it can't make sense of, and says which file and why.
 
 ## `happyview.toml`
 
+A project's `happyview.toml` looks like this:
+
 ```toml
 [happyview]
 version = "3.0.0-alpha.42"      # the HappyView version hpy runs
@@ -77,21 +79,21 @@ backfill = false                # only for hpy happyview dev
 
 An unknown key anywhere is an error, as is a `[lexicons."<NSID>"]` that names no lexicon in `src/lexicons/`.
 
-Don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` changes them and `happyview.lock` together. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
+We don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` changes them and `happyview.lock` together. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
 
 ## `happyview.lock`
 
-`hpy` writes it, and you commit it. It pins the exact version and content hash of every plugin, so your machine, CI and your instance all run the same ones. `dev`, `check` and `test` update it when it no longer matches `happyview.toml`. With `--locked` they fail instead, which is what CI wants. A deploy refuses a lock that doesn't match.
+`hpy` writes it, and we commit it. It pins the exact version and content hash of every plugin, so our machine, CI and our instance all run the same ones. `dev`, `check` and `test` update it when it no longer matches `happyview.toml`. With `--locked` they fail instead, which is what CI wants. A deploy refuses a lock that doesn't match.
 
 ## `.env`
 
-While you develop, scripts read `.env` as `ctx.env`, so keep API keys and other secrets there, not in your scripts. `create` writes a `.env.example` to copy from, and `.gitignore` keeps `.env` out of git.
+While we develop, scripts read `.env` as `ctx.env`, so let's keep API keys and other secrets there, not in our scripts, where they have a way of ending up in a commit. `create` writes a `.env.example` to copy from, and `.gitignore` keeps `.env` out of git.
 
 `.env` isn't deployed. On an instance, `ctx.env` comes from the dashboard's **System > ENV Variables** page. Test runs read `.env.test` instead.
 
 ## `.happyview/`
 
-Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets and editor types. It's in `.gitignore`. Delete it to start your local instance over.
+Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets and editor types. It's in `.gitignore`. We can delete it to start our local instance over.
 
 ## Next steps
 

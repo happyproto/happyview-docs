@@ -163,7 +163,7 @@ Each login runs a full OAuth authorization and so creates a *new* session on the
 
 ### When HappyView refuses
 
-**The local cleanup always happens.** A `404`, `401`, or `403` from HappyView is treated as a completed logout, because the session is either already gone or the credential is no longer usable. A `5xx` or a network error still throws, because HappyView may still hold a live session and you should know that, but it throws *after* the local session has been cleared. Either way the user ends up logged out on this device, and calling `deleteSession` again is safe.
+The local session is always cleared. A `404`, `401`, or `403` from HappyView is treated as a completed logout, because the session is either already gone or the credential is no longer usable. A `5xx` or a network error still throws, because HappyView may still hold a live session. It throws after the local session is cleared, so calling `deleteSession` again is safe.
 
 ### Forgetting a session locally
 

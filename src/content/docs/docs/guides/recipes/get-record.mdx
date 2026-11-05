@@ -82,7 +82,7 @@ export default async function handle(input: Input) {
 2. Look the record up with `db.get`. It returns an envelope, `{ uri, did, collection, rkey, cid, indexed_at, record }`, or nothing. The record body is the envelope's `record` field. In JavaScript and TypeScript, `db.get` returns a promise, so it is awaited.
 3. Return the envelope wrapped in an object.
 
-The script returns structured errors instead of throwing, so the app gets a body it can handle rather than a `500`. A returned error is a `400` only when its name is declared under `defs.main.errors` in the lexicon:
+The script returns structured errors, because a thrown error would send the app a `500`. A returned error is a `400` only when its name is declared under `defs.main.errors` in the lexicon:
 
 ```json
 "errors": [{ "name": "UriRequired" }, { "name": "RecordNotFound" }]

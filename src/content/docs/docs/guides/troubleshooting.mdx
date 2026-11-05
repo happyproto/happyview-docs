@@ -3,8 +3,8 @@ title: Troubleshooting
 description: What a v3 error means and how to fix it, starting from the message you see.
 ---
 
-Each entry starts from what you see: an HTTP response, a dashboard message or a
-log line. The quoted text is what HappyView sends. Where it names something you
+The quoted text in each entry is what HappyView sends, in an HTTP response, a
+dashboard message or a log line. Where it names something you
 chose (a language, a plugin type, a global), that part is shown as `<…>`.
 
 ## Scripts
@@ -36,7 +36,7 @@ still indexed; only the script didn't run.
 
 **Fix.** Install the interpreter for the script's language from **Integrations >
 Plugins > Add plugin** (`happyview-lua`, `happyview-javascript` or `happyview-typescript`),
-then retry. Retry the dead letters from **Dead Letters** once it is installed.
+then retry. Retry the dead letters from **Dead Letters** once the interpreter is installed.
 
 ### A script uses a removed v2 global
 
@@ -122,9 +122,8 @@ environment.
 ```
 
 For a plugin that was already installed, startup logs an error with the same
-text, and the plugin isn't loaded. The log line starts `Failed to load plugin`,
-and how it continues depends on how the plugin was installed. **The instance still
-starts**, so anything that depended on the plugin (a script that loads a library,
+text, and the plugin isn't loaded. The log line starts `Failed to load plugin`.
+The instance still starts, so anything that depended on the plugin (a script that loads a library,
 say) stops working without any other error.
 
 **Why.** v3 loads only plugins whose manifest declares `api_version` `"2"` and

@@ -1,23 +1,23 @@
 ---
 title: Scripts
-description: What HappyView scripts are, where they run, and how the pieces fit together.
+description: What HappyView scripts are, the interpreter plugins they run in, and the libraries and built-in modules they load.
 ---
 
 A script is a small program HappyView runs when something happens: an XRPC request arrives, a record is created, a label is applied, or a background job is picked up. Without scripts, query endpoints return raw records and procedures write their input as a record to the caller's PDS. With them, you decide what an endpoint returns and what happens to each record before it is indexed.
 
 ## What a script can do
 
-- **Write to a user's PDS**, as the user who called it, with the `happyview.record` library.
-- **React to records** being created, updated or deleted, and to labels being applied. See [Reacting to records](/docs/getting-started/reacting-to-records).
-- **Start long-running jobs** that run in the background, outside a request's time limits. See [Background jobs](/docs/getting-started/background-jobs).
-- **Use plugins from the registry**, such as libraries for HTTP, XRPC calls and stored blobs. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
-- **Store data that isn't a record** in the instance's database, in tables of its own, with the `happyview.sql` library.
+- Write to a user's PDS, as the user who called it, with the `happyview.record` library.
+- React to records being created, updated or deleted, and to labels being applied. See [Reacting to records](/docs/getting-started/reacting-to-records).
+- Start long-running jobs that run in the background, outside a request's time limits. See [Background jobs](/docs/getting-started/background-jobs).
+- Use plugins from the registry, such as libraries for HTTP, XRPC calls and stored blobs. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
+- Store data that isn't a record in the instance's database, in tables of its own, with the `happyview.sql` library.
 
 [Libraries](/docs/reference/scripts/libraries) lists each library and the capabilities it needs.
 
 ## Scripts run in interpreter plugins
 
-HappyView does not run scripts itself. A script runs inside an **interpreter plugin**, a WebAssembly plugin that knows one language. Three are published:
+HappyView runs each script inside an **interpreter plugin**, a WebAssembly plugin that knows one language. Three are published:
 
 | Language | `script_type` | Plugin |
 | --- | --- | --- |
@@ -41,8 +41,8 @@ You can install more than one interpreter and mix languages on the same instance
 
 A script reaches HappyView only through its two arguments, `input` and `ctx`, and through what it loads:
 
-- **Built-in modules** under `internal.`: logging, time, TIDs and JSON, plus `internal.async` in Lua. They come with the interpreter, so nothing extra needs installing.
-- **Library plugins** under `happyview.`: records, SQL, HTTP, XRPC, jobs, spaces and more. Each one is a separate plugin you install. A script that loads a library that isn't installed fails when it loads.
+- **Built-in modules** under `internal.`: logging, time, TIDs and JSON, plus `internal.async` in Lua. They come with the interpreter.
+- **Library plugins** under `happyview.`: records, SQL, HTTP, XRPC, jobs, atproto spaces (off by default) and more. Each one is a separate plugin you install. A script that loads a library that isn't installed fails when it loads.
 
 Lua loads both with `require`. JavaScript and TypeScript use `import`.
 

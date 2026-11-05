@@ -1,11 +1,11 @@
 ---
 title: Dead letters
-description: "Admin API endpoints for listing, dismissing, retrying and reindexing script runs that failed every attempt."
+description: "Admin API endpoints for listing, dismissing, retrying and reindexing events that failed every retry attempt."
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: the legacy record-index path (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). Both tables are surfaced through a single unified API.
+Events that failed all retry attempts are stored as dead letters for inspection and manual resolution. Dead letters come from two sources: the legacy record-index path (`happyview_dead_letter_hooks`) and trigger-keyed scripts (`happyview_dead_letter_scripts`). The endpoints below read and act on both tables.
 
 Resolved script dead letters are deleted once they have been resolved for `DEAD_LETTER_RETENTION_DAYS` days (30 by default; see [Configuration](/docs/reference/configuration)). Unresolved ones are kept until an operator dismisses, retries or reindexes them.
 
@@ -147,7 +147,7 @@ curl "http://127.0.0.1:3000/admin/dead-letters?limit=10" -H "$AUTH"
 
 Resolved dead letters include a `resolved_at` timestamp. `cursor` is the last row's `created_at`, and is returned only when there are more rows.
 
-For label rows, `action` is `"label"`, `lexicon_id` is the script's trigger id, `did` is the labeler's DID and `rkey` is the label value.
+For label dead letters, `action` is `"label"`, `lexicon_id` is the script's trigger id, `did` is the labeler's DID and `rkey` is the label value.
 
 ## Count dead letters
 
@@ -372,7 +372,7 @@ POST /admin/dead-letters/{id}/retry
 
 Re-runs the dead letter's script with the original event payload. On success the dead letter is marked resolved. On failure the error and attempt count are updated, and the request returns `500 Internal Server Error`. A dead letter with an unknown `action` returns `400 Bad Request`.
 
-Label-arrival dead letters can't be retried, because the upstream label event is gone. These return `400 Bad Request`.
+Label dead letters can't be retried, because the upstream label event is gone. These return `400 Bad Request`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -442,7 +442,7 @@ Returns `404` if no matching script binding is found, or if the dead letter is n
 POST /admin/dead-letters/{id}/reindex
 ```
 
-Fetches the record fresh from the author's PDS and re-runs the full record indexing pipeline. Once the PDS has returned the record, the dead letter is marked resolved, whatever the pipeline then does with it. A PDS that can't be reached or answers with an error returns `500 Internal Server Error` and leaves the dead letter unresolved. Label-arrival dead letters cannot be reindexed and return `400 Bad Request`.
+Fetches the record fresh from the author's PDS and re-runs the full record indexing pipeline. Once the PDS has returned the record, the dead letter is marked resolved, whatever the pipeline then does with it. A PDS that can't be reached or answers with an error returns `500 Internal Server Error` and leaves the dead letter unresolved. Label dead letters cannot be reindexed and return `400 Bad Request`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

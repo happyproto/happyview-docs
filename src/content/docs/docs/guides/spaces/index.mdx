@@ -158,18 +158,18 @@ A space's creator administers it: they update and delete the space and manage it
 
 With the [space inspector](#moderating-spaces) on, operators can browse any space's metadata and members through the [admin spaces API](/docs/reference/admin/spaces) without being members. Reading a space's contents also takes a time-limited grant, logged to the event log. The inspector is off by default.
 
-Two independent **policies** decide who can use the space. See [Policies](/docs/guides/spaces/managing-spaces#policies).
+Two independent policies decide who can use the space. See [Policies](/docs/guides/spaces/managing-spaces#policies).
 
 - The **read policy** decides who can obtain a space credential to read the whole space.
 - The **write policy** decides whose writes the space tracks and forwards to syncers.
 
-Each policy is **member-list** (the default), **public**, or **managing-app**.
+Each policy is member-list (the default), public, or managing-app.
 
-**App access** controls which third-party apps can obtain credentials: **open** (the default) or an **allow list** of OAuth client IDs.
+App access controls which third-party apps can obtain credentials: open (the default) or an allow list of OAuth client IDs.
 
-Under member-list policies, each **member** has two flags, `read` and `write`, set independently. The creator is automatically added with both. See [Members](/docs/guides/spaces/members).
+Under member-list policies, each member has two flags, `read` and `write`, set independently. The creator is automatically added with both. See [Members](/docs/guides/spaces/members).
 
-Spaces also support **delegation**: adding another space as a member, which grants its members access to this space.
+Spaces also support delegation: adding another space as a member, which grants its members access to this space.
 
 ## Moderating spaces
 
@@ -179,13 +179,13 @@ The space inspector lets an operator read a space's contents while handling a re
 The space inspector comes from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet.
 :::
 
-An operator with `settings:manage` turns it on with **Enable Space Inspector** under **System > General**, or with [`SPACE_INSPECTOR_ENABLED`](/docs/reference/configuration#space-inspector). The same card sets **Maximum Access Length (minutes)**, the longest access anyone can request. On a HappyProto instance, the platform fixes that length and how long the access records are kept.
+An operator with `settings:manage` turns it on with **Enable Space Inspector** under **System > General**, or with [`SPACE_INSPECTOR_ENABLED`](/docs/reference/configuration#space-inspector). The same card sets **Maximum Access Length (minutes)**, the longest grant anyone can request. On a HappyProto instance, the platform fixes that length and how long the access records are kept.
 
 With it on, an operator with the [`spaces:inspect`](/docs/guides/permissions#reading-space-contents) permission requests access from the dashboard:
 
 1. Open **Spaces**, then a space, and click **Request access** on its **Records** card. To read one account across every space it writes to, enter its DID and click **Open account** instead.
 2. On a space with members, **Access to** offers the whole space or one member. A member choice covers that account's records in every space.
-3. Give a **Reason** and a **Duration**, then click **Grant access**. Access lasts an hour by default, and never longer than the instance allows.
+3. Give a **Reason** and a **Duration**, then click **Grant access**. A grant lasts an hour by default, and never longer than the instance allows.
 
 The records appear under a banner showing the reason and the time left. **End access** ends the grant early; otherwise it expires on its own.
 

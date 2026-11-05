@@ -7,14 +7,14 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Manage the ES256 key HappyView signs OAuth client assertions with. As a confidential OAuth client, HappyView authenticates to PDSes with `private_key_jwt` rather than as a public client, which earns its sessions the 2-year lifetime cap instead of 2 weeks. All endpoints require the `settings:manage` permission.
 
-Every session records the `kid` of the key that established it and is refreshed with **that** key, never with whichever key happens to be current later. That is what makes rotation safe: an authorization server treats a mismatched `kid` as grounds to destroy the session, not merely to refuse the request.
+Every session records the `kid` of the key that established it, and is refreshed with that key even after a newer key becomes current. An authorization server destroys a session whose refresh carries a mismatched `kid`, so this pinning is what keeps sessions alive through a rotation.
 
 Rotating and revoking a key have different consequences:
 
-- **Rotate** mints a new key, which becomes `current` after 75 minutes (or at once with `immediate`) and marks the previous one `retiring`. A retiring key stays published in the JWKS and keeps signing every session established with it, so nothing is logged out. Rotation is safe and cheap.
-- **Revoke** removes a key from the JWKS immediately and permanently breaks every session pinned to it. It is the response to a leaked or compromised key, not routine maintenance.
+- **Rotate** mints a new key, which becomes `current` after 75 minutes (or at once with `immediate`) and marks the previous one `retiring`. A retiring key stays published in the JWKS and keeps signing every session established with it, so nothing is logged out.
+- **Revoke** removes a key from the JWKS immediately and permanently breaks every session pinned to it. Use it for a leaked or compromised key.
 
-Because of that difference, **the current key cannot be revoked**: that would leave the instance unable to authenticate to any PDS at all. To contain a leaked key, rotate first with `{ "immediate": true }` (which demotes the leaked key to `retiring` and mints a fresh `current`), then revoke the retiring key.
+Because of that difference, the current key cannot be revoked: that would leave the instance unable to authenticate to any PDS at all. To contain a leaked key, rotate first with `{ "immediate": true }` (which demotes the leaked key to `retiring` and mints a fresh `current`), then revoke the retiring key.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -65,7 +65,7 @@ GET /admin/oauth/instance-key
 
 Returns every key the instance holds, ordered `pending`, `current`, `retiring`, then `revoked`. Revoked keys are included deliberately, so an operator can confirm a revoke took effect.
 
-`session_count` is the number of live sessions pinned to that key, counted across the dashboard, linked-repo, and DPoP session tables. For a **revoked** key the number is retained rather than zeroed: revoking does not delete session rows, so the count tells you how many sessions that revoke ended.
+`session_count` is the number of live sessions pinned to that key, counted across the dashboard, linked-repo, and DPoP session tables. A revoked key keeps its count, because revoking doesn't delete session rows, so the count tells you how many sessions that revoke ended.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -253,7 +253,7 @@ curl -X POST -H "$AUTH" http://127.0.0.1:3000/admin/oauth/instance-key/rotate
 DELETE /admin/oauth/instance-key/{kid}
 ```
 
-Removes the key from the published JWKS immediately and destroys every session pinned to it, so whoever held one of those sessions must log in again. Use this when a key has leaked, not to tidy up old keys: an hourly cleanup revokes every retiring key that no session is pinned to.
+Removes the key from the published JWKS immediately and destroys every session pinned to it, so whoever held one of those sessions must log in again. Use this when a key has leaked. Old keys need no manual revoke: an hourly cleanup revokes every retiring key that no session is pinned to.
 
 `sessions_destroyed` reports how many sessions the revoke invalidated.
 

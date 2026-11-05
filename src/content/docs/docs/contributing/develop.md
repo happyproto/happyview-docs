@@ -3,7 +3,7 @@ title: "Develop"
 description: "Set up a HappyView checkout, run the development stack, and open a pull request that can merge."
 ---
 
-This page covers work on HappyView itself: choosing a base branch, setting up a checkout, running the development stack, and what a pull request needs before it can merge. To run the checks CI runs, see [Test](/docs/contributing/test). To build an app on HappyView instead, see [Installation](/docs/getting-started/installation).
+These instructions are for changing HappyView itself. To run the checks CI runs, see [Test](/docs/contributing/test). To build an app on HappyView instead, see [Installation](/docs/getting-started/installation).
 
 ## Choose the base branch
 

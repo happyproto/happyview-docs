@@ -3,6 +3,8 @@ title: "Lexicons"
 description: "How HappyView treats each kind of lexicon, where lexicons come from, and how it resolves and routes the ones it doesn't have."
 ---
 
+A lexicon's type decides what HappyView does with it.
+
 ## Supported lexicon types
 
 | Type          | Effect                                                                                                                                   |
@@ -11,11 +13,11 @@ description: "How HappyView treats each kind of lexicon, where lexicons come fro
 | `query`       | Registers a `GET /xrpc/{nsid}` endpoint, served by its script                                                                            |
 | `procedure`   | Registers a `POST /xrpc/{nsid}` endpoint, served by its script                                                                           |
 | `definitions` | Stored but does not generate routes or subscriptions                                                                                     |
-| `space`       | Defines a permissioned space type. Generates no routes                                                                                   |
+| `space`       | Defines an atproto space type. Generates no routes                                                                                   |
 | `permission-set` | Generates no routes. HappyView reads it to expand `include:` OAuth scopes                                                             |
 | `subscription` | Accepted and stored, with a warning. HappyView doesn't serve it                                                                         |
 
-A typical setup has three lexicons working together: a **record** lexicon that defines the data and triggers indexing, a **query** lexicon that exposes a read endpoint, and a **procedure** lexicon that exposes a write endpoint.
+An app usually has a `record` lexicon that defines its data and triggers indexing, a `query` lexicon for its read endpoint and a `procedure` lexicon for its write endpoint.
 
 ## Queries and procedures need a script
 
@@ -45,7 +47,7 @@ Only the *first* upload starts one. Editing a lexicon afterwards re-saves it wit
 
 When record lexicons change (uploaded or deleted), HappyView reconnects to Jetstream with an updated collection filter. HappyView always includes `com.atproto.lexicon.schema` in the filter to track network lexicon updates.
 
-Deleting a lexicon stops live indexing for that collection but does **not** remove previously indexed records from the database. To start fresh, delete the records separately (e.g. via the admin API or directly in the database) before re-adding the lexicon and running a [backfill](/docs/guides/backfill).
+Deleting a lexicon stops live indexing for that collection but doesn't remove previously indexed records from the database. To start fresh, delete the records separately (e.g. via the admin API or directly in the database) before re-adding the lexicon and running a [backfill](/docs/guides/backfill).
 
 ## Network lexicons
 
@@ -62,7 +64,7 @@ Lexicons are stored as records themselves with the `com.atproto.lexicon.schema` 
 5. Resolve the DID to a PDS endpoint through the PLC directory, or for a `did:web`, through its domain.
 
 :::note
-The spec states that resolution must be **non-hierarchical**. If you have multiple levels of authority (e.g. `xyz.statusphere.status` and `xyz.statusphere.actor.profile`), each level must have an explicit TXT record.
+The spec states that resolution must be non-hierarchical. If you have multiple levels of authority (e.g. `xyz.statusphere.status` and `xyz.statusphere.actor.profile`), each level must have an explicit TXT record.
 :::
 
 ### Fetching
@@ -95,7 +97,7 @@ When a caller requests `/xrpc/{method}` and the instance has a lexicon for that 
 
 With `authority` routing, HappyView resolves the method's **home authority** to a PDS endpoint through [NSID authority resolution](#nsid-authority-resolution), then proxies the request to `{pds_endpoint}/xrpc/{method}`. For `com.example.foo.getBar`, the authority is `com.example.foo` and the TXT record is at `_lexicon.foo.example.com`.
 
-- HappyView does **not** proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record. The XRPC request goes to whatever PDS endpoint the authority DID resolves to.
+- HappyView doesn't proxy to the reversed hostname directly. `foo.example.com` is only the DNS host for the TXT record. The XRPC request goes to whatever PDS endpoint the authority DID resolves to.
 - `authority` routing forwards the request anonymously, with no credentials of the caller's, for queries and procedures alike. To act as the caller, for example to call `com.atproto.repo.createRecord` on their PDS, switch routing to `serviceproxy`.
 - If authority resolution fails because there is no TXT record, the DID doesn't resolve or the target PDS doesn't support the method, the caller gets an error back. HappyView does not fall back to the other routing.
 - A query or procedure lexicon you track as a network lexicon is served locally, like one you uploaded.

@@ -937,7 +937,7 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere
 | ------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `source`           | string  | The rewritten script body.                                                                 |
 | `notes`            | array   | Constructs the codemod could not rewrite mechanically, each left under a `-- codemod:` comment in `source`. |
-| `notes[].line`     | number  | Line number in the **original** body the construct sits on, not the rewritten `source` above. |
+| `notes[].line`     | number  | Line number in the original body the construct sits on, not the rewritten `source` above. |
 | `notes[].message`  | string  | What changed and what to finish by hand.                                                   |
 | `changed`          | boolean | `false` when the rewrite equals the stored body, so there is nothing to apply; `source` then equals the stored body. Not a statement that the script is on the v3 contract: one applied with markers left in place reports `false` too. |
 
@@ -947,11 +947,11 @@ curl -X POST "http://127.0.0.1:3000/admin/scripts/record.index%3Axyz.statusphere
 
 For a query or procedure, a read of the v2 `collection` global or of `ctx.collection` is rewritten to the NSID the instance's v2 lexicon for the script's method named, looked up by the trigger's NSID. When the instance has none recorded, the read is left under a `-- codemod:` marker; see [The collection a query or procedure names](/docs/guides/migrating-scripts#the-collection-a-query-or-procedure-names).
 
-A non-Lua `script_type` returns `400 Bad Request`. A body that doesn't parse as Lua also returns `400 Bad Request` rather than a result. That differs from `needs_migration`'s `"unparseable"`, which is a value on the *script list/get* response, not this endpoint.
+A non-Lua `script_type` returns `400 Bad Request`. A body that doesn't parse as Lua also returns `400 Bad Request`. That differs from `needs_migration`'s `"unparseable"`, which is a value on the script list/get response, not this endpoint.
 
 ### A script whose language has no interpreter
 
-A script's language is run by an interpreter plugin, and which languages an instance can run is therefore whatever is installed on it rather than a fixed list. `POST /admin/scripts` and `PATCH /admin/scripts/{id}` refuse a `script_type` no installed interpreter claims:
+A script's language is run by an interpreter plugin, so an instance runs only the languages its installed interpreters claim. `POST /admin/scripts` and `PATCH /admin/scripts/{id}` refuse a `script_type` no installed interpreter claims:
 
 ```json
 {
@@ -959,20 +959,20 @@ A script's language is run by an interpreter plugin, and which languages an inst
 }
 ```
 
-**Response**: `400 Bad Request`. Nothing is stored. Nothing on the instance could check the body or run it, so storing it would mean keeping a script nothing has validated. The refusal happens at the edit rather than on the script's first trigger. Installing the interpreter is the whole fix; the same request then succeeds unchanged.
+**Response**: `400 Bad Request`. Nothing is stored. Once the interpreter is installed, the same request succeeds unchanged.
 
 The check runs after the [unmigrated-body refusal](#saving-an-unmigrated-script), so a Lua body with removed globals still gets `removed_globals` and the offer of the codemod.
 
-**Stored rows are unaffected.** A script whose interpreter was never installed, or was uninstalled afterwards, still lists and still reads with its body intact, and reports `runnable: false`. It can still be edited and deleted. What it cannot do is run, and each trigger answers that in the way its own caller needs:
+Stored rows are unaffected. A script whose interpreter was never installed, or was uninstalled afterwards, still lists and still reads with its body intact, and reports `runnable: false`. It can still be edited and deleted. What it cannot do is run, and each trigger answers that in the way its own caller needs:
 
 | Trigger | What happens |
 | ------- | ------------ |
 | `xrpc.query:*`, `xrpc.procedure:*` | `503 Service Unavailable` with `error: "ServerMisconfigured"` and a `message` naming the language. A caller is refused rather than given an answer the script never shaped, or, for a procedure, having its raw input written |
-| `record.index:*`, `record.create:*`, `record.update:*`, `record.delete:*` | Fail-open: the event is indexed as if no script had run, and a dead-letter row records the reason. Ingest is not held up by a missing plugin |
+| `record.index:*`, `record.create:*`, `record.update:*`, `record.delete:*` | Fail-open: the event is indexed as if no script had run, and a dead-letter row records the reason |
 | `labeler.apply:*` | Fail-open: the label is persisted unchanged, with a dead-letter row recording the reason |
-| `job.run:*` | The job fails, with the same sentence in its `error` column. A job that silently never ran would tell an operator nothing |
+| `job.run:*` | The job fails, with the same error message in its `error` column |
 
-The dead-letter rows record **one** attempt rather than the usual four: a missing plugin is not a transient failure, so the retry budget is not spent on it. Retrying such a row through `POST /admin/dead-letters/{id}/retry` answers `500 Internal Server Error` with a correlation id and writes the sentence to the row's `error` column, until the interpreter is installed. (Label dead letters are never retryable, whatever the reason they were written.)
+The dead-letter rows record one attempt, not the usual four: a missing plugin is not a transient failure, so the retry budget is not spent on it. Retrying such a row through `POST /admin/dead-letters/{id}/retry` answers `500 Internal Server Error` with a correlation id and writes that error message to the row's `error` column, until the interpreter is installed. (Label dead letters are never retryable, whatever the reason they were written.)
 
 ### Saving an unmigrated script
 
@@ -992,6 +992,6 @@ interface UnmigratedScriptError {
 }
 ```
 
-**Response**: `400 Bad Request`. Nothing is stored. `removed_globals` is present on this error and no other, so a client can key on it rather than on the wording of `error`. The check runs before the body is compiled, so a script that reads a removed global at file scope gets this answer rather than a compilation failure. A body that doesn't parse at all still gets the compilation failure. A script with a removed global would fail on its first run, so it is turned away at the edit instead. A `PATCH` that sends no `body` is not checked, so the description of a stored script that is still waiting for the codemod stays editable.
+**Response**: `400 Bad Request`. Nothing is stored. `removed_globals` is present on this error and no other, so a client can key on it rather than on the wording of `error`. The check runs before the body is compiled, so a script that reads a removed global at file scope gets this answer rather than a compilation failure. A body that doesn't parse at all still gets the compilation failure. A `PATCH` that sends no `body` is not checked, so the description of a stored script that is still waiting for the codemod stays editable.
 
 `apply: true` on this endpoint is the one write that can store a body with removed globals left in it: only the constructs it marked `-- codemod:` remain, and `allow_markers: true` is the explicit consent to store them. Saving that same body back through `POST` or `PATCH` is refused until the marked lines are rewritten by hand.

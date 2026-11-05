@@ -3,9 +3,7 @@ title: SQLite to Postgres migration
 description: Move an existing instance from SQLite to Postgres, including the raw SQL its scripts send.
 ---
 
-## Overview
-
-The new database starts empty: records come back through backfill, and everything else is re-created by hand. HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw SQLite SQL to `happyview.sql`'s `raw` does; see [Scripts](#scripts).
+Moving to Postgres starts you on an empty database: records come back through backfill, and everything else is re-created by hand. HappyView's own SQL needs no changes, and neither do `happyview.db` chains. A script that passes raw SQLite SQL to `happyview.sql`'s `raw` does; see [Scripts](#scripts).
 
 ## Step 1: Set up Postgres
 
@@ -49,13 +47,13 @@ Start HappyView with the new `DATABASE_URL`. It connects to Postgres and runs it
 
 ## Step 5: Re-index your data
 
-Since HappyView indexes records from the atproto network, the simplest way to populate your new Postgres database is to re-run the backfill:
+HappyView indexes records from the atproto network, so re-run the backfill to populate the new database:
 
 1. Install your interpreters and libraries
 2. Redeploy your project, or upload your lexicons via the dashboard or admin API
 3. Run a backfill for each collection (dashboard or `POST /admin/backfill`)
 
-Backfill fetches records fresh from the network, so no data transfer between databases is needed. Records that exist only on this instance don't come back.
+Backfill fetches records fresh from the network, so records that exist only on this instance don't come back.
 
 :::tip
 If you have many lexicons, you can export them from the old instance before switching. Use `GET /admin/lexicons` to list them and `POST /admin/lexicons` to re-upload after switching to Postgres.

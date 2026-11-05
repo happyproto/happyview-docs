@@ -3,7 +3,7 @@ title: From source
 description: Build and run HappyView from a clone of its alpha branch with cargo.
 ---
 
-This guide runs HappyView directly with `cargo run`, from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
+Run HappyView directly with `cargo run` from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
 
 ## Prerequisites
 
@@ -43,15 +43,15 @@ See [Configuring an instance](/docs/guides/configuration) for what to set first,
 
 ## 2. Create the database (Postgres only)
 
-If using SQLite, skip this step: HappyView creates the database file automatically.
+If you're using SQLite, skip this step: HappyView creates the database file automatically.
 
-If using Postgres:
+If you're using Postgres, create the database:
 
 ```sh
 createdb happyview
 ```
 
-Or if using a Postgres user with a password:
+Or, if you connect as a Postgres user with a password:
 
 ```sh
 psql -c "CREATE DATABASE happyview;" -U postgres
@@ -82,4 +82,4 @@ HappyView starts on port 3000 (configurable via the `PORT` environment variable)
 
 ## Next steps
 
-Your HappyView instance is running. Install an interpreter before saving any script: a self-hosted instance ships with none ([Languages](/docs/reference/scripts/languages#install-an-interpreter)). Then [deploy a project](/docs/getting-started/deploying) to it.
+Install an interpreter before saving any script: a self-hosted instance ships with none ([Languages](/docs/reference/scripts/languages#install-an-interpreter)). Then [deploy a project](/docs/getting-started/deploying) to it.

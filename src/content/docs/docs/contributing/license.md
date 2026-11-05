@@ -5,7 +5,7 @@ description: "The license HappyView is published under, and the components that 
 
 HappyView is published under the [MIT License](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/LICENSE.md), in `LICENSE.md` at the root of the repository, copyright 2024 Trezy Studios, LLC.
 
-This page lists what the repository's files and manifests declare. It is not legal advice.
+The details below come from the repository's files and manifests, and are not legal advice.
 
 :::note[Pending]
 [happyview#401](https://github.com/gamesgamesgamesgamesgames/happyview/pull/401) changes the copyright holder in every license file to HappyProto, LLC, adds the missing `LICENSE.md` to `@happyview/oauth-client-node`, and states that contributions are licensed under the terms of the file or package they change. This page describes the files as they are on `alpha` until it merges.

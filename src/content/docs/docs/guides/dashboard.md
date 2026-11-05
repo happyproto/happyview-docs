@@ -3,7 +3,7 @@ title: "Dashboard"
 description: A tour of the dashboard's pages and what each one manages on an instance.
 ---
 
-HappyView ships with a web dashboard that provides a visual interface for most of what the [admin API](/docs/reference/admin/admin-api) offers. The instance serves it itself, and it authenticates via atproto OAuth. The sidebar shows only the pages your [permissions](/docs/guides/permissions) allow.
+The dashboard is a web interface to most of the [admin API](/docs/reference/admin/admin-api). The instance serves it itself, and you sign in with atproto OAuth. The sidebar shows only the pages your [permissions](/docs/guides/permissions) allow.
 
 On a fresh instance the dashboard opens a setup wizard, which covers the [service identity](/docs/guides/service-identity) and ends with the [telemetry](/docs/guides/telemetry) question. With no operators in the database and no `SUPERADMIN_DID` set, the first person to sign in is made an operator with the superadmin privilege and every permission. Sign in first with the handle you want to run the instance.
 
@@ -25,11 +25,7 @@ For a record lexicon, **Index records from the network** decides whether the ins
 
 #### JSON editor
 
-The JSON editor provides real-time validation against the atproto Lexicon v1 schema:
-
-- Validation for Lexicon format
-- Auto-complete for definition types (`record`, `query`, `procedure`, `subscription`), property types (`string`, `integer`, `boolean`, `ref`, `union`, `blob`, `cid-link`, etc.), and schema structure (`defs`, `main`, `properties`, `required`)
-- Enforces the required top-level shape: `lexicon`, `id`, and `defs.main`
+The JSON editor validates against the atproto Lexicon v1 schema as you type, and requires the top-level `lexicon`, `id` and `defs.main`. It completes definition types (`record`, `query`, `procedure`, `subscription`), property types (`string`, `integer`, `boolean`, `ref`, `union`, `blob`, `cid-link`, etc.) and schema structure (`defs`, `main`, `properties`, `required`).
 
 ### Records
 
@@ -37,7 +33,7 @@ Navigate to **Records** to browse all indexed atproto records. Pick a collection
 
 ### Spaces
 
-Navigate to **Spaces** to view the instance's [spaces](/docs/guides/spaces). The page needs `spaces:read`, and appears only while the [space inspector](/docs/guides/spaces#moderating-spaces) is on. It lists each space's **Name**, **Type**, **Creator** and **Created** date. To open one account, enter its DID and click **Open account**.
+Navigate to **Spaces** to view the instance's [atproto spaces](/docs/guides/spaces). The page needs `spaces:read`, and appears only while the [space inspector](/docs/guides/spaces#moderating-spaces) is on. It lists each space's **Name**, **Type**, **Creator** and **Created** date. To open one account, enter its DID and click **Open account**.
 
 A space's page shows its details, **Members** and **Collections**. With `spaces:inspect`, its **Records** card offers **Request access**. The **Request access** dialog asks for **Access to**, a **Reason** and a **Duration**, and **Grant access** opens the records. A banner then shows the reason and the time left, with **End access** to end it early.
 
@@ -160,7 +156,7 @@ A `space.access_granted` event lists the **Reads under this grant**, with **Load
 
 ### Experiments
 
-Toggle experimental feature flags for your instance, such as `feature.spaces_enabled`. See [Feature flags](/docs/reference/admin/feature-flags).
+Toggle experimental feature flags for your instance, such as `feature.spaces_enabled`, which turns on atproto spaces and is off by default. See [Feature flags](/docs/reference/admin/feature-flags).
 
 ## About
 

@@ -33,7 +33,7 @@ SQLite or PostgreSQL. HappyView picks the backend from the scheme of `DATABASE_U
 
 ## Does HappyView send data about my instance anywhere?
 
-Only if you turn telemetry on; it is off by default. [Telemetry](/docs/guides/telemetry) describes what a report contains and how to turn it on or off.
+Only if you turn telemetry on; it's off by default. [Telemetry](/docs/guides/telemetry) describes what a report contains and how to turn it on or off.
 
 ## Are atproto spaces on by default?
 

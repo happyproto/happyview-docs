@@ -3,7 +3,7 @@ title: "Plugin SDK"
 description: "The plugin manifest, every capability and the host functions it unlocks, the Rust SDK's macros, the limits a plugin runs under, and publishing to the registry."
 ---
 
-A plugin is a WebAssembly module plus a `manifest.json` that says what it is and what it may do. This page is the reference; [Developing plugins](/docs/guides/developing-plugins) walks through building one.
+A plugin is a WebAssembly module plus a `manifest.json` that says what it is and what it may do. [Developing plugins](/docs/guides/developing-plugins) walks through building one.
 
 ## The SDK crate
 

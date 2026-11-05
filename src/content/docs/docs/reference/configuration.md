@@ -51,7 +51,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `SESSION_SECRET` | none | Signs the dashboard's session cookie. Must be at least 32 bytes; generate one with `openssl rand -base64 48`. When it's unset, too short, or the placeholder `change-me-in-production`, the instance still starts, but nobody can sign in to the dashboard, and the dashboard shows why. |
-| `TOKEN_ENCRYPTION_KEY` | none | Base64 of exactly 32 bytes (`openssl rand -base64 32`). Encrypts stored OAuth sessions and tokens, keys, plugin secrets, script variables and the attestation key. Without a valid one, app sign-in, spaces and service identity don't work; an invalid value is logged and ignored. |
+| `TOKEN_ENCRYPTION_KEY` | none | Base64 of exactly 32 bytes (`openssl rand -base64 32`). Encrypts stored OAuth sessions and tokens, keys, plugin secrets, script variables and the attestation key. Without a valid one, app sign-in, atproto spaces and service identity don't work; an invalid value is logged and ignored. |
 | `SUPERADMIN_DID` | none | A DID given the superadmin privilege at every boot. A value that isn't a DID stops boot; empty means unset. Once set, the first person to sign in is no longer given superadmin. `happyview.toml`: `[instance] superadmin`. |
 | `PLATFORM_API_KEY_HASH` | none | The SHA-256, as 64 hex characters, of the key a hosting platform uses for `/admin/platform`. See [Platform](/docs/reference/admin/platform). |
 | `DEFAULT_RATE_LIMIT_CAPACITY` | `100` | Request budget for a new API client. |
@@ -186,7 +186,7 @@ Boot fails when a fixed setting's variable is unset. It also fails when a fixed 
 
 ## happyview.toml
 
-A project's `happyview.toml`. Every table is optional, and an unknown key anywhere is an error reported with its line. [Project structure](/docs/getting-started/project-structure) explains how they're used.
+The keys a project's `happyview.toml` can set. Every table is optional, and an unknown key anywhere is an error reported with its line. [Project structure](/docs/getting-started/project-structure) explains how they're used.
 
 | Key | Type | Default | What it does |
 | --- | --- | --- | --- |
@@ -209,4 +209,4 @@ A project's `happyview.toml`. Every table is optional, and an unknown key anywhe
 
 A deploy ignores `[happyview]`, `[instance]`, `[interpreters]`, `[libraries]`, `[dev]` and `[jetstream]`; see [Deploying](/docs/getting-started/deploying).
 
-Since the release that removes them, `[lexicons."<NSID>"]` takes no `target_collection` or `action`. A file that still sets either fails to load with ``happyview.toml:2: unknown field `target_collection` ``. A query or procedure names its collection in its script; see [Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script).
+In v3, `[lexicons."<NSID>"]` takes no `target_collection` or `action`. A file that still sets either fails to load with ``happyview.toml:2: unknown field `target_collection` ``. A query or procedure names its collection in its script; see [Upgrading to v3](/docs/guides/upgrading-to-v3#9-queries-and-procedures-need-a-script).
