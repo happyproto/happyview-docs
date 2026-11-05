@@ -300,7 +300,7 @@ Requires `scripts:read`.
 
 The source of each interpreter module in the deployed project, sorted by `id`. A module is a file under `src/` that an installed interpreter claims and that isn't a handler, a test or a lexicon, such as a shared library that handlers import. With no project deployed, the response is an empty array.
 
-Compiled modules declared under `[modules.*]` in `happyview.toml` aren't listed, because the instance holds no source for them.
+Modules compiled from `[modules.*]` declarations in `happyview.toml` don't appear here, since the instance has no source text for them.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">

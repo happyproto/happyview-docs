@@ -86,7 +86,7 @@ Stored metrics live in the `happyview_script_metrics` table, one row per key, bu
 | `sketches` | The bucket's latency sketches, as a JSON object |
 | `instance` | The instance that wrote the row |
 
-One script that runs every minute writes 1,440 minute rows a day, kept for two days, and 24 hour rows a day after that. At that rate, 50 scripts on one instance write about 72,000 minute rows and 1,200 hour rows a day. Most scripts are idle most minutes, so real counts are lower.
+As an upper bound, a script with runs in every minute produces 1,440 minute rows per day. Those stay for two days and then fold into 24 hour rows per day. Fifty such scripts on a single instance come to roughly 72,000 minute rows and 1,200 hour rows daily. In practice most scripts don't run every minute, so the totals are smaller.
 
 ## What a run measures
 

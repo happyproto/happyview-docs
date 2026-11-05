@@ -630,7 +630,7 @@ Attach `client_assertion` and `client_assertion_type` as form parameters on the 
 
 An authorization server binds a session to the key that established it. After a key rotation, a refresh with an assertion signed by the newer key presents a key the server never bound the session to. A conforming server responds by destroying the session, not by refusing the one request. The user is silently signed out, typically hours later, with nothing to connect it to the rotation.
 
-Omit `kid` for an initial authorization, where any currently valid key is correct.
+For the PAR request of a new authorization, omit `kid` and any currently valid key is used. For its token exchange, send the `kid` the PAR assertion returned, so that one key signs both. A public client that sends `provision_id` and `pkce_verifier` gets this without passing `kid`. See [Run OAuth with the user's PDS](/docs/reference/authentication#2-run-oauth-with-the-users-pds).
 
 Returns `400` (`this client has no authentication key; provision one first`) if no key has been provisioned yet via `POST /admin/api-clients/{id}/auth-key`.
 
