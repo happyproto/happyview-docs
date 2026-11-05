@@ -62,7 +62,7 @@ You need macOS or Linux (on Windows, use WSL), and the DID of an atproto account
    {"message":"Hello, Ada!"}
    ```
 
-   Without `name`, the query answers `{"message":"Hello, world!"}`. If we edit `hello.lua` and save it, the next request runs the new version.
+   There's our hello. Without `name`, the query answers `{"message":"Hello, world!"}`. If we edit `hello.lua` and save it, the next request runs the new version.
 
 ## Next steps
 

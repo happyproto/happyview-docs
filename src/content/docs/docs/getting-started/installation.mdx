@@ -40,17 +40,17 @@ curl -fsSL https://happyproto.github.io/cli/install-beta.sh | sh
 </TabItem>
 </Tabs>
 
-The install script puts `hpy` in `~/.cargo/bin`. If it isn't on your `PATH` yet, open a new terminal. Verify the installation:
+The install script puts `hpy` in `~/.cargo/bin`. If it isn't on your `PATH` yet, open a new terminal. It's the command-line version of turning it off and on again. Let's check that it worked:
 
 ```sh
 hpy --version
 ```
 
-`hpy update` keeps it up to date on the `beta` channel. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
+Excellent! `hpy update` keeps it up to date on the `beta` channel. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
 
 ## Create a project
 
-`hpy happyview create` makes a new project in the directory you name with `--name`:
+Now let's make a project. `hpy happyview create` makes a new project in the directory you name with `--name`:
 
 ```sh
 hpy happyview create --name my-app
@@ -67,7 +67,7 @@ An **interpreter** is a plugin that runs scripts in one language, and a **librar
 | **Libraries**      | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`.                                                                                                                                                          |
 | **App name**       | Your app's name, shown in the dashboard. It defaults to the directory's name.                                                                                                                                                                                                              |
 
-`create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
+Looking good! `create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
 
 ## Generated files
 

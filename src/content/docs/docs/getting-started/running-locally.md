@@ -105,7 +105,7 @@ To backfill locally, we set it to `true` and restart `dev`. The setting applies 
 | `--yes`, `-y` | Skips the confirmation `--network local` asks for. |
 | `--locked` | Fails instead of updating `happyview.lock` when it does not match `happyview.toml`. Intended for CI. |
 
-The instance serves on port 3000. To use another port, set the `PORT` environment variable or `port` under `[dev]` in `happyview.toml`. The environment variable takes precedence.
+The instance serves on port 3000. If another dev server already has that port (one usually does), we can set the `PORT` environment variable or `port` under `[dev]` in `happyview.toml`. The environment variable takes precedence.
 
 ## Next steps
 

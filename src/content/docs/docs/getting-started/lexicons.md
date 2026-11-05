@@ -39,22 +39,22 @@ A lexicon's file path is its NSID: `xyz.statusphere.status` lives at `src/lexico
 }
 ```
 
-Let's save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
+Nice. Let's save it while `hpy happyview dev` runs. The instance rebuilds and starts listening to Jetstream for `xyz.statusphere.status` records. Each one that arrives is indexed: open **Data > Records** in the local dashboard to watch them come in.
 
-If the `id` doesn't match the path, the build fails and tells you where the file should be.
+If the `id` doesn't match the path, the build fails and tells us where the file should be.
 
 Records arrive only when someone writes one, so the list can stay empty for a while. Watching an empty table isn't much of a demo, so let's backfill the records already on the network instead. That takes one more setting, below.
 
 ## Backfill what came before
 
-Indexing starts from now: records written before your instance started listening aren't fetched unless you ask for a **backfill**. Let's turn it on for our status lexicon in `happyview.toml`:
+Indexing starts from now: records written before our instance started listening aren't fetched unless we ask for a **backfill**. Let's turn it on for our status lexicon in `happyview.toml`:
 
 ```toml
 [lexicons."xyz.statusphere.status"]
 backfill = true
 ```
 
-A backfill finds every account with records in that collection and fetches them from each account's PDS. It runs once per collection: when you deploy, or at an instance's next start, and not again after that. [Backfill](/docs/guides/backfill) covers watching one and running it again.
+A backfill finds every account with records in that collection and fetches them from each account's PDS. It runs once per collection: when we deploy, or at an instance's next start, and not again after that. [Backfill](/docs/guides/backfill) covers watching one and running it again.
 
 A local instance doesn't backfill unless we also set `backfill = true` under `[dev]`, so developing doesn't crawl the network every time we start.
 
@@ -67,11 +67,11 @@ Many lexicons are already published by their authors, such as Bluesky's `app.bsk
 include = ["app.bsky.feed.post"]
 ```
 
-A network lexicon is indexed like your own, but it never backfills on its own; start one from **Data > Backfills** if you want history. Only lexicons in your project can have record scripts beside them, because a script's path names its lexicon.
+A network lexicon is indexed like our own, but it never backfills on its own; start one from **Data > Backfills** if you want history. Only lexicons in our project can have record scripts beside them, because a script's path names its lexicon.
 
 ## Lexicons added in the dashboard
 
-An operator can also add a lexicon to an instance in the dashboard, under **Data > Lexicons**, or through the admin API. Those **uploaded lexicons** live in that instance's database, not in your project. When a project file and an uploaded lexicon have the same NSID, the project's wins, and the dashboard refuses to change or delete it.
+An operator can also add a lexicon to an instance in the dashboard, under **Data > Lexicons**, or through the admin API. Those **uploaded lexicons** live in that instance's database, not in our project. When a project file and an uploaded lexicon have the same NSID, the project's wins, and the dashboard refuses to change or delete it.
 
 ## Removing a lexicon
 
@@ -79,6 +79,6 @@ Delete the file and the instance stops indexing that collection. The records it 
 
 ## Next steps
 
-- [Queries and procedures](/docs/getting-started/queries-and-procedures): serve the records you index.
+- [Queries and procedures](/docs/getting-started/queries-and-procedures): serve the records we index.
 - [Reacting to records](/docs/getting-started/reacting-to-records): run a script when a record in your collection changes.
 - [Lexicons reference](/docs/reference/lexicons): every lexicon type, network resolution, and what happens to methods you don't define.

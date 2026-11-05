@@ -84,12 +84,12 @@ export default function handle(input: Event, ctx: RecordCtx) {
 </TabItem>
 </Tabs>
 
-The types come from `.happyview/types/`, which `hpy happyview dev` writes from your lexicons.
+The types come from `.happyview/types/`, which `hpy happyview dev` writes from our lexicons.
 
 `input` is the event: `action`, `uri`, `did`, `collection`, `rkey` and `record`. The script runs before the record is indexed, and what it returns decides what gets stored. Returning the record stores it unchanged.
 
 :::caution[Always return something]
-A script that returns nothing tells HappyView to skip the record, so it is never indexed. If your script only has side effects, end it by returning the record.
+A script that returns nothing tells HappyView to skip the record, so it is never indexed. If a script only has side effects, end it by returning the record.
 :::
 
 A file that breaks the layout fails the build, and `hpy happyview dev` prints why. For example, `status.create.lua` with no `status.json` next to it is an error. `hpy happyview check` runs the same build without serving the project.
@@ -100,7 +100,7 @@ A record script runs for records that arrive from the network. It doesn't run fo
 
 To watch it, let's open the local dashboard and go to **System > Event Logs**. Set **Category** to **Script**. Each `log.info` call appears as a `script.log` event whose subject is the script's trigger, `record.create:xyz.statusphere.status`. `info`, `warn` and `error` lines are recorded here. `debug` lines aren't recorded as events.
 
-To see every script run as well as the lines your script logs, start `hpy happyview dev` with `VERBOSE_EVENT_LOGGING=true` in its environment. HappyView then logs a `script.executed` event for each run. That is one event per run, so turn it off after testing. The **Verbose Event Logging** switch under **System > General** sets the same thing, and wins over the variable.
+To see every script run as well as the lines our script logs, let's start `hpy happyview dev` with `VERBOSE_EVENT_LOGGING=true` in its environment. HappyView then logs a `script.executed` event for each run. That is one event per run, so turn it off after testing, unless scrolling through every status on the network is how you like to spend an afternoon. The **Verbose Event Logging** switch under **System > General** sets the same thing, and wins over the variable.
 
 If the script fails, HappyView tries it up to 4 times in all, then writes the event to **Data > Dead Letters**. The record is still indexed.
 
@@ -212,11 +212,11 @@ Let's list the labeler's DID under `[labels]` in `happyview.toml`:
 subscribe = ["did:plc:ar7c4by46qjdydhdevvrndac"]
 ```
 
-HappyView subscribes to each labeler in the list when it starts, and again each time you save `happyview.toml` under `hpy happyview dev`. Taking a DID out of the list doesn't unsubscribe from it: `hpy happyview dev` tells you the subscription stays until you delete it in the dashboard. The dashboard refuses that delete until you restart `dev`, because the running instance still counts the labeler as declared. Your subscriptions are listed under **Integrations > Labelers**.
+HappyView subscribes to each labeler in the list when it starts, and again each time we save `happyview.toml` under `hpy happyview dev`. Taking a DID out of the list doesn't unsubscribe from it: `hpy happyview dev` tells us the subscription stays until we delete it in the dashboard. The dashboard refuses that delete until we restart `dev`, because the running instance still counts the labeler as declared. Our subscriptions are listed under **Integrations > Labelers**.
 
 ### Write a label script
 
-A label script lives in `src/labels/`, named by the label's subject:
+Excellent! A label script lives in `src/labels/`, named by the label's subject:
 
 - `src/labels/xyz.statusphere.status.lua` runs for labels on records in that collection. Its trigger is `labeler.apply:xyz.statusphere.status`.
 - `src/labels/_actor.lua` runs for labels on accounts. Its trigger is `labeler.apply:_actor`.

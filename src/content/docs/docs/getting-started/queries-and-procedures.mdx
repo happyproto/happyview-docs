@@ -137,7 +137,7 @@ A query with no script answers only `?uri=<at-uri>`, and any other call gets a `
 
 ## A query with a script
 
-A query's script can answer anything, not only records. The project's `com.example.hello` has one:
+Looking good! A query's script can answer anything, not only records. The project's `com.example.hello` has one:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">
@@ -183,7 +183,7 @@ A query can be called anonymously, so a script can't assume a caller. To read re
 
 ## A procedure
 
-A procedure changes something, and always runs as a signed-in user. A call with no user gets a `401`. How your app's users sign in is in [Authentication](/docs/getting-started/authentication).
+A procedure changes something, and always runs as a signed-in user. A call with no user gets a `401`. That's what keeps strangers from setting your status for you. How your app's users sign in is in [Authentication](/docs/getting-started/authentication).
 
 A procedure lexicon declares the body it takes as `input`. Here's ours, `src/lexicons/xyz/statusphere/setStatus.json`:
 
@@ -265,7 +265,7 @@ export default function handle(
 </TabItem>
 </Tabs>
 
-This one needs the `happyview.record` library, so let's add it with `hpy happyview add happyview.record` and restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; to write to repositories you've been granted access to, see [Linked repos](/docs/guides/linked-repos).
+Nice. This one needs the `happyview.record` library, so let's add it with `hpy happyview add happyview.record` and restart `dev`. `record.create` writes to the caller's PDS and returns the new record's `{ uri, cid }`. HappyView also indexes the record straight away, so a query sees it before the network echoes it back. A script can only write to the caller's own repository; to write to repositories you've been granted access to, see [Linked repos](/docs/guides/linked-repos).
 
 We haven't built sign-in yet (that's [Authentication](/docs/getting-started/authentication)), so our own app can't call this procedure yet. A test can act as any user, though. [Act as a user](/docs/getting-started/testing#act-as-a-user) shows how.
 

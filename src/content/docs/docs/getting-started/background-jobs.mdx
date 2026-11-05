@@ -7,7 +7,7 @@ prerequisites:
 ---
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-A background job runs outside the time limits that requests and record scripts have. It has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request.
+A background job runs outside the time limits that requests and record scripts have. It has two halves. A script queues the job with a type and an input. A **job script**, bound to the trigger `job.run:<type>`, picks it up and does the work. Use jobs for exports, migrations, batch writes, syncs with external services, and anything else too slow for a request. Yes, that includes the migration you keep putting off.
 
 We'll need a project made with `hpy happyview create`, running under `hpy happyview dev`.
 
@@ -19,7 +19,7 @@ Queuing a job needs the `happyview.jobs` library, though a job script doesn't. L
 hpy happyview add happyview.jobs
 ```
 
-This adds the library to `[libraries]` in `happyview.toml` and to `happyview.lock`, and downloads it. `hpy happyview dev` puts the locked plugins in place before it starts HappyView, so restart it after adding one. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
+This adds the library to `[libraries]` in `happyview.toml` and to `happyview.lock`, and downloads it. `hpy happyview dev` puts the locked plugins in place before it starts HappyView, so let's restart it after adding one. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
 
 ## Write the job script
 
@@ -114,7 +114,7 @@ export default async function handle(input: { items: unknown[] }, ctx: JobCtx) {
 
 ## Queue a job
 
-Jobs are queued from scripts, with `create(job_type, input)` from the `happyview.jobs` library. It returns the new job's id. There is no admin API endpoint for queuing your own jobs.
+Nice. Jobs are queued from scripts, with `create(job_type, input)` from the `happyview.jobs` library. It returns the new job's id. There is no admin API endpoint for queuing your own jobs.
 
 `com.example.startExport` stands in for a procedure our project defines, so the file is `src/lexicons/com/example/startExport.lua`, next to `startExport.json`. Let's have it queue an `export` job and answer straight away with its id:
 
@@ -186,7 +186,7 @@ To run a job script without queuing anything, we can fire it from a test file wi
 
 ## Watch a job
 
-Let's open the local dashboard and go to **Data > Jobs**. The table lists every job with its status, and we can filter by status. If a job you queued still says `pending`, give it a few seconds before debugging anything, because the worker checks for pending jobs every 5 seconds. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines our job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
+Looking good! Let's open the local dashboard and go to **Data > Jobs**. The table lists every job with its status, and we can filter by status. If a job we queued still says `pending`, give it a few seconds before debugging anything, because the worker checks for pending jobs every 5 seconds. Click a job to see its input, progress, result or error, its timestamps, and its log. Lines our job script writes with `log.info`, `log.warn` and `log.error` appear in that job's log as well as in **System > Event Logs**.
 
 We can also read jobs with the admin API. Here `$AUTH` holds `Authorization: Bearer <key>`, with an [admin API key](/docs/getting-started/authentication#use-the-admin-api-with-an-api-key):
 
@@ -215,7 +215,7 @@ Cancelling, pausing and resuming need the `jobs:manage` permission. Viewing jobs
 
 ## Limits
 
-Jobs aren't held to the instruction limit or the wall clock that apply to requests and record scripts. Running long is what a job is for, so your script should check `ctx.job.should_stop()` regularly.
+Jobs aren't held to the instruction limit or the wall clock that apply to requests and record scripts. Running long is what a job is for, so our script should check `ctx.job.should_stop()` regularly.
 
 A job still has the 64 MiB memory limit that every script has. See [Limits](/docs/reference/scripts/limits).
 

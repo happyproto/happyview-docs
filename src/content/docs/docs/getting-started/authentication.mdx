@@ -33,7 +33,7 @@ Your users sign in to your app, not to HappyView. Your app runs an atproto OAuth
 
 ### Register an API client
 
-Every app that signs users in needs an API client. Open **API Clients** in the dashboard, under **Access**, and click **Create API Client**, or call `POST /admin/api-clients`. You give it:
+Every app that signs users in needs an API client. Open **API Clients** in the dashboard, under **Access**, and click **Create API Client**, or call `POST /admin/api-clients`. We give it:
 
 - a `name`;
 - your app's `client_id_url` (where its OAuth client metadata lives), `client_uri` and `redirect_uris`;
@@ -41,7 +41,7 @@ Every app that signs users in needs an API client. Open **API Clients** in the d
 - a `client_type`: `confidential` (the default) for a server that can keep a secret, or `public` for a browser app;
 - for a public client, its `allowed_origins`.
 
-You get back a client key starting with `hvc_`. A confidential client also gets a secret starting with `hvs_`. The secret is shown once, so save it.
+We get back a client key starting with `hvc_`. A confidential client also gets a secret starting with `hvs_`. The secret is shown once, so save it.
 
 ### Sign in with the SDK
 
@@ -89,7 +89,7 @@ Because HappyView and your app hold the same key, HappyView can sign its own pro
 
 ## The caller, inside a script
 
-Now let's use the caller in a script. A script sees the caller in `ctx`:
+Nice. Now let's use the caller in a script. A script sees the caller in `ctx`:
 
 - `ctx.caller_did` is the signed-in user's DID. It is absent when the request is anonymous.
 - `ctx.has_pds_auth` is `true` when HappyView holds a session it can use to write to that user's PDS.
@@ -158,7 +158,7 @@ curl -X POST "http://127.0.0.1:3000/admin/api-keys" \
   -d '{ "name": "ci", "permissions": ["lexicons:read", "records:read"] }'
 ```
 
-The response's `key` starts with `hv_`. It is shown once. Send it as a bearer token:
+Excellent! The response's `key` starts with `hv_`. It is shown once. Send it as a bearer token:
 
 ```sh
 curl "http://127.0.0.1:3000/admin/lexicons" \

@@ -79,7 +79,7 @@ backfill = false                # only for hpy happyview dev
 
 An unknown key anywhere is an error, as is a `[lexicons."<NSID>"]` that names no lexicon in `src/lexicons/`.
 
-Don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` changes them and `happyview.lock` together. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
+We don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` changes them and `happyview.lock` together. See [Plugins and libraries](/docs/getting-started/plugins-and-libraries).
 
 ## `happyview.lock`
 
@@ -87,13 +87,13 @@ Don't edit `[interpreters]` and `[libraries]` by hand: `hpy happyview add` chang
 
 ## `.env`
 
-While we develop, scripts read `.env` as `ctx.env`, so let's keep API keys and other secrets there, not in our scripts. `create` writes a `.env.example` to copy from, and `.gitignore` keeps `.env` out of git.
+While we develop, scripts read `.env` as `ctx.env`, so let's keep API keys and other secrets there, not in our scripts, where they have a way of ending up in a commit. `create` writes a `.env.example` to copy from, and `.gitignore` keeps `.env` out of git.
 
 `.env` isn't deployed. On an instance, `ctx.env` comes from the dashboard's **System > ENV Variables** page. Test runs read `.env.test` instead.
 
 ## `.happyview/`
 
-Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets and editor types. It's in `.gitignore`. Delete it to start our local instance over.
+Local state `hpy` and the local instance keep: the SQLite database, the plugins it loaded, generated secrets and editor types. It's in `.gitignore`. We can delete it to start our local instance over.
 
 ## Next steps
 

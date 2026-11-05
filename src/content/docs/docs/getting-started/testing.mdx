@@ -83,7 +83,7 @@ The Lua assertions are `assert(value, message)`, `assert.are.equal`, `assert.are
 
 ## Run the tests
 
-Let's run them from the project root:
+Looking good! Let's run them from the project root:
 
 ```sh
 hpy happyview test                # every test file
@@ -241,7 +241,7 @@ A forged caller only exists in a test run. HappyView honors it only when the req
 
 ## Mock a library
 
-A library you don't mock runs for real, network included. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. `com.example.getWeather` stands in for a query your project defines. This test answers every `get` from `happyview.http`, then checks the script made one call:
+A library you don't mock runs for real, network included. That's fine until a test starts depending on the weather in Paris. To answer a library from data instead, call `mock` with the library's namespace and a response for each method. `com.example.getWeather` stands in for a query your project defines. This test answers every `get` from `happyview.http`, then checks the script made one call:
 
 <Tabs syncKey="lang">
 <TabItem label="Lua">

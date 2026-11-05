@@ -55,7 +55,7 @@ lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channe
 "happyview.db" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-db", channel = "alpha" }
 ```
 
-Each entry names the registry project by its publisher's DID and its name, and follows either a `channel` or one exact `version`.
+Looking good! Each entry names the registry project by its publisher's DID and its name, and follows either a `channel` or one exact `version`.
 
 `add` then resolves every entry to an exact version, downloads each plugin, and writes `happyview.lock`. The lock pins the version, the CIDs that the downloaded files must match, and the capabilities that version declares. Commit it, and don't edit it by hand. The entry for `happyview.db` looks like this:
 
@@ -86,7 +86,7 @@ If anything fails, such as a name the registry doesn't know or a download that d
 
 ### Restart `hpy happyview dev`
 
-`hpy happyview dev` puts the locked plugins in place before it starts HappyView. A running `dev` doesn't watch the plugins directory, so let's stop it and start it again now. If a script ever says it can't find a library we just added, a forgotten restart is the first thing to check.
+`hpy happyview dev` puts the locked plugins in place before it starts HappyView. A running `dev` doesn't watch the plugins directory, so let's stop it and start it again now. If a script ever says it can't find a library we just added, a forgotten restart is the first thing to check, even though it's usually the last thing we think of.
 
 ## Deploy the locked versions
 
