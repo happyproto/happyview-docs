@@ -74,7 +74,7 @@ HappyView is used by a ton of apps I'm not familiar with and until I have more t
 - `type` still works wherever `spaceType` replaced it.
 - `getSpaceCredential` responses still include `delegationToken` beside its new name, `token`.
 
-Full details are in the [spaces changelog](/docs/v2/experimental/spaces/changelog).
+Full details are in the [spaces changelog](https://v2.happyview.dev/experimental/spaces/changelog).
 
 ## Other stuff
 
