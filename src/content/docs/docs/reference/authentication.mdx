@@ -450,6 +450,8 @@ The `dpop_key` is the private JWK. Use it to generate DPoP proofs during your OA
 
 Use the provisioned DPoP key as your DPoP keypair in a standard atproto OAuth flow with the user's PDS. HappyView is not involved in this step: the app talks directly to the PDS authorization server.
 
+A confidential app needs a [client assertion](/docs/reference/oauth#sign-a-client-assertion) for the PAR request and another for the token exchange. Sign both with the same key. The reference authorization server refuses an exchange signed with a different key than its PAR request, and a rotated key can become current while the user is at their PDS. Pass the PAR assertion's `kid` as `kid` when you request the exchange's assertion. A public client that sends `provision_id` and `pkce_verifier` gets the same key without it: every assertion for a provision is signed with the key the first one used, while that key isn't revoked. Send that `kid` as `signing_kid` when you register the session, so its refreshes use the same key.
+
 #### 3. Register the session
 
 After the OAuth callback, register the token set with HappyView:
