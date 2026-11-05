@@ -77,6 +77,8 @@ An operator can also add a lexicon to an instance in the dashboard, under **Data
 
 Delete the file and the instance stops indexing that collection. The records it already indexed stay; deleting them is a separate step under **Data > Records**.
 
+An uploaded lexicon is removed in the dashboard instead, and there it can take its records with it: the delete dialog offers to delete the collection's records too, and tells us how many there are.
+
 ## Next steps
 
 - [Queries and procedures](/docs/getting-started/queries-and-procedures): serve the records we index.
