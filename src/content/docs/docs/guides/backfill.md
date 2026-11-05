@@ -21,6 +21,14 @@ A backfill job starts with a discovery phase and then pipelines resolution and f
 
 Progress counters (`total_repos`, `resolved_repos`, `processed_repos`, `total_records`) and the current `stage` are updated in real time. The `_repos` counters count work units, so an account discovered under two collections counts twice. The **Backfills** page shows live progress, and clicking a job opens **Backfill details** with a stage-by-stage progress log.
 
+## Record scripts run concurrently
+
+A backfill runs record scripts on several records at once. Within each batch of records it ingests, up to `BACKFILL_HOOK_CONCURRENCY` scripts run together (4 by default, 1 to 32), and a crawl fetches from several accounts at once as well. Records from the live stream still run their scripts one at a time, in the order they arrive.
+
+A record script that runs during a backfill can't assume it's the only script running, or that other records' scripts ran before it. A batch that holds the same record twice runs its scripts one at a time. Records are written in the batch's order, whichever script finishes first.
+
+A record storage can set a limit on how many records it can update at once. If that limit is lower than `BACKFILL_HOOK_CONCURRENCY`, HappyView uses the storage's limit and logs a warning. To run a backfill's record scripts one at a time, set `BACKFILL_HOOK_CONCURRENCY=1`.
+
 ## Replay and crawl
 
 A backfill job reads records from one of two sources:
@@ -109,6 +117,16 @@ Re-running a backfill for a collection that's already been backfilled is safe, w
 ## Restoring deleted records
 
 Deleting records from HappyView (via the dashboard or API) only removes them from the local database, and the records still exist on the atproto network. To restore deleted records, create a backfill for the affected collection. A crawl discovers the accounts again and fetches every record from each PDS, restoring any that were deleted.
+
+## Removing records deleted on the network
+
+If a record is deleted while HappyView isn't tracking its collection, the delete never reaches HappyView, and HappyView keeps serving the record. A backfill doesn't fix this, because a backfill only adds and updates records.
+
+To find these records, open the collection on the dashboard's **Records** page and choose **Check against PDSes**. HappyView compares each account's stored records with what its PDS lists, and counts a record as missing only after the PDS confirms it's gone. **Report only** is ticked by default, so the first run lists the missing records and changes nothing. Untick it to delete them as well, which needs `records:delete`. The same check is available as [`POST /admin/records/collection/reconcile`](/docs/reference/admin/records#reconcile-a-collection).
+
+Accounts whose PDS can't be read, or whose PDS lists far fewer records than HappyView stores, are skipped. The collection must be indexed, because indexing is what applies the deletes.
+
+Each delete runs the collection's `record.delete` script, which can keep the record. If the script fails, the record is kept too. The record's own delete can arrive from the live stream while the check runs, so a `record.delete` script can run twice for one record. Write delete scripts to be safe to run more than once.
 
 ## Diagnostics
 
