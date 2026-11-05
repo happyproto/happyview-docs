@@ -82,7 +82,7 @@ HappyView refuses outbound connections to non-public addresses, except to the ho
 | `BACKFILL_CONCURRENT_PDS` | `10` | PDSes fetched from at once. Instance setting `backfill_concurrent_pds`. |
 | `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | Accounts fetched at once from one PDS. Instance setting `backfill_concurrent_dids_per_pds`. |
 | `BACKFILL_CONCURRENT_RESOLUTION` | `100` | DIDs resolved at once. Instance setting `backfill_concurrent_resolution`. |
-| `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. |
+| `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. Held to the [`log_retention_days` limit](/docs/guides/instance-limits#log_retention_days) when one is set. |
 | `BACKFILL_DISCOVERY_WINDOW` | `50000` | Units of work discovered ahead of fetching. A unit is one account under one collection. |
 | `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it. |
 | `BACKFILL_SOURCE` | `crawl` | `crawl` fetches from each PDS, `replay` reads a Jetstream archive, and `auto` replays when the Jetstream has an archive and otherwise crawls. |
@@ -134,13 +134,27 @@ A grant asks for 60 minutes by default, or the maximum if that's shorter.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries, job logs and stored script metrics are kept. `0` keeps them. [Protected events](/docs/guides/event-logs#protected-events) follow `SPACE_ACCESS_LOG_RETENTION_DAYS` instead. Instance setting `event_log_retention_days`. |
+| `EVENT_LOG_RETENTION_DAYS` | `30` | Days event log entries, job logs and stored script metrics are kept. `0` keeps them. [Protected events](/docs/guides/event-logs#protected-events) follow `SPACE_ACCESS_LOG_RETENTION_DAYS` instead. Instance setting `event_log_retention_days`. Held to the [`log_retention_days` limit](/docs/guides/instance-limits#log_retention_days) when one is set. |
 | `SPACE_ACCESS_LOG_RETENTION_DAYS` | `365`, or `0` while `EVENT_LOG_RETENTION_DAYS` is `0` | Days [protected events](/docs/guides/event-logs#protected-events) are kept, and ended access grants with them. `0` keeps them. Events tied to a grant that still exists are kept whatever their age. Instance setting `space_access_log_retention_days`. |
 | `DEAD_LETTER_RETENTION_DAYS` | `30` | Days a resolved dead letter is kept. `0` keeps them. An unresolved one is never removed. |
 | `RECORD_TOMBSTONE_RETENTION_HOURS` | `72` | Hours a deleted record's tombstone is kept. `0` keeps them. |
 | `VERBOSE_EVENT_LOGGING` | `false` | `true` logs every record script run and skip. It writes a lot. Instance setting `verbose_event_logging`. |
 | `TELEMETRY_COLLECTOR_URL` | `https://telemetry.happyview.dev/v1/snapshot` | Where [telemetry](/docs/guides/telemetry) reports go, when it's turned on. |
 | `TELEMETRY_MANAGED_BY` | none | Set only by a hosting platform: it turns telemetry on and locks its settings. Lowercase letters, digits and `-`, at most 64 characters; anything else stops boot. |
+
+## Instance limits
+
+[Instance limits](/docs/guides/instance-limits) come from a limits file or from the `HAPPYVIEW_LIMIT_*` variables. Setting both stops boot. With neither, nothing is limited.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `HAPPYVIEW_LIMITS_FILE` | none | Path to a JSON limits file. Boot stops if it's missing or invalid. Checked for changes every 2 seconds. |
+| `HAPPYVIEW_LIMIT_SEATS` | unlimited | Most operators, the superadmin included. A whole number. |
+| `HAPPYVIEW_LIMIT_API_CLIENTS` | unlimited | Most active API clients. A whole number. |
+| `HAPPYVIEW_LIMIT_ANONYMOUS_XRPC` | allowed | `false` refuses XRPC calls from a caller who isn't identified. `true` or `false`. |
+| `HAPPYVIEW_LIMIT_LOG_RETENTION_DAYS` | unlimited | Most days the retention settings can keep logs. A whole number, at least `1`. |
+
+The `HAPPYVIEW_LIMIT_*` variables are read once, at boot, and a value that can't be read stops boot.
 
 ## Development only
 
