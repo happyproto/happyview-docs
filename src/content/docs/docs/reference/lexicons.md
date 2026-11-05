@@ -35,6 +35,14 @@ end
 
 A query with no script answers only `?uri=<at-uri>`, with that one indexed record as `{"record": {...}}`. Any other call to it, and every call to a procedure with no script, answers `501` with a `MethodNotImplemented` body naming the trigger to add a script for, such as `xrpc.query:xyz.statusphere.listStatuses`. See [Method has no script](/docs/reference/xrpc#method-has-no-script).
 
+## Project lexicon files
+
+A lexicon file under `src/` goes through the same spec checks as an [uploaded lexicon](/docs/reference/admin/lexicons#validation). `hpy happyview check`, `hpy happyview test` and a deploy refuse a file that fails them, and report each problem as a build error naming the file.
+
+When the instance builds a project to serve it, at boot, under `hpy happyview dev`, or after an interpreter plugin is installed or removed, a failed spec check is only a warning and the project keeps serving. An upgrade of HappyView therefore can't stop an instance over a file it accepted before, and the next check or deploy refuses the file.
+
+Three problems stop those builds too: a file that isn't valid JSON, an `id` that is missing or isn't an NSID, and a `lexicon` version that is missing or isn't `1`.
+
 ## Backfill flag
 
 A project lexicon backfills only when `backfill = true` is set under its `[lexicons."<NSID>"]` table, and then only once per collection: at boot, after a deploy, or after a rebuild under `hpy happyview dev` when `[dev] backfill` is on. A network lexicon declared in `happyview.toml` never backfills on its own.
