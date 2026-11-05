@@ -9,20 +9,19 @@ next:
   label: Running locally
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-HappyView itself is not installed separately. `hpy happyview create` writes a HappyView version into the project, and `hpy` downloads that version when it runs the project.
-
-`hpy` is in beta and HappyView v3 is in alpha.
+The easiest way to get started with HappyView is with the `hpy` CLI. It simplifies local dev by managing the binary, and hot reloading your scripts.
 
 ## Before you start
 
-- macOS or Linux. Running a project locally isn't supported on Windows itself, so use WSL there and follow the Linux steps inside it.
-- An atproto account to develop with, such as a Bluesky account. Use a test account rather than a personal one, because a project running locally writes to that account's real PDS ([Running locally](/docs/getting-started/running-locally#network)). [pds.rip](https://pds.rip) issues sandbox accounts on the real network and deletes them after 7 days.
+- HappyView is built for macOS and Linux. Running a project locally isn't supported on Windows, but the Linux steps should work inside of WSL.
+- You'll need an [Atmosphere account](https://atmosphereaccount.com). The easiest way is to use your [Bluesky](https://bsky.app) account, but you can create an Atmosphere account on any PDS. [PDS Moover](https://pdsmoover.com/pds) maintains an excellent list of open PDSes. You may also want to use a test account instead of your main account because a project running locally still writes to the account's real PDS (see [Running locally](/docs/getting-started/running-locally#network)).
+  - You can also create temporary burner accounts using [pds.rip](https://pds.rip). It issues accounts on the real network and deletes them after 7 days.
 
 ## Install hpy
 
-`hpy` has no stable release yet, so install it from its `beta` channel:
+`hpy` has no stable release yet, so we'll install from the `beta` channel:
 
 <Tabs syncKey="install">
 <TabItem label="Homebrew">
@@ -61,12 +60,12 @@ An **interpreter** is a plugin that runs scripts in one language, and a **librar
 
 `create` then asks four things:
 
-| Prompt | What to answer |
-| --- | --- |
+| Prompt             | What to answer                                                                                                                                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Superadmin DID** | The DID (`did:plc:…`) of the account you'll develop with. That account holds the superadmin privilege on the local instance. If you've signed in with `hpy registry login`, that account's DID is offered. To find an account's DID, look its handle up at [pdsls.dev](https://pdsls.dev). |
-| **Interpreters** | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected by default. |
-| **Libraries** | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`. |
-| **App name** | Your app's name, shown in the dashboard. It defaults to the directory's name. |
+| **Interpreters**   | The languages you'll write scripts in: Lua, JavaScript or TypeScript. Lua is selected by default.                                                                                                                                                                                          |
+| **Libraries**      | The libraries your scripts will use, such as `happyview.db` for reading records. You can add more later with `hpy happyview add`.                                                                                                                                                          |
+| **App name**       | Your app's name, shown in the dashboard. It defaults to the directory's name.                                                                                                                                                                                                              |
 
 `create` writes the files listed under [Generated files](#generated-files). HappyView and the plugins are downloaded the first time `hpy` runs the project.
 

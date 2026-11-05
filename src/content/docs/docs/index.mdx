@@ -3,18 +3,30 @@ title: "Introduction"
 description: "What HappyView is, and where to start in these docs."
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-HappyView is an open-source AppView for atproto, so you don't have to write your own. It indexes records from the atproto network and serves an XRPC API over them. Lexicons define the record collections it indexes and the API's endpoints. Scripts define what each endpoint does and what happens when a record changes.
+HappyView is an open source, batteries-included AppView for building projects on [atproto](https://atproto.com). It indexes records from the network and serves an XRPC API over them. Lexicons define the records to be indexed, as well as the XRPC endpoints to be served. Scripts define the funcxtionality of each endpoint, as well as what happens when a record changes.
 
-A HappyView instance also signs users in with atproto OAuth and writes records to their PDSes on their behalf.
+HappyView also provides an authentication layer, simplifying atproto OAuth and allowing writes to users' PDSes.
 
-HappyView v3 is in alpha. These docs describe v3. The [v2 docs](/docs/v2/) cover instances still on v2.
+These are the docs for the HappyView v3 (still in alpha). If you're still on v2, those docs are available [here](/docs/v2/).
 
 ## Where to start
 
 <CardGrid>
-  <LinkCard title="Build an app" href="/docs/getting-started/how-happyview-fits-atproto" description="Getting started, in order, from the atproto terms these docs use through to deploying." />
-  <LinkCard title="Run your own instance" href="/docs/guides/self-hosting/docker" description="Self-hosting: Docker, the release binaries and production setup." />
-  <LinkCard title="Use HappyProto" href="https://happyproto.at" description="HappyProto hosts HappyView instances. Each HappyProto project provides one, and your project deploys to it." />
+  <LinkCard
+    title="Build an app"
+    href="/docs/getting-started/how-happyview-fits-atproto"
+    description="Getting started, in order, from the atproto terms these docs use through to deploying."
+  />
+  <LinkCard
+    title="Run your own instance"
+    href="/docs/guides/self-hosting/docker"
+    description="Self-hosting: Docker, the release binaries and production setup."
+  />
+  <LinkCard
+    title="Use HappyProto"
+    href="https://happyproto.at"
+    description="HappyProto hosts HappyView instances. Each HappyProto project provides one, and your project deploys to it."
+  />
 </CardGrid>
