@@ -293,11 +293,6 @@ pre.mermaid small,
 }
 
 /* Search. */
-.search-scope {
-  margin: 0 0 var(--hp-space-3);
-  color: var(--hp-color-fg-muted);
-  font-size: var(--hp-text-sm);
-}
 .pagefind-ui__results > .pagefind-ui__result:first-child > .pagefind-ui__result-inner > .pagefind-ui__result-title {
   background: var(--sl-color-accent-low);
 }
