@@ -22,14 +22,14 @@ ghcr.io/gamesgamesgamesgamesgames/happyview
 
 Multi-arch manifests are published for `linux/amd64` and `linux/arm64` on every release.
 
-| Tag               | Moves                            | Use for                                |
-| ----------------- | -------------------------------- | -------------------------------------- |
-| `3.0.0-alpha.<n>` | Never                            | v3, which is what these docs describe  |
-| `sha-abc1234`     | Never                            | Pinning to an exact commit             |
-| `latest`          | Every stable release             | v2, [documented separately](/docs/v2)  |
-| `2.13.0`          | Never                            | Pinning a v2 release                   |
-| `2.13`            | Every stable patch in that minor | Automatic v2 patch updates             |
-| `2`               | Every stable minor in that major | Automatic v2 minor updates             |
+| Tag               | Moves                            | Use for                                               |
+| ----------------- | -------------------------------- | ----------------------------------------------------- |
+| `3.0.0-alpha.<n>` | Never                            | v3, which is what these docs describe                 |
+| `sha-abc1234`     | Never                            | Pinning to an exact commit                            |
+| `latest`          | Every stable release             | v2, [documented separately](https://v2.happyview.dev) |
+| `2.13.0`          | Never                            | Pinning a v2 release                                  |
+| `2.13`            | Every stable patch in that minor | Automatic v2 patch updates                            |
+| `2`               | Every stable minor in that major | Automatic v2 minor updates                            |
 
 v3 is in alpha, so every v3 image is a prerelease, published under its full version and its commit SHA only. A prerelease moves none of `latest`, `2.13` or `2`. Find the newest `3.0.0-alpha.<n>` on the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases). The `beta` line (such as `2.17.0-beta.1`) is v2.
 
