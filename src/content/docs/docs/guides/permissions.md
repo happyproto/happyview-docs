@@ -43,10 +43,6 @@ All 54 permissions. Equivalent to granting every permission individually (but st
 
 `spaces:manage-records` is still in the **Manager** template, but it grants no access. Reading a space's contents needs `spaces:inspect` instead.
 
-:::note[Pending on alpha]
-`spaces:inspect` comes from pull request [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350), which hasn't merged into `alpha` yet. Until it does, HappyView has 53 permissions, and `spaces:manage-records` reads space records and blobs.
-:::
-
 ## Superadmin
 
 Superadmin is a privilege one operator holds. On a fresh instance, the first person to sign in becomes an operator with it, unless `SUPERADMIN_DID` names someone else. The dashboard marks that operator **Owner**. The operator with superadmin:
