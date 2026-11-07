@@ -455,7 +455,7 @@ Some events record access to private atproto space contents, or changes to the a
 
 A [purge](/docs/reference/admin/events#purge-event-logs) skips them. A purge filter naming one of these types, or a category holding one, answers `400 Bad Request`. The purge preview, `GET /admin/events/count`, doesn't count them either.
 
-They're removed only by their own retention, `space_access_log_retention_days`. Pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`, adds it to **System > General** as **Space Access Log Retention (days)**. It is 365 days by default, and `0` keeps them. While it is unset, a general retention of `0` makes it `0` too. The same hourly cleanup deletes access grants that ended longer ago than that.
+They're removed only by their own retention, `space_access_log_retention_days`. It's set under **System > General** as **Space Access Log Retention (days)**. It is 365 days by default, and `0` keeps them. While it is unset, a general retention of `0` makes it `0` too. The same hourly cleanup deletes access grants that ended longer ago than that.
 
 Events tied to an access grant that still exists are kept whatever their age: its grant and revocation events and the reads made under it. So a grant's reason and reads last as long as the grant does. Other protected events follow their own retention period.
 

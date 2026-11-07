@@ -102,8 +102,6 @@ AUTH="Authorization: Bearer $TOKEN"
 
 Each admin API endpoint requires a specific permission. See the [Permissions guide](/docs/guides/permissions) for the full list of permissions and templates.
 
-The space inspector rows come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`. Until they merge, the space record and blob reads need `spaces:manage-records`.
-
 | Endpoint                                 | Required permission        |
 | ---------------------------------------- | -------------------------- |
 | `POST /admin/lexicons`                   | `lexicons:create` (plus `backfill:create` to start a backfill) |

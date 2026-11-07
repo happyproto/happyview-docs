@@ -122,7 +122,7 @@ An out-of-range script limit in the environment is logged and the default is use
 
 ## Space inspector
 
-The [space inspector](/docs/guides/spaces#moderating-spaces) lets operators with `spaces:inspect` read private space contents under a time-limited access grant. These variables come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`.
+The [space inspector](/docs/guides/spaces#moderating-spaces) lets operators with `spaces:inspect` read private space contents under a time-limited access grant.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
