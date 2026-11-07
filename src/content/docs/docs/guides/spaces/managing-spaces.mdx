@@ -172,7 +172,7 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.createS
 
 | Field         | Type          | Required | Description                                       |
 | ------------- | ------------- | -------- | ------------------------------------------------- |
-| `spaceType`   | string (NSID) | Yes      | The space type; describes what this space is for. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 alpha; removal is not yet scheduled. |
+| `spaceType`   | string (NSID) | Yes      | The space type; describes what this space is for. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 beta; removal is not yet scheduled. |
 | `skey`        | string        | Yes      | Space key; differentiates spaces of the same type |
 | `displayName` | string        | No       | Human-readable name                               |
 | `description` | string        | No       | Description of the space                          |
@@ -234,7 +234,7 @@ The `config` object supports:
 | Field               | Type    | Default | Description |
 | ------------------- | ------- | ------- | ----------- |
 | `membership_public` | boolean | `false` | A setting stored with the space |
-| `records_public`    | boolean | `false` | Deprecated. Use a `public` `readPolicy` for a space anyone may read. Still accepted in v3 alpha; removal is not yet scheduled. |
+| `records_public`    | boolean | `false` | Deprecated. Use a `public` `readPolicy` for a space anyone may read. Still accepted in v3 beta; removal is not yet scheduled. |
 
 The field names are snake_case, unlike the rest of the request.
 
@@ -242,7 +242,7 @@ Additional fields are preserved as-is. One recognized additional field is `allow
 
 ### Legacy policy fields
 
-The following forms are deprecated. They are still served in v3 alpha; removal is not yet scheduled:
+The following forms are deprecated. They are still served in v3 beta; removal is not yet scheduled:
 
 - **`policy` or `mintPolicy`**: a single policy name, `"public"`, `"member-list"`, or `"managing-app"`, applied to both reads and writes. For `"managing-app"`, the app goes in a sibling `managingApp` or `managingAppDid` field. `readPolicy` and `writePolicy` take precedence when present.
 - **`appAccess` with `type`**: `{"type": "open"}` and `{"type": "allowList", "allowed": [...]}` are read as the matching `$type` variants.
@@ -369,7 +369,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.simplespace.getSpace?space=
 
 Only the space's creator, an operator with superadmin, or a caller presenting a [space credential](/docs/guides/spaces/credentials) for the space can read it. Other accounts, members included, receive `404 Not Found`, and unauthenticated callers `401 Unauthorized`.
 
-`dev.happyview.space.getSpace` is a deprecated alias. It is still served in v3 alpha; removal is not yet scheduled.
+`dev.happyview.space.getSpace` is a deprecated alias. It is still served in v3 beta; removal is not yet scheduled.
 
 ## Listing spaces
 
@@ -471,7 +471,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listSpaces?limit=20' 
 | Field    | Type    | Required | Default        | Description                  |
 | -------- | ------- | -------- | -------------- | ---------------------------- |
 | `did` | string (DID) | No | the caller | Lists another account's spaces. Only an operator with superadmin may name an account other than the caller; anyone else gets `403 Forbidden`. |
-| `spaceType` | string (NSID) | No | | Lists only spaces of this type. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 alpha; removal is not yet scheduled. |
+| `spaceType` | string (NSID) | No | | Lists only spaces of this type. `type`, the earlier name, is still accepted. Deprecated. Still served in v3 beta; removal is not yet scheduled. |
 | `limit`  | integer | No       | 50             | Max spaces to return (1-100) |
 | `cursor` | string  | No       |                | Pagination cursor            |
 

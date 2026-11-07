@@ -1483,7 +1483,7 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.listRepos?space=at://
 | `repos`  | array   | The repos on this page, in the order their updates were sequenced. A repo updated while paging can appear again on a later page. |
 | `cursor` | string? | The `spaceRev` of the last repo on the page. Absent when the page is empty. |
 
-Each repo carries `did`, `repoRev` (its revision as last reported to HappyView), `data` (its LtHash digest), and `spaceRev` (the space revision of its last update). `rev` repeats `repoRev` under the alpha lexicon's name, and `hash` repeats `data` under its name before proposal 0016. Both are deprecated, still served in v3 alpha, and removal is not yet scheduled.
+Each repo carries `did`, `repoRev` (its revision as last reported to HappyView), `data` (its LtHash digest), and `spaceRev` (the space revision of its last update). `rev` repeats `repoRev` under the alpha lexicon's name, and `hash` repeats `data` under its name before proposal 0016. Both are deprecated, still served in v3 beta, and removal is not yet scheduled.
 
 To stay in sync, a syncer keeps the last `spaceRev` it processed and passes it as `cursor` on the next call. See [Receiving notifications](/docs/guides/spaces/notifications#receiving-notifications).
 
