@@ -7,7 +7,7 @@ Run these checks from the root of a checkout set up as in [Develop](/docs/contri
 
 ## Checks and their local commands
 
-The checks below are the ones CI runs on `alpha`. The **Required to merge** column holds for pull requests into `alpha` and `beta`. `beta` runs a subset of the checks: it has no `e2e-tests-sqlite`, `lua-differential` or `portability` job, and its `lint` job runs only `cargo fmt` and the first `cargo clippy` command.
+The checks below are the ones CI runs on `beta`, and the **Required to merge** column holds for pull requests into `beta`. `release/v2` runs a subset of the checks: it has no `e2e-tests-sqlite`, `lua-differential` or `portability` job, and its `lint` job runs only `cargo fmt` and the first `cargo clippy` command. Into `release/v2`, the required checks are `unit-tests`, `e2e-tests`, `frontend`, `playwright`, `lint`, `docs-moved` and `v2-guard`.
 
 | CI check | Required to merge | Run it locally |
 | --- | --- | --- |
@@ -23,12 +23,13 @@ The checks below are the ones CI runs on `alpha`. The **Required to merge** colu
 | `audit` | No | `cargo audit`, after `cargo install cargo-audit` |
 | `Spaces interop` workflow | No | [Interop tests](#interop-tests) |
 | `DCO` | Yes | [Sign off every commit](/docs/contributing/develop#sign-off-every-commit) |
+| `docs-moved` | Yes | Nothing to run. It fails when a change adds or modifies a file under `docs/` or `packages/docs/`, because HappyView's docs live in their own repositories |
 
 Some checks that aren't required to merge still gate a release. [The release gate](/docs/contributing/release#the-release-gate) lists the gate for each branch.
 
 CI runs a job only when the files it covers change. The path filters are in the `changes` job of `.github/workflows/ci.yml`, which lists the server's files and, for each `test-<package>` check, the files that trigger it.
 
-On `alpha`, a draft pull request skips every job except `audit` and the SDK package tests, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
+On `beta`, a draft pull request skips every job except `audit` and the SDK package tests, and `e2e-tests` fails until the pull request is marked ready. See [Open a pull request](/docs/contributing/develop#open-a-pull-request).
 
 ## Missing prerequisites fail
 
@@ -54,7 +55,7 @@ bash scripts/stamp-version.test.sh
 | `check-no-openssl.sh` | Anything in the dependency graph pulls in OpenSSL or `native-tls`. TLS comes from rustls |
 | `stamp-version.test.sh` | `scripts/stamp-version.sh`, which writes a release's version into the manifest, stops behaving as its test expects |
 
-CI also runs `bash scripts/check-migration-drift.sh beta main` after fetching those two branches. It fails when a migration that `beta` or `main` ships is missing from your branch or differs from it, unless `migrations/renumbered.tsv` records that the file moved to another version.
+CI also runs `bash scripts/check-migration-drift.sh release/v2 main` after fetching those two branches. It fails when a migration that `release/v2` or `main` ships is missing from your branch or differs from it, unless `migrations/renumbered.tsv` records that the file moved to another version.
 
 ## Unit tests
 
@@ -135,7 +136,7 @@ In a worktree created inside the main checkout, such as under `.worktrees/`, the
 
 For a change that affects storage or ingest cost, measure it with `scripts/measure-backfill-storage.sh [dids-file] [collection]`. It backfills a fixed list of repos, `scripts/measure-backfill-dids.txt` by default, into a fresh SQLite database. It reports the write-ahead log's peak size, the database size and, on Linux, the bytes the server wrote; elsewhere `write_bytes` reads `unavailable`.
 
-The script reaches the real PLC directory and PDSes, so results vary over time. Run it on your branch and on `alpha` back to back, and put both summaries in the pull request. The storage settings it exercises are in [Configuration](/docs/reference/configuration).
+The script reaches the real PLC directory and PDSes, so results vary over time. Run it on your branch and on `beta` back to back, and put both summaries in the pull request. The storage settings it exercises are in [Configuration](/docs/reference/configuration).
 
 ### The provider conformance cases
 

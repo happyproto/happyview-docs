@@ -17,8 +17,8 @@ A report is most useful when it includes:
 
 ## Release lines that receive fixes
 
-Security fixes are released on the stable line, `main`, and on `beta`. See [Release lines](/docs/contributing/release#release-lines).
+A security fix lands on `beta` first and ships in the next `3.0.0-beta.N` prerelease. If v2 needs it too, it's then cherry-picked onto a `<topic>-v2` branch and merged into `release/v2`, which cuts 2.17.x releases; see [Fix v2 too](/docs/contributing/develop#fix-v2-too). `main` stays at v2.17.0 until v3 ships stable. See [Release lines](/docs/contributing/release#release-lines).
 
 ## Dependency advisories
 
-On `alpha`, CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. A failing audit doesn't stop a release, because the `release` job doesn't require it.
+On `beta` and `release/v2`, CI runs `cargo audit` on every change to the server. It fails on any RustSec vulnerability advisory that affects a Rust dependency and isn't listed in `.cargo/audit.toml`, where each accepted advisory is recorded with its reason. A failing audit doesn't stop a release, because the `release` job doesn't require it.
