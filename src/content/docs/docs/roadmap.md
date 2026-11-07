@@ -17,15 +17,17 @@ These items are planned but not yet available. None has a release date.
 
 ## Release status
 
-HappyView v3 is in prerelease. Its versions are cut from the `alpha` branch and carry an `-alpha.N` suffix.
+HappyView v3 is in beta. Its versions are cut from the `beta` branch and carry a `-beta.N` suffix, starting with v3.0.0-beta.1.
 
-Releases come from three branches:
+Releases come from these branches:
 
 | Branch | Releases |
 |---|---|
-| `main` | Stable versions |
-| `beta` | Prereleases with a `-beta.N` suffix |
-| `alpha` | Prereleases with an `-alpha.N` suffix |
+| `beta` | v3 prereleases with a `-beta.N` suffix |
+| `release/v2` | v2 fixes, as 2.17.x stable versions |
+| `main` | Stable versions. It stays at v2.17.0 until v3 ships stable |
+
+`alpha`, which cut the `-alpha.N` prereleases, is parked and read-only.
 
 When changes to the server land on one of these branches and its tests pass, CI runs semantic-release. It cuts a new version when the commits since the last release call for one, tags it with a `v` prefix, and publishes a GitHub release with generated notes.
 

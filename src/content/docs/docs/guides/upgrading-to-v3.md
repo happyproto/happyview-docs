@@ -11,7 +11,7 @@ The database upgrades in place, but one way only: the first start moves every re
 
 This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
-v3 is in alpha. The interpreters and the official libraries are published to the plugin registry on the `alpha` channel only. The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
+v3 is in beta. The interpreters and the official libraries are still published to the plugin registry on the `alpha` channel only (as of 2026-11-07). The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
 
 ## Architecture changes
 
