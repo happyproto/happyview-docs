@@ -114,10 +114,6 @@ These record access to private atproto space contents through the [space inspect
 
 Listing spaces and viewing their metadata or members is not logged. In the dashboard, a `space.access_granted` event lists the reads made under that grant.
 
-:::note[Pending on alpha]
-The grant events, `list_account_records`, `grant_id` and `scope` come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), pending on `alpha`. Until they merge, `space.moderator_read` carries `action`, `space_id`, `user_id` and what was read.
-:::
-
 ### API key events
 
 | Event Type        | Severity | Subject  | Detail                      |

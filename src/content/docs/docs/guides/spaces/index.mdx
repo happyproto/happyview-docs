@@ -175,10 +175,6 @@ Spaces also support delegation: adding another space as a member, which grants i
 
 The space inspector lets an operator read a space's contents while handling a report. It is off by default, and while it's off the dashboard hides **Spaces**.
 
-:::note[Pending on alpha]
-The space inspector comes from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet.
-:::
-
 An operator with `settings:manage` turns it on with **Enable Space Inspector** under **System > General**, or with [`SPACE_INSPECTOR_ENABLED`](/docs/reference/configuration#space-inspector). The same card sets **Maximum Access Length (minutes)**, the longest grant anyone can request. On a HappyProto instance, the platform fixes that length and how long the access records are kept.
 
 With it on, an operator with the [`spaces:inspect`](/docs/guides/permissions#reading-space-contents) permission requests access from the dashboard:

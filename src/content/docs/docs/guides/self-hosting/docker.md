@@ -56,12 +56,12 @@ mkdir -p happyview && cd happyview
 
 ```sh
 # SQLite
-curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgamesgames/happyview/alpha/docker-compose.prod.sqlite.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgamesgames/happyview/beta/docker-compose.prod.sqlite.yml
 ```
 
 ```sh
 # Postgres
-curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgamesgames/happyview/alpha/docker-compose.prod.postgres.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgamesgames/happyview/beta/docker-compose.prod.postgres.yml
 ```
 
 ## 2. Generate secrets

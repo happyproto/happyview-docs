@@ -3,7 +3,7 @@ title: "License"
 description: "The license HappyView is published under, and the components that declare their own."
 ---
 
-HappyView is published under the [MIT License](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/LICENSE.md), in `LICENSE.md` at the root of the repository, copyright 2024 Trezy Studios, LLC.
+HappyView is published under the [MIT License](https://github.com/gamesgamesgamesgamesgames/happyview/blob/beta/LICENSE.md), in `LICENSE.md` at the root of the repository, copyright 2024 Trezy Studios, LLC.
 
 The details below come from the repository's files and manifests, and are not legal advice.
 
