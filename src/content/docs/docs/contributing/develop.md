@@ -18,11 +18,11 @@ GitHub opens a new pull request against `beta`, the default branch.
 
 ### Fix v2 too
 
-A fix that v2 needs lands on `beta` first. Then cherry-pick it onto a `<topic>-v2` branch started from `release/v2`, and open a pull request into `release/v2`:
+A fix that v2 needs lands on `beta` first. Then cherry-pick it with `-x`, which records the original commit, onto a `<topic>-v2` branch started from `release/v2`, and open a pull request into `release/v2`:
 
 ```sh
 git switch -c fix/my-change-v2 upstream/release/v2
-git cherry-pick <the commit on beta>
+git cherry-pick -x <the commit on beta>
 gh pr create --base release/v2
 ```
 
