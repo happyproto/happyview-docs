@@ -224,12 +224,12 @@ async fn my_provider_conforms() {
 
 `tests/conformance.rs` in the repository has two complete runs: the default providers with a scripted source, and an external storage.
 
-In your own crate, depend on HappyView with its `testkit` feature in `[dev-dependencies]`, and on the contract crate's `testkit` feature if you use `ScriptedSource`. The contract crate lives in the same repository as HappyView, so take both from the same git source. While v3 is in alpha, that is the `alpha` branch:
+In your own crate, depend on HappyView with its `testkit` feature in `[dev-dependencies]`, and on the contract crate's `testkit` feature if you use `ScriptedSource`. The contract crate lives in the same repository as HappyView, so take both from the same git source. For v3, that is the `beta` branch:
 
 ```toml
 [dev-dependencies]
-happyview = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "alpha", features = ["testkit"] }
-happyview-provider = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "alpha", features = ["testkit"] }
+happyview = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "beta", features = ["testkit"] }
+happyview-provider = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "beta", features = ["testkit"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 

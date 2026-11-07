@@ -11,7 +11,7 @@ A plugin is a WebAssembly module plus a `manifest.json` that says what it is and
 
 ```toml
 [dependencies]
-happyview-plugin-sdk = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "alpha" }
+happyview-plugin-sdk = { git = "https://github.com/gamesgamesgamesgamesgames/happyview", branch = "beta" }
 ```
 
 | Target | For |
