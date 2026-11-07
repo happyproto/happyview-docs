@@ -12,7 +12,7 @@ These instructions are for changing HappyView itself. To run the checks CI runs,
 | `beta` | v3, which this documentation describes. It's the default branch and cuts `3.0.0-beta.N` prereleases | Every change, including a fix that v2 also needs |
 | `release/v2` | v2.17.x fixes only | A fix cherry-picked from `beta`; see [Fix v2 too](#fix-v2-too) |
 | `main` | The stable release, which stays at v2.17.0 until v3 ships stable | Never directly |
-| `alpha` | Nothing new. It was merged into `beta` for v3.0.0-beta.1, and it's parked and read-only | Never |
+| `alpha` | v3 up to v3.0.0-alpha.67. It was merged into `beta` for v3.0.0-beta.1, and it's parked and read-only | Never |
 
 GitHub opens a new pull request against `beta`, the default branch.
 
