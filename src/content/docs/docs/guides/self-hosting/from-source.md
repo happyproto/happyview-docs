@@ -1,9 +1,9 @@
 ---
 title: From source
-description: Build and run HappyView from a clone of its alpha branch with cargo.
+description: Build and run HappyView from a clone of its beta branch with cargo.
 ---
 
-Run HappyView directly with `cargo run` from a clone of its `alpha` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
+Run HappyView directly with `cargo run` from a clone of its `beta` branch. If you'd rather run the whole stack in containers, see [Run the development stack](/docs/contributing/develop#run-the-development-stack). To deploy from prebuilt images, see [Docker](/docs/guides/self-hosting/docker).
 
 ## Prerequisites
 
@@ -14,12 +14,12 @@ Run HappyView directly with `cargo run` from a clone of its `alpha` branch. If y
 ## 1. Clone and configure
 
 ```sh
-git clone --branch alpha https://github.com/gamesgamesgamesgamesgames/happyview
+git clone --branch beta https://github.com/gamesgamesgamesgamesgames/happyview
 cd happyview
 cp .env.example .env
 ```
 
-The default branch holds v2, so name `alpha`. Edit `.env` to point at your running services:
+`beta` is the default branch and holds v3, so `--branch beta` only makes that explicit. Edit `.env` to point at your running services:
 
 ```sh
 # SQLite (the default): no setup needed, the file is created automatically

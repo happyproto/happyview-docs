@@ -24,17 +24,17 @@ Multi-arch manifests are published for `linux/amd64` and `linux/arm64` on every 
 
 | Tag               | Moves                            | Use for                                |
 | ----------------- | -------------------------------- | -------------------------------------- |
-| `3.0.0-alpha.<n>` | Never                            | v3, which is what these docs describe  |
+| `3.0.0-beta.<n>`  | Never                            | v3, which is what these docs describe  |
 | `sha-abc1234`     | Never                            | Pinning to an exact commit             |
 | `latest`          | Every stable release             | v2, [documented separately](/docs/v2)  |
 | `2.13.0`          | Never                            | Pinning a v2 release                   |
 | `2.13`            | Every stable patch in that minor | Automatic v2 patch updates             |
 | `2`               | Every stable minor in that major | Automatic v2 minor updates             |
 
-v3 is in alpha, so every v3 image is a prerelease, published under its full version and its commit SHA only. A prerelease moves none of `latest`, `2.13` or `2`. Find the newest `3.0.0-alpha.<n>` on the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases). The `beta` line (such as `2.17.0-beta.1`) is v2.
+v3 is in beta, so every v3 image is a prerelease, published under its full version and its commit SHA only. A prerelease moves none of `latest`, `2.13` or `2`. Find the newest `3.0.0-beta.<n>` on the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases). Until v3 ships stable, `latest` is v2: it points at the newest 2.17.x release, v2.17.0 as of 2026-11-07. The `2.17.0-beta.<n>` images are v2, and the `3.0.0-alpha.<n>` images are earlier v3 prereleases.
 
 :::caution[Set HAPPYVIEW_VERSION]
-Every Compose file below reads `HAPPYVIEW_VERSION` and defaults to `latest`, which is v2. Set it to an exact v3 version, as step 2 does. That way you get the version these docs describe, and a redeploy can't pull a different build than the one you tested.
+Every Compose file below reads `HAPPYVIEW_VERSION` as the image tag to run. Set it to an exact v3 version, as step 2 does, because `latest` is still v2. That way you get the version these docs describe, and a redeploy can't pull a different build than the one you tested.
 :::
 
 ## 1. Choose a database
@@ -66,14 +66,14 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgame
 
 ## 2. Generate secrets
 
-Create a `.env` next to it, with `<n>` replaced by the newest alpha. Compose auto-loads that filename, so these need no flag either:
+Create a `.env` next to it. `3.0.0-beta.1` is the newest v3 version as of 2026-11-07, so use a newer one if the releases page has it. Compose auto-loads that filename, so these need no flag either:
 
 ```sh
 cat > .env <<EOF
 PUBLIC_URL=https://happyview.example.com
 SESSION_SECRET=$(openssl rand -base64 48)
 TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
-HAPPYVIEW_VERSION=3.0.0-alpha.<n>
+HAPPYVIEW_VERSION=3.0.0-beta.1
 EOF
 ```
 
@@ -167,7 +167,7 @@ Compose hands the container only the variables named in its `environment` block,
 
 | Variable                   | Stack    | Default                                    | Notes                                         |
 | -------------------------- | -------- | ------------------------------------------ | --------------------------------------------- |
-| `HAPPYVIEW_VERSION`        | Both     | `latest`                                   | Image tag to deploy                           |
+| `HAPPYVIEW_VERSION`        | Both     | Set it yourself                            | The release to run. Set a v3 version, such as `3.0.0-beta.1`, because `latest` is still v2.17.x until v3 ships |
 | `HTTP_BIND`                | Both     | `127.0.0.1:3000`                           | Host address the container publishes on       |
 | `RUST_LOG`                 | Both     | `happyview=info,tower_http=info,sqlx=warn` | Quieter than the server's own default         |
 | `POSTGRES_VERSION`         | Postgres | `17`                                       | Image tag for the `postgres` service          |

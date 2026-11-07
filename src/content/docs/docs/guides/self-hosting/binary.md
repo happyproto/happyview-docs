@@ -3,9 +3,9 @@ title: Native binary
 description: Run HappyView from a release archive, with its dashboard and migrations built in.
 ---
 
-Every v3 alpha release publishes a self-contained `happyview` binary for macOS (Apple silicon and Intel) and Linux (x86_64 and arm64, glibc and static musl). It carries its dashboard and its database migrations, so it needs nothing beside it but a database. There is no Windows build.
+A v3 release with native binaries publishes a self-contained `happyview` binary for macOS (Apple silicon and Intel) and Linux (x86_64 and arm64, glibc and static musl). It carries its dashboard and its database migrations, so it needs nothing beside it but a database. There is no Windows build.
 
-1. Open the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases) and pick the newest `v3.0.0-alpha.*` prerelease. Stable releases are v2 and don't carry these archives.
+1. Open the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases) and pick the newest v3 prerelease with binaries: a `v3.0.0-beta.*` release whose assets include `happyview-<target>.tar.xz`. A beta version gets binaries at most once a day, so the newest one may not have them yet. Stable releases are v2 and don't carry these archives.
 2. Download `happyview-<target>.tar.xz` and the `.sha256` file beside it. On Linux, the `musl` build runs on any distribution; the `gnu` build needs glibc 2.35 or later.
 3. Check the archive and extract it:
 
