@@ -511,6 +511,11 @@ With the SDK, these are `host::call_library_start` and `host::call_library_wait_
 
 In every mode the parser refuses the `SET`/`RESET`-equivalent and session-state built-ins (`set_config`, advisory locks, large objects, SQL-text-executing functions), temporary objects, and `GRANT`/owner changes. A plugin's own tables are created in the `happyview_plugin` schema; tables it made in `public` before the schema existed keep working.
 
+Two things to know about these rules:
+
+- The function deny-list applies to the **statement text** only. A function body is a string the parser does not look inside, so in the login pool the database role — not the deny-list — is the boundary for whatever a plugin's own function does. That is by design (the role has no access to the protected tables), but don't rely on the deny-list reaching into function bodies.
+- All `database:write` plugins share one write role and the one `happyview_plugin` schema. There is no per-plugin isolation there: one plugin can read, change or drop another plugin's tables, functions and triggers. Keep anything sensitive out of plugin-owned tables.
+
 `happyview_records` and `happyview_record_refs` are views over HappyView's compact record tables. Reads work as they do on a table, including `json_extract(record, '$.field')` on SQLite and `record::jsonb->>'field'` on Postgres. Writes differ from a table's: upserts with `INSERT … ON CONFLICT` don't work, `RETURNING` gives back the values you supplied rather than the stored row, and writes on SQLite report 0 rows changed. Filtering on `uri` reads every row, so filter by `did`, `collection` and `rkey` instead. [Raw SQL on the record views](/docs/guides/database/database-setup#raw-sql-on-the-record-views) lists them all.
 
 **When record storage offers a raw read route.** An instance can keep some collections in external [record storage](/docs/guides/record-providers). When that storage offers a raw read route, reads of `happyview_records` and `happyview_record_refs` run there, not on the instance's own database:
