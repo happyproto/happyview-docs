@@ -23,4 +23,4 @@ See [Develop](/docs/contributing/develop) for how to set up a checkout and what 
 
 ## Code of conduct
 
-Participation in the project is covered by its [Code of Conduct](https://github.com/gamesgamesgamesgamesgames/happyview/blob/alpha/CODE_OF_CONDUCT.md), which is the Contributor Covenant 3.0. To report a possible violation, email [harassment@birb.house](mailto:harassment@birb.house). The Code of Conduct describes how reports are investigated and the enforcement steps that can follow.
+Participation in the project is covered by its [Code of Conduct](https://github.com/gamesgamesgamesgamesgames/happyview/blob/beta/CODE_OF_CONDUCT.md), which is the Contributor Covenant 3.0. To report a possible violation, email [harassment@birb.house](mailto:harassment@birb.house). The Code of Conduct describes how reports are investigated and the enforcement steps that can follow.
