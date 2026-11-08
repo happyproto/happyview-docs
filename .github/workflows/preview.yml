@@ -4,12 +4,18 @@ name: Preview
 # wisp.place preview site, pr-<sha7>, at
 # https://pr-<sha7>-<claim>.preview.wisp.place/, and the URL is posted on
 # the pull request. Preview sites are served with X-Robots-Tag: noindex.
-# Off until WISP_PREVIEW_CLAIM names a claimed wisp subdomain.
 #
-# Draft pull requests get no preview. Each preview is a new site, so wispctl
-# uploads every file again, and previews on every draft push ran into the
-# PDS's blob upload rate limit. Marking a pull request ready deploys its
-# preview, and each later push to it deploys a new one.
+# Previews deploy as their own account, WISP_PREVIEW_HANDLE on pds.kart.sh,
+# not as the happyview.dev account that deploy.yml uses for the production
+# site. Each preview is a new site, so wispctl uploads every file again, and
+# those uploads used to share the production account's PDS blob rate limit:
+# a burst of previews made production deploys fail with 429 (HAP-394).
+# wisp serves pr-<sha7>-<claim> from the account that owns <claim>, so
+# WISP_PREVIEW_CLAIM must be a wisp subdomain claimed by that same account.
+# Off until WISP_PREVIEW_CLAIM is set.
+#
+# Draft pull requests get no preview. Marking a pull request ready deploys
+# its preview, and each later push to it deploys a new one.
 
 permissions:
   contents: read
@@ -26,7 +32,7 @@ concurrency:
 
 jobs:
   preview:
-    if: vars.WISP_PREVIEW_CLAIM != '' && github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    if: vars.WISP_PREVIEW_CLAIM != '' && vars.WISP_PREVIEW_HANDLE != '' && github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
     runs-on: depot-ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -49,11 +55,11 @@ jobs:
         run: npm i -g wispctl@2.1.0
 
       - name: Deploy preview
-        run: wispctl deploy "$WISP_HANDLE" --path dist --sha "$SHA" --preview-claim "$WISP_PREVIEW_CLAIM" --yes --quiet
+        run: wispctl deploy "$WISP_PREVIEW_HANDLE" --path dist --sha "$SHA" --preview-claim "$WISP_PREVIEW_CLAIM" --yes --quiet
         env:
-          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_PREVIEW_HANDLE: ${{ vars.WISP_PREVIEW_HANDLE }}
           WISP_PREVIEW_CLAIM: ${{ vars.WISP_PREVIEW_CLAIM }}
-          WISPCTL_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
+          WISPCTL_APP_PASSWORD: ${{ secrets.WISP_PREVIEW_APP_PASSWORD }}
           SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Post the preview URL
