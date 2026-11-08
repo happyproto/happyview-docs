@@ -49,10 +49,6 @@ A space's page shows its details, **Members** and **Collections**. With `spaces:
 
 An account's page lists the spaces it is a member of or writes to. Its **Records** card works the same way, for that account's records in every space. Every grant and every read under it is written to the [event log](/docs/guides/event-logs#space-events).
 
-:::note[Pending on alpha]
-The space inspector pages come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet.
-:::
-
 ### Backfills
 
 Navigate to **Backfills** to view and manage backfills. Click **New backfill** to start one for any record lexicon's collection. The table shows each backfill's collection, accounts, status and start time. Click a row to open **Backfill details**, with its **Source** (such as **Crawl**, **Replay** or **Network store**), its progress, and how its **Record scripts** ran. Progress updates in real time. A running backfill can be cancelled or paused from there: it shows "cancelling" while the worker finishes its current batch, then "cancelled". See [Backfill](/docs/guides/backfill) for how the process works.
@@ -125,10 +121,6 @@ Configure instance-level settings:
 - **Event Logs**: **Event Log Retention (days)**, **Space Access Log Retention (days)** for [protected events](/docs/guides/event-logs#protected-events), verbose logging and, with `events:purge`, **Purge Event Logs**.
 
 Most can also be set through the environment, and a dashboard value takes precedence. Each field shows where its value came from. A field a [hosting platform fixes](/docs/reference/configuration#settings-a-hosting-platform-fixes) is marked "set by your hosting provider", and a save never sends it. **Maximum Access Length (minutes)** and **Space Access Log Retention (days)** are then read-only. The [Configuration reference](/docs/reference/configuration#instance-settings) lists the keys.
-
-:::note[Pending on alpha]
-The **Space Inspector** card, **Space Access Log Retention (days)** and the "set by your hosting provider" mark come from pull request [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which hasn't merged into `alpha` yet.
-:::
 
 ### Database
 

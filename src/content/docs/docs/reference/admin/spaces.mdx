@@ -7,10 +7,6 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Browse the [atproto spaces](/docs/guides/spaces) on this instance for moderation. These endpoints give operators access to spaces they are not members of, so they live in the admin API rather than the space XRPC API.
 
-:::note[Pending on alpha]
-The space inspector, access grants and `spaces:inspect` come from pull requests [#350](https://github.com/gamesgamesgamesgamesgames/happyview/pull/350) and [#371](https://github.com/gamesgamesgamesgamesgames/happyview/pull/371), which haven't merged into `alpha` yet. Until they do, reading records and blobs needs `spaces:manage-records` and no grant.
-:::
-
 ## The space inspector
 
 The space inspector is off by default. An operator with `settings:manage` turns it on with **Enable Space Inspector** under **System > General**, the `feature.space_inspector_enabled` [setting](/docs/reference/admin/settings), or [`SPACE_INSPECTOR_ENABLED`](/docs/reference/configuration#space-inspector).
