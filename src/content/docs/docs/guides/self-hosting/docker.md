@@ -66,14 +66,14 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/gamesgamesgamesgame
 
 ## 2. Generate secrets
 
-Create a `.env` next to it. `3.0.0-beta.2` is the newest v3 version as of 2026-11-07, so use a newer one if the releases page has it. Compose auto-loads that filename, so these need no flag either:
+Create a `.env` next to it. `3.0.0-beta.3` is the newest v3 version as of 2026-11-08, so use a newer one if the releases page has it. Compose auto-loads that filename, so these need no flag either:
 
 ```sh
 cat > .env <<EOF
 PUBLIC_URL=https://happyview.example.com
 SESSION_SECRET=$(openssl rand -base64 48)
 TOKEN_ENCRYPTION_KEY=$(openssl rand -base64 32)
-HAPPYVIEW_VERSION=3.0.0-beta.2
+HAPPYVIEW_VERSION=3.0.0-beta.3
 EOF
 ```
 
@@ -167,7 +167,7 @@ Compose hands the container only the variables named in its `environment` block,
 
 | Variable                   | Stack    | Default                                    | Notes                                         |
 | -------------------------- | -------- | ------------------------------------------ | --------------------------------------------- |
-| `HAPPYVIEW_VERSION`        | Both     | Required                                   | The release to run. Set a v3 version, such as `3.0.0-beta.2`, because `latest` is still v2.17.x until v3 ships |
+| `HAPPYVIEW_VERSION`        | Both     | Required                                   | The release to run. Set a v3 version, such as `3.0.0-beta.3`, because `latest` is still v2.17.x until v3 ships |
 | `HTTP_BIND`                | Both     | `127.0.0.1:3000`                           | Host address the container publishes on       |
 | `RUST_LOG`                 | Both     | `happyview=info,tower_http=info,sqlx=warn` | Quieter than the server's own default         |
 | `POSTGRES_VERSION`         | Postgres | `17`                                       | Image tag for the `postgres` service          |
