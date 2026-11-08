@@ -29,9 +29,9 @@ Reference pages own every key, flag and field. A guide explains the few a reader
 
 Links are root-absolute (`/docs/guides/backfill`), with no `.md`. Relative links resolve differently with and without a trailing slash, which is how the old site collected its broken links.
 
-Every claim about HappyView should be checkable against its code on `alpha`. Mark behaviour that is only in an open pull request as pending, naming the pull request. A dashboard label an open pull request is changing may be quoted in its new wording, with one note on the page saying so.
+Every claim about HappyView should be checkable against its code on `beta`, the v3 branch. Mark behaviour that is only in an open pull request as pending, naming the pull request. A dashboard label an open pull request is changing may be quoted in its new wording, with one note on the page saying so.
 
 ## Generated content
 
 - `bun run generate-changelogs` writes the changelogs from HappyView's GitHub releases. The build runs it.
-- `node scripts/generate-permissions.mjs <happyview>/src/admin/permissions.rs` rewrites the permissions table in the glossary. CI checks it against HappyView's `alpha`.
+- `node scripts/generate-permissions.mjs <happyview>/src/admin/permissions.rs` rewrites the permissions table in the glossary. CI checks it against HappyView's `beta`, the branch the repository variable `HAPPYVIEW_V3_REF` names.

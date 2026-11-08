@@ -50,7 +50,7 @@ A project's `happyview.toml` looks like this:
 
 ```toml
 [happyview]
-version = "3.0.0-alpha.42"      # the HappyView version hpy runs
+version = "3.0.0-beta.3"        # the HappyView version hpy runs
 
 [instance]
 app_name = "statusboard"

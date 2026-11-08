@@ -9,11 +9,24 @@ These instructions are for changing HappyView itself. To run the checks CI runs,
 
 | Branch | What it carries | Target it when |
 | --- | --- | --- |
-| `beta` | The current release line, v2 | The change belongs to v2 |
-| `alpha` | The next major line, v3, which this documentation describes | The change belongs to v3 |
-| `main` | The stable v2 release | Never directly: `main` is updated from `beta` when a release is cut |
+| `beta` | v3, which this documentation describes. It's the default branch and cuts `3.0.0-beta.N` prereleases | Every change, including a fix that v2 also needs |
+| `release/v2` | v2.17.x fixes only | A fix cherry-picked from `beta`; see [Fix v2 too](#fix-v2-too) |
+| `main` | The stable release, which stays at v2.17.0 until v3 ships stable | Never directly |
+| `alpha` | v3 up to v3.0.0-alpha.67. It was merged into `beta` for v3.0.0-beta.1, and it's parked and read-only | Never |
 
-GitHub opens a new pull request against `main` by default, so set the **base** to `beta` or `alpha`.
+GitHub opens a new pull request against `beta`, the default branch.
+
+### Fix v2 too
+
+A fix that v2 needs lands on `beta` first. Then cherry-pick it with `-x`, which records the original commit, onto a `<topic>-v2` branch started from `release/v2`, and open a pull request into `release/v2`:
+
+```sh
+git switch -c fix/my-change-v2 upstream/release/v2
+git cherry-pick -x <the commit on beta>
+gh pr create --base release/v2
+```
+
+The required `v2-guard` check keeps `release/v2` on 2.17.x. It refuses a pull request whose head is `main`, `beta` or `alpha`, whose history carries a v3 tag, or that has a `feat` or breaking commit or title. It also refuses a change to a migration that shipped in 2.17.0, and a new migration that isn't listed in `migrations/v2-backports.txt` or isn't on `beta` byte for byte.
 
 ## Set up a checkout
 
@@ -34,10 +47,10 @@ You need:
 2. Start a branch from the base you chose:
 
    ```sh
-   git switch -c fix/my-change upstream/alpha
+   git switch -c fix/my-change upstream/beta
    ```
 
-   The commands on this page use `alpha`. For a v2 change, use `beta` in its place.
+   The commands on this page use `beta`. For a v2 fix, see [Fix v2 too](#fix-v2-too).
 
 3. Point git at the repository's `.githooks/` directory, once per clone:
 
@@ -212,7 +225,7 @@ git commit -s -m "fix: handle empty lexicon lists"
 If the check fails, sign off the existing commits and force-push:
 
 ```sh
-git rebase --signoff upstream/alpha
+git rebase --signoff upstream/beta
 git push --force-with-lease
 ```
 
@@ -229,16 +242,16 @@ Release versions are computed from commit messages (see [Release](/docs/contribu
 
 ## Open a pull request
 
-The pull request template asks what the change does, why, and how to test it. Its checklist covers the base branch, sign-off, `cargo fmt` and `cargo clippy`, tests and docs. The template names `beta` as the base; for a v3 change, the right base is `alpha`.
+The pull request template asks what the change does, why, and how to test it. Its checklist covers the base branch, sign-off, `cargo fmt` and `cargo clippy`, tests and docs. The template names `beta` as the base, which is right for every change except the `release/v2` half of a v2 fix.
 
-Into `alpha`, open the pull request as a draft while you iterate. CI skips its costly jobs on a draft, and the `e2e-tests` check fails on purpose with "This pull request is a draft". When the work is done and passes locally, mark the pull request ready for review, which runs the full suite on the same commit. A pull request into `beta` runs the full suite on every push.
+Into `beta`, open the pull request as a draft while you iterate. CI skips its costly jobs on a draft, and the `e2e-tests` check fails on purpose with "This pull request is a draft". When the work is done and passes locally, mark the pull request ready for review, which runs the full suite on the same commit. A pull request into `release/v2` runs the full suite on every push, draft or not.
 
 ```sh
-gh pr create --draft --base alpha
+gh pr create --draft --base beta
 gh pr ready
 ```
 
-A pull request into `alpha` or `beta` can merge once its required checks pass and it has one approving review. The approval must come from someone other than whoever pushed last. [Test](/docs/contributing/test#checks-and-their-local-commands) lists which checks are required. Both branches accept merge commits only.
+A pull request into `beta` or `release/v2` can merge once its required checks pass and it has one approving review. Into `beta`, the approval must come from someone other than whoever pushed last. [Test](/docs/contributing/test#checks-and-their-local-commands) lists which checks are required. Both branches accept merge commits only.
 
 Other things that can appear on a pull request:
 

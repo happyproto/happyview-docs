@@ -184,9 +184,9 @@ For each commit to a repo in the space, HappyView POSTs to `<endpoint>/xrpc/com.
 | `space`        | string  | The space URI |
 | `repo`         | string  | DID of the repo that changed |
 | `repoRev`      | string  | The repo's new revision (TID) |
-| `rev`          | string  | The same value as `repoRev`, under the alpha lexicon's name. Deprecated. Still sent in v3 alpha; removal is not yet scheduled. |
+| `rev`          | string  | The same value as `repoRev`, under the alpha lexicon's name. Deprecated. Still sent in v3 beta; removal is not yet scheduled. |
 | `data`         | bytes   | The repo's new LtHash digest |
-| `hash`         | bytes   | The same value as `data`, under its name before proposal 0016. Deprecated. Still sent in v3 alpha; removal is not yet scheduled. |
+| `hash`         | bytes   | The same value as `data`, under its name before proposal 0016. Deprecated. Still sent in v3 beta; removal is not yet scheduled. |
 | `spaceRev`     | string  | The space revision this update was assigned |
 | `prevSpaceRev` | string? | The space revision before it. Absent on the first update in the space. |
 
@@ -307,8 +307,8 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.space.notifyWrite' 
 | ------- | ------ | -------- | ----------- |
 | `space` | string | Yes      | Space URI (`at://...`) |
 | `repo`  | string | Yes      | DID of the repo that changed. Must match the service auth issuer, unless the issuer is the space's creator or an operator with superadmin. |
-| `repoRev` | string | Yes    | The repo's new revision (TID). `rev`, the alpha lexicon's name, is accepted in its place. Deprecated. Still accepted in v3 alpha; removal is not yet scheduled. |
-| `data`  | bytes  | Yes      | The repo's new LtHash digest. `hash`, its name before proposal 0016, is accepted in its place. Deprecated. Still accepted in v3 alpha; removal is not yet scheduled. |
+| `repoRev` | string | Yes    | The repo's new revision (TID). `rev`, the alpha lexicon's name, is accepted in its place. Deprecated. Still accepted in v3 beta; removal is not yet scheduled. |
+| `data`  | bytes  | Yes      | The repo's new LtHash digest. `hash`, its name before proposal 0016, is accepted in its place. Deprecated. Still accepted in v3 beta; removal is not yet scheduled. |
 
 HappyView handles the notification as follows:
 
@@ -336,7 +336,7 @@ The space's creator or an operator with superadmin can also send the same notifi
 
 ## Legacy webhooks
 
-The following forms are deprecated. They are still served in v3 alpha; removal is not yet scheduled.
+The following forms are deprecated. They are still served in v3 beta; removal is not yet scheduled.
 
 ### Webhook registration
 
