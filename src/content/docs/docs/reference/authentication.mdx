@@ -496,12 +496,16 @@ For public clients, omit `X-Client-Secret` and include the PKCE verifier in the 
 | `pkce_verifier` | string | if the request has no `X-Client-Secret` | Answers the `pkce_challenge` from step 1. |
 | `did` | string (DID) | yes | The user. HappyView checks that the access token belongs to this DID. |
 | `access_token` | string | yes | From the PDS. |
-| `refresh_token` | string | no | From the PDS. |
+| `refresh_token` | string | if `scopes` holds more than `atproto` | From the PDS. HappyView uses it to confirm the scopes with the authorization server, which rotates it (see below). |
 | `expires_at` | string (date-time) | no | When the access token expires. |
-| `scopes` | string | yes | Space-separated scopes the PDS granted. |
+| `scopes` | string | yes | Space-separated scopes the authorization server granted. Each must be one the API client registered, and the authorization server must have granted it. |
 | `pds_url` | string (URL) | no | Ignored. HappyView sends the session's requests to the PDS named in the user's DID document, the one it checked the access token with. |
 | `issuer` | string (URL) | no | The authorization server that issued the tokens. The user's PDS must list it in `/.well-known/oauth-protected-resource`, and its metadata must give the same `issuer`, or the registration answers `403`. Without it, the session can't be refreshed or revoked. |
 | `signing_kid` | string | no | The key that signed the token exchange's client assertion. Default: the key the provision's assertions used, else the client's current one. |
+
+**HappyView confirms the scopes with the authorization server.** When `scopes` holds anything beyond `atproto`, HappyView refreshes the session once at `issuer` and reads the scope the authorization server reports. A registration that asks for more than that answers `400`, naming the scopes that weren't granted, and no session is kept. Without a `refresh_token` there is nothing to confirm with, so `scopes` may be only `atproto`.
+
+That refresh replaces the tokens you sent: from then on HappyView holds the session's only working tokens and refreshes them itself. Don't keep using or refreshing your own copy of the refresh token after you register; the authorization server has already rotated it. The SDK clients work this way already.
 
 Response: `201 Created`
 

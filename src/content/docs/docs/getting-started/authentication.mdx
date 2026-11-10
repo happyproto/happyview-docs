@@ -78,7 +78,7 @@ You only need this if you aren't using the SDK. The full protocol is in [OAuth](
 
 1. Your app asks HappyView for a DPoP key with `POST /oauth/dpop-keys`. A confidential client sends `X-Client-Key` and `X-Client-Secret`. A public client sends `X-Client-Key`, a matching `Origin`, and a PKCE `pkce_challenge` in the body. HappyView returns a `provision_id` and the private key.
 2. Your app runs OAuth with the user's PDS, signing its DPoP proofs with that key.
-3. Your app hands the tokens back with `POST /oauth/sessions`. The granted scope must include `atproto`, and every scope in it must be one the API client registered. A public client also sends its `pkce_verifier`.
+3. Your app hands the tokens back with `POST /oauth/sessions`. The scope must include `atproto`, and every scope in it must be one the API client registered and the user's authorization server granted. HappyView confirms the grant by refreshing the session once, so send the `refresh_token` too and stop using your own copy afterwards. A public client also sends its `pkce_verifier`.
 4. From then on, each XRPC call carries `Authorization: DPoP <access token>`, a `DPoP` proof header and `X-Client-Key`.
 
 Because HappyView and your app hold the same key, HappyView can sign its own proofs and write to the user's PDS for them. Each device gets its own key and its own session.
