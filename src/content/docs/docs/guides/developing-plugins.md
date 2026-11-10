@@ -509,6 +509,15 @@ With the SDK, these are `host::call_library_start` and `host::call_library_wait_
 - **`role`**: plugin SQL runs on the main connection, restricted per statement with `SET LOCAL ROLE` to a least-privileged role, plus a function allowlist. A plugin may use and manage its own tables, but not define functions or triggers (that needs the login pool). Enabled automatically when the HappyView database role can create the roles, or they are pre-provisioned.
 - **`parser-only`**: a fallback when neither of the above could be set up. The parser is the whole boundary: data statements only (no table DDL), a fixed function allowlist, and relations restricted to the `public` schema.
 
+HappyView checks the login role before it uses the pool, and refuses one that can create in the `public` schema (`plugin_sql_mode` then reads `refused`, and the boot log says why). On PostgreSQL 14 or earlier, every role can create in `public` by default, so remove that default and keep it for HappyView's own role (the one in `DATABASE_URL`):
+
+```sql
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+GRANT CREATE ON SCHEMA public TO <HappyView's database role>;
+```
+
+PostgreSQL 15 and later already work this way.
+
 In every mode the parser refuses the `SET`/`RESET`-equivalent and session-state built-ins (`set_config`, advisory locks, large objects, SQL-text-executing functions), temporary objects, and `GRANT`/owner changes. A plugin's own tables are created in the `happyview_plugin` schema; tables it made in `public` before the schema existed keep working.
 
 Two things to know about these rules:
