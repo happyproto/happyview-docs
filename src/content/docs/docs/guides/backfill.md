@@ -104,7 +104,7 @@ The job stops at the worker's next check, so it keeps running briefly after you 
 
 Backfill jobs survive restarts. On startup, HappyView checks for jobs that were running when the instance last stopped:
 
-- **Running** jobs are re-spawned and resume from where they left off. Discovery continues from each collection's saved relay cursor, queued accounts keep their resolved PDS, and finished accounts have already left the queue. An account cut short by the restart is fetched again; re-fetching an unchanged record does not rewrite it.
+- **Running** jobs are re-spawned and resume from where they left off. Discovery continues from each collection's saved relay cursor, queued accounts keep their resolved PDS, and finished accounts have already left the queue. An account cut short by the restart is fetched again; re-fetching an unchanged record does not rewrite it. So is an account whose fetch was waiting to be retried, for example after a rate limit or a PDS error: retries are saved, and a resumed or restarted job queues them again.
 - **Cancelling** jobs (where the cancel was requested but the worker hadn't stopped yet) are immediately finalised as `cancelled`.
 - **Pausing** jobs are immediately finalised as `paused`.
 
