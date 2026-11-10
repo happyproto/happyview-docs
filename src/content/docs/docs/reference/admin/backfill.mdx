@@ -146,8 +146,11 @@ curl -X POST http://127.0.0.1:3000/admin/backfill \
 | `dids`       | string[] | no       | Accounts to backfill, as DIDs or handles (discovers all via relay if omitted) |
 | `did`        | string   | no       | A single account; kept for compatibility and added to `dids`                |
 | `source`     | string   | no       | `crawl`, `replay` or `auto`. Defaults to `BACKFILL_SOURCE` (`crawl` unless set). A job with `dids` always crawls, and `replay` with `dids` is refused. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl) |
+| `relay_cursor` | string | no     | Start the collection's relay listing at this cursor instead of its first page. Needs `collection`; see below |
 
 Every entry in `dids` must resolve, or the request fails with `400` listing each entry that did not and no job is created. Duplicates are ignored. A request can name at most 500 accounts. Any other `source` fails with `400` and the message `source must be one of auto, replay, crawl`. `source: "replay"` with `dids` fails with `400` and the message `replay is only available for collection backfills; account backfills always crawl`. Account backfills crawl even when `BACKFILL_SOURCE` is `replay` or `auto`. A replay can only return what the archive holds: some accounts' history in Bluesky's archive starts later than their first record. See [Replay and crawl](/docs/guides/backfill#replay-and-crawl).
+
+`relay_cursor` continues a relay listing that another crawl didn't finish, such as a cursor from a job's [`discovery_unfinished`](#list-backfill-jobs). The new job is a network crawl of `collection` that discovers only the accounts after the cursor. The job it continues isn't changed. A request with `relay_cursor` fails with `400` and creates no job if it has no `collection`, names accounts, sets a `source` other than `crawl`, or the cursor is blank, or if the collection is backfilled by a record source.
 
 **Response**: `201 Created`
 
@@ -399,84 +402,6 @@ curl -X POST "http://127.0.0.1:3000/admin/backfill/$JOB_ID/resume" -H "$AUTH"
 
 Returns `400` if the job is neither paused nor a failed replay, or if it is a failed replay whose account list is gone, and `404` if the job ID is not found.
 
-## Resume discovery
-
-```
-POST /admin/backfill/{id}/resume-discovery
-```
-
-Reopen a completed network crawl whose discovery stopped short, and continue discovering from each unfinished collection's saved relay cursor. Requires `backfill:create`. A crawl that completed before HappyView paused on a failed relay page can have collections in `discovery_unfinished`; this is how it finishes. The job keeps its ID, counters and failures, goes back to `running`, and discovers only the accounts after each saved cursor. A paused job doesn't need this: [resuming it](#resume-a-backfill-job) continues discovery.
-
-<Tabs syncKey="lang">
-<TabItem label="TypeScript">
-
-```ts
-const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume-discovery", {
-  method: "POST",
-  headers,
-});
-const data = await response.json();
-```
-
-</TabItem>
-<TabItem label="JavaScript">
-
-```js
-const response = await fetch("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume-discovery", {
-  method: "POST",
-  headers,
-});
-const data = await response.json();
-```
-
-</TabItem>
-<TabItem label="Rust">
-
-```rust
-let client = reqwest::Client::new();
-let response = client
-    .post("http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume-discovery")
-    .bearer_auth(token)
-    .send()
-    .await?;
-let data: serde_json::Value = response.json().await?;
-```
-
-</TabItem>
-<TabItem label="Go">
-
-```go
-req, _ := http.NewRequest("POST", "http://127.0.0.1:3000/admin/backfill/550e8400-e29b-41d4-a716-446655440000/resume-discovery", nil)
-req.Header.Set("Authorization", "Bearer "+token)
-resp, err := http.DefaultClient.Do(req)
-if err != nil {
-  log.Fatal(err)
-}
-defer resp.Body.Close()
-```
-
-</TabItem>
-<TabItem label="cURL">
-
-```sh
-curl -X POST "http://127.0.0.1:3000/admin/backfill/$JOB_ID/resume-discovery" -H "$AUTH"
-```
-
-</TabItem>
-</Tabs>
-
-**Response**: `200 OK`
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "running",
-  "collections": ["app.bsky.graph.follow"]
-}
-```
-
-`collections` lists the collections whose discovery continues. Returns `400` if the job isn't completed, isn't a network crawl on the bounded queue, or has no unfinished collection, and `404` if the job ID is not found. The event log records `backfill.discovery_resumed`.
-
 ## List backfill jobs
 
 ```
@@ -514,7 +439,7 @@ interface BackfillJob {
   completed_at: string | null;
   created_at: string;
   discovery_complete: boolean;
-  discovery_unfinished?: string[];
+  discovery_unfinished?: { collection: string; relay_cursor: string | null }[];
   recent_completions_limit: number | null;
   note: string | null;
   hooks: ScriptStats | null;
@@ -661,7 +586,7 @@ The three `*_repos` counters count work units. A unit is one account under one c
 
 `scope` is `network` when accounts are discovered through the relay and `dids` when the job targets specific accounts. `did` is set only when a job targets exactly one account.
 
-`discovery_complete` is `false` while a network crawl is still listing accounts from the relay. Discovery runs alongside resolving and fetching. A network replay job lists no accounts and reports `false` throughout. `discovery_unfinished` lists a crawl's collections whose saved relay cursor hasn't reached the end of the listing. While the job runs, these are the collections still being discovered. On a paused or completed job, they are collections whose discovery stopped short: [resume](#resume-a-backfill-job) a paused job, or [resume discovery](#resume-discovery) on a completed one. The field is left out when there are none. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue.
+`discovery_complete` is `false` while a network crawl is still listing accounts from the relay. Discovery runs alongside resolving and fetching. A network replay job lists no accounts and reports `false` throughout. `discovery_unfinished` lists a crawl's collections whose saved relay cursor hasn't reached the end of the listing, with that cursor. `relay_cursor` is `null` when not even the first page was listed. While the job runs, these are the collections still being discovered. On a paused job, they are collections whose discovery stopped short, and [resuming](#resume-a-backfill-job) it continues from them. On a completed job, [create a backfill](#create-a-backfill-job) with the collection and its `relay_cursor` to continue. The field is left out when there are none. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue.
 
 A job HappyView paused itself, because it ran out of work with accounts it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A crawl whose discovery stopped short is paused the same way, with `stage` `discovery_incomplete` and an `error` naming the collections. A job an operator paused has no `error`. Resuming clears it.
 

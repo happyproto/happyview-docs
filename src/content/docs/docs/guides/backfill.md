@@ -93,7 +93,7 @@ If a job runs out of work while accounts it could not complete are still queued,
 
 A crawl whose discovery stopped short is paused the same way, once it has fetched every account it found. That happens when the relay kept failing for a collection's next page. The job's `stage` is `discovery_incomplete`, and its `error` names the collections, for example "paused: discovery did not finish for app.bsky.graph.follow; resume to continue from the saved cursor". Resuming it continues discovery from each collection's saved relay cursor. Each failed page is logged as `backfill.discovery_failed`, and the pause as `backfill.discovery_incomplete`.
 
-In HappyView 3.0.0-beta.10 and earlier, a failed relay page ended that collection's discovery, and the job still completed. Such a job reports the collections it didn't finish in `discovery_unfinished`, and **Backfill details** shows **Discovery stopped early** with a **Resume discovery** action. Resume discovery reopens the completed job and continues its discovery from the saved cursors. The same action is available as [`POST /admin/backfill/{id}/resume-discovery`](/docs/reference/admin/backfill#resume-discovery).
+In HappyView 3.0.0-beta.10 and earlier, a failed relay page ended that collection's discovery, and the job still completed. Such a job reports the collections it didn't finish, with their relay cursors, in `discovery_unfinished`. **Backfill details** shows **Discovery stopped early** with a **Continue discovery** action, which starts a new crawl of each collection from its saved cursor. The completed job stays as it is. The same is available as [`POST /admin/backfill`](/docs/reference/admin/backfill#create-a-backfill-job) with `collection` and `relay_cursor`.
 
 ## Cancelling a job
 
