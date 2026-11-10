@@ -128,6 +128,7 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `POST /admin/backfill/{id}/cancel`       | `backfill:create`          |
 | `POST /admin/backfill/{id}/pause`        | `backfill:create`          |
 | `POST /admin/backfill/{id}/resume`       | `backfill:create`          |
+| `POST /admin/backfill/{id}/resume-discovery` | `backfill:create`      |
 | `GET /admin/backfill/{id}/events`        | `backfill:read`            |
 | `GET /admin/backfill/{id}/repos`         | `backfill:read`            |
 | `GET /admin/backfill/{id}/pds-summary`   | `backfill:read`            |
