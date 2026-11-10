@@ -132,7 +132,7 @@ Listing spaces and viewing their metadata or members is not logged. In the dashb
 
 | Event Type                 | Severity | Subject         | Detail                                          |
 | -------------------------- | -------- | --------------- | ----------------------------------------------- |
-| `backfill.started`         | info     | Collection NSID | `job_id`, `scope`, `account_count`, `source`; a crawl started from a cursor adds `relay_cursor`; a gap replay has no subject and adds `reason`, `after_seq` and `tip_seq` |
+| `backfill.started`         | info     | Collection NSID | `job_id`, `scope`, `account_count`, `source`; a crawl started from a cursor adds `relay_cursor_prefix`, the cursor's first 12 characters; a gap replay has no subject and adds `reason`, `after_seq` and `tip_seq` |
 | `backfill.completed`       | info     | Collection NSID | `job_id`, `total_records`, and `total_repos` for a crawl or `source` otherwise (a replay adds `bytes_downloaded`) |
 | `backfill.cancelling`, `.cancelled`, `.pausing`, `.resumed` | info | none | `job_id` |
 | `backfill.retry_started`   | info     | Collection NSID | `job_id`, `source_job_id`, and `retried_repos` or `blocks` |
