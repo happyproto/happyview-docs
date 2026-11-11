@@ -439,7 +439,7 @@ interface BackfillJob {
   completed_at: string | null;
   created_at: string;
   discovery_complete: boolean;
-  discovery_unfinished?: { collection: string; relay_cursor: string | null }[];
+  discovery_unfinished?: { collection: string; relay_cursor: string }[];
   recent_completions_limit: number | null;
   note: string | null;
   hooks: ScriptStats | null;
@@ -586,7 +586,7 @@ The three `*_repos` counters count work units. A unit is one account under one c
 
 `scope` is `network` when accounts are discovered through the relay and `dids` when the job targets specific accounts. `did` is set only when a job targets exactly one account.
 
-`discovery_complete` is `false` while a network crawl is still listing accounts from the relay. Discovery runs alongside resolving and fetching. A network replay job lists no accounts and reports `false` throughout. `discovery_unfinished` lists a crawl's collections whose saved relay cursor hasn't reached the end of the listing, with that cursor. `relay_cursor` is `null` when not even the first page was listed. While the job runs, these are the collections still being discovered. On a paused job, they are collections whose discovery stopped short, and [resuming](#resume-a-backfill-job) it continues from them. On a completed job, [create a backfill](#create-a-backfill-job) with the collection and its `relay_cursor` to continue. The field is left out when there are none. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue.
+`discovery_complete` is `false` while a network crawl is still listing accounts from the relay. Discovery runs alongside resolving and fetching. A network replay job lists no accounts and reports `false` throughout. `discovery_unfinished` lists a crawl's collections whose saved relay cursor hasn't reached the end of the listing, with that cursor. A collection appears once its first page is listed, so a crawl's `relay_cursor` is always set. While the job runs, these are the collections still being discovered. On a paused job, they are collections whose discovery stopped short, and [resuming](#resume-a-backfill-job) it continues from them. On a completed job, [create a backfill](#create-a-backfill-job) with the collection and its `relay_cursor` to continue. The field is left out when there are none. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue.
 
 A job HappyView paused itself, because it ran out of work with accounts it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A crawl whose discovery stopped short is paused the same way, with `stage` `discovery_incomplete` and an `error` naming the collections. A job an operator paused has no `error`. Resuming clears it.
 
