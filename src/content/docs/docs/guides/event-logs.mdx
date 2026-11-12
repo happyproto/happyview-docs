@@ -159,6 +159,7 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | ----------------------------------- | -------- | ----------- | --------------------------------------------------------------------- |
 | `jetstream.connected`               | info     | none        | `url`, `protocol`, `compression`, `dictionary_id`                     |
 | `jetstream.disconnected`            | warn     | none        | `reason`                                                              |
+| `jetstream.stalled`                 | warn     | none        | `idle_secs`, `host`, `protocol`, `delivered`                          |
 | `jetstream.gap`                     | warn     | none        | `reason`, and more by reason (below)                                  |
 | `jetstream.invalid_request`         | error    | none        | `message`, `retry_in_secs`                                            |
 | `jetstream.account_deleted`         | info     | Account DID | `purged`, `seq`                                                       |
@@ -170,6 +171,8 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | `jetstream.apply_failed`            | error    | Account DID | `uri` (or `kind` and, for an account event, `status`), `seq`, `error` |
 
 `jetstream.connected` and `jetstream.disconnected` are logged when the WebSocket connection to [Jetstream](https://github.com/bluesky-social/jetstream) is established or lost.
+
+`jetstream.stalled` is logged when a connection stays open but delivers no event for `JETSTREAM_STALL_TIMEOUT_SECS` (60 by default). HappyView closes it and reconnects from its saved position, so nothing is skipped. `idle_secs` is the timeout that was reached, and `delivered` says whether the connection had delivered any event before it went quiet. One now and then is harmless. Repeated ones point at the Jetstream host or the network path to it.
 
 `jetstream.gap` means events may have been missed. The same gap (same reason and cursor) is logged once per run of the Jetstream consumer. Its `reason` is one of:
 
