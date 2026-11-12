@@ -13,10 +13,9 @@ The dashboard checks for a newer HappyView on the instance's own line and says s
 
 | Running | Follows | Never offered |
 | --- | --- | --- |
-| A stable 2.x release | the `v2` channel | 3.x, or any prerelease |
-| A stable release of the newest major | the `latest` channel | any prerelease |
-| `-beta.N` | the `beta` channel | alpha |
-| `-alpha.N` | the `alpha` channel | nothing: it is the newest line |
+| A stable release, such as 2.17.3 | its major's channel, `v2` | another major, or any prerelease |
+| A beta, such as 3.0.0-beta.12 | `v3-beta` | an alpha, or a stable release |
+| An alpha, such as 3.0.0-alpha.67 | `v3-alpha` | a beta, or a stable release |
 
 A prerelease is also told when its version has been released as stable, and a stable instance when a newer major is out. Neither is offered as an update: moving between lines is a choice, not a patch.
 
@@ -24,11 +23,16 @@ A prerelease is also told when its version has been released as stable, and a st
 
 ### What the check sends
 
-The instance asks the registry in `PLUGIN_REGISTRY_URL` where its channel points. The request names HappyView's publisher, the `happyview` project and the channel, which are the same for every instance on that line. It carries no instance ID, URL or usage, and its `User-Agent` is `HappyView` without the version. It runs a few minutes after startup and then every six hours. Nothing is sent when the check is off.
+HappyView's releases are published as `software.release` records in the happyview.dev account's repo. The instance reads them directly; no registry is involved.
+
+1. It resolves happyview.dev's DID through the PLC directory in `PLC_URL`, to find the account's PDS.
+2. It asks that PDS for the channel record of its line, then for the version that record points at. The version is checked against the CID the channel record pins.
+
+The requests name the publisher and the channel, which are the same for every instance on that line. They carry no instance ID, URL or usage, and the `User-Agent` is `HappyView` without the version. The check runs a few minutes after startup and then once a day. If the PDS can't be reached, the check keeps what it knew and tries again the next day. Nothing is sent when the check is off.
 
 ### Turn the check off
 
-Set `UPDATE_CHECK=off`. `PLUGIN_REGISTRY_URL=off` turns it off too, so an instance with no outbound network makes no update request either. See [Configuration](/docs/reference/configuration#plugins).
+Set `UPDATE_CHECK=off`. It is the only switch: `PLUGIN_REGISTRY_URL=off` stops HappyView reading the plugin registry, not the update check, so an instance with no outbound network needs both. See [Configuration](/docs/reference/configuration#logging-retention-and-telemetry).
 
 ## Upgrade
 
