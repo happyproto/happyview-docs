@@ -233,7 +233,7 @@ The live Jetstream consumer's state since the process started. Requires `stats:r
 }
 ```
 
-Unknown values are an explicit `null`: `protocol`, `host`, `dictionary_id`, `applied_seq`, `applied_time_us` and `lag_ms` are all `null` before the first connection or event, `last_frame_ms` before the current connection's first event, and `idle_ms` while disconnected, and the two worker arrays are empty until the worker pool starts.
+Unknown values are an explicit `null`: `protocol`, `host`, `dictionary_id`, `applied_seq`, `applied_time_us` and `lag_ms` are all `null` before the first connection or event, `last_frame_ms` until the first event arrives, and `idle_ms` until the first connection, and the two worker arrays are empty until the worker pool starts.
 
 | Field | Meaning |
 | --- | --- |
@@ -245,8 +245,8 @@ Unknown values are an explicit `null`: `protocol`, `host`, `dictionary_id`, `app
 | `applied_seq` | The newest event that it and every event before it have been applied: the position saved for a restart. `null` on v1, which has no seq |
 | `applied_time_us` | When Jetstream witnessed that event, in microseconds since the Unix epoch |
 | `lag_ms` | Milliseconds from `applied_time_us` to now |
-| `last_frame_ms` | When the current connection last delivered an event, in milliseconds since the Unix epoch |
-| `idle_ms` | Milliseconds since the current connection last delivered an event, or since it connected when none has arrived yet. It grows on a connection that is open but silent, even before anything was applied; past `JETSTREAM_STALL_TIMEOUT_SECS` HappyView reconnects |
+| `last_frame_ms` | When an event last arrived, on any connection, in milliseconds since the Unix epoch. Kept across reconnects |
+| `idle_ms` | Milliseconds since an event last arrived, or since the first connection when none has. It is reported whether or not `JETSTREAM_STALL_TIMEOUT_SECS` is set, even at `0`. It grows on a connection that is open but silent, even before anything was applied, and keeps growing across reconnects that don't help. It also grows while the workers are too far behind for HappyView to read more. Past `JETSTREAM_STALL_TIMEOUT_SECS` with nothing arriving, HappyView reconnects |
 | `worker_queue_depths` | Events waiting in each worker's queue, one entry per `JETSTREAM_WORKERS`. The event a worker is applying or retrying is not counted |
 | `now_ms` | Server time when the snapshot was taken, in milliseconds since the Unix epoch. Subtract `worker_busy_since_ms` from it rather than using your own clock |
 | `worker_busy_since_ms` | One entry per worker: when its current event started, in milliseconds since the Unix epoch, or `null` when idle. An old value with an empty queue means the worker is stuck retrying |
