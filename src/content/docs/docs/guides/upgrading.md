@@ -17,6 +17,8 @@ The dashboard checks for a newer HappyView on the instance's own line and says s
 | A beta, such as 3.0.0-beta.12 | `v3-beta` | an alpha, or a stable release |
 | An alpha, such as 3.0.0-alpha.67 | `v3-alpha` | a beta, or a stable release |
 
+A 2.x prerelease, such as 2.16.0-beta.1, has no channel: 2.x is published only as stable releases, so an instance running one is never offered an update. Move it to the newest 2.17.x release by hand.
+
 A prerelease is also told when its version has been released as stable, and a stable instance when a newer major is out. Neither is offered as an update: moving between lines is a choice, not a patch.
 
 [Version that ships the check: fill in when it is released.] Earlier releases don't check; watch the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases) instead.
