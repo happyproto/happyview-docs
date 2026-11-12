@@ -159,4 +159,4 @@ The docs' sections, written in sentence case. Getting started teaches building a
 ## Releases
 
 **v3 beta**:
-The state of HappyView v3 while it is cut as `3.0.0-beta.N` prereleases from the `beta` branch, before it ships stable. The interpreters and libraries are still published on the registry's `alpha` channel only (as of 2026-11-07), which is a plugin channel and not a HappyView branch. Prose names the branch or the channel, not a version number.
+The state of HappyView v3 while it is cut as `3.0.0-beta.N` prereleases from the `beta` branch, before it ships stable. The interpreters and libraries publish their v3 prereleases on the registry's `beta` channel (as of 2026-11-12), which is a plugin channel and not the HappyView branch of the same name. Prose names the branch or the channel, not a version number.

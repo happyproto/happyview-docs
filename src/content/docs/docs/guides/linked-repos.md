@@ -81,7 +81,7 @@ end
 
 Every method re-reads the grant from the database. If a grant is revoked or flips to `needs_reauth` while a long-running script is working, the next call it makes is refused.
 
-`linked_repos.get(did)` never fails on its own; an unlinked or revoked DID surfaces as `NOT_LINKED` on the first method called on it. The full surface is in the [library's README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/linked-repos); see [Libraries](/docs/reference/scripts/libraries) for the capability it needs.
+`linked_repos.get(did)` never fails on its own; an unlinked or revoked DID surfaces as `NOT_LINKED` on the first method called on it. The full surface is in the [library's README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/linked-repos); see [Libraries](/docs/reference/scripts/libraries) for the capability it needs.
 
 :::caution
 Any script can use any linked repo. Scripts are already operator-authored code with database, HTTP, and environment access, and linked repos sit at the same trust level. Be deliberate about scripts that write to a linked repo in response to unauthenticated requests.

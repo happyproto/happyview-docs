@@ -62,10 +62,10 @@ app_name = "HappyProto Registry"           # stands in for APP_NAME
 superadmin = "did:plc:..."                 # stands in for SUPERADMIN_DID
 
 [interpreters]
-lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "alpha" }
+lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "beta" }
 
 [libraries]
-"happyview.http" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-http", channel = "alpha" }
+"happyview.http" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-http", channel = "beta" }
 
 [dev]
 port = 3000                  # stands in for PORT, under `happyview dev` only

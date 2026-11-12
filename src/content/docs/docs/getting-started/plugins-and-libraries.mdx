@@ -37,7 +37,7 @@ hpy looks the name up in the registry and works out whether it's an interpreter 
 Each plugin publishes up to three channels: `latest`, `beta` and `alpha`. With no option, hpy follows `latest`. If the plugin has no `latest`, hpy follows the first of `beta` and `alpha` that it publishes. To choose:
 
 ```sh
-hpy happyview add happyview.db --channel alpha    # follow a channel: latest, beta or alpha
+hpy happyview add happyview.db --channel beta     # follow a channel: latest, beta or alpha
 hpy happyview add happyview.db --version 1.2.0    # pin one exact version
 ```
 
@@ -49,10 +49,10 @@ hpy happyview add happyview.db --version 1.2.0    # pin one exact version
 
 ```toml
 [interpreters]
-lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "alpha" }
+lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "beta" }
 
 [libraries]
-"happyview.db" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-db", channel = "alpha" }
+"happyview.db" = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-db", channel = "beta" }
 ```
 
 Looking good! Each entry names the registry project by its publisher's DID and its name, and follows either a `channel` or one exact `version`.
@@ -73,7 +73,7 @@ kind = "library"
 keys = ["happyview.db"]
 project = "at://did:plc:mo7vq4jbioxwafy5zkcc3eux/software.release.project/happyview-db"
 version = "1.2.0"
-channel = "alpha"
+channel = "beta"
 version_uri = "at://did:plc:mo7vq4jbioxwafy5zkcc3eux/software.release.version/happyview-db.1.2.0"
 # manifest_cid, package_cid and manifest_blob_cid follow
 dependencies = []
