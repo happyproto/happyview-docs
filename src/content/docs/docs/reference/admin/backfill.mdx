@@ -757,7 +757,7 @@ For a crawl job, `did` is the account that failed and `phase` is the step (`reso
 
 `kind` is one of `dns_failure`, `connection_failed`, `timeout`, `pds_server_error`, `rate_limited`, `did_doc_not_found`, `did_doc_forbidden`, `did_doc_invalid`, `repo_not_found`, `repo_deactivated`, `repo_takendown`, `other` or `replay_block`. `counts` lists each kind that has failures, with its total and whether `retry-failed` retries it. The kinds `dns_failure`, `connection_failed`, `timeout`, `pds_server_error`, `rate_limited` and `replay_block` are retryable.
 
-HappyView keeps detail for the first `cap` failures of a job. When `capped` is `true`, `counts` is still exact but `errors` holds only the first `cap`.
+HappyView keeps detail for the first `cap` failures of a job. When `capped` is `true`, `counts` is still exact but `errors` holds only the first `cap`. A crawl also records every account it gave up on, for each collection that failed, without a cap. The record is kept as long as the job is: clearing a job's details and the retention sweep leave it in place, as they do the error log. [Retry failed](#retry-failed) reads that record, so it retries failures past the cap too.
 
 ## Retry failed
 
@@ -863,7 +863,7 @@ The request needs a JSON body even when it sets nothing: send `{}` to retry ever
 
 What the new job does depends on the source of the job it retries:
 
-- **Crawl:** a `dids` job for the accounts that failed, in the same collection. It starts at the resolve step, so the accounts' PDS lookups run again.
+- **Crawl:** a `dids` job for the accounts that failed, in the same collection. It starts at the resolve step, so the accounts' PDS lookups run again. The accounts come from the crawl's full failure record, not only the first 10,000 errors, and include any fetch retry the job never got to make before it was cancelled. Accounts the retry job fetches are marked recovered in the original job's record, so retrying the original job again only retries what is still failing. To retry what the retry job couldn't fetch, retry the retry job.
 - **Replay:** a replay job that downloads exactly the failed blocks again. It runs in the `retrying_blocks` stage, then, in the `replaying_accounts` stage, applies the account and sync events of every account those blocks wrote records for. For a `dids` job it keeps the original accounts.
 
 **Response**: `201 Created`
@@ -874,7 +874,7 @@ What the new job does depends on the source of the job it retries:
 }
 ```
 
-Returns `400` when there is nothing to retry: no failures of a retryable kind, or `kinds` names none that the job has. A record source's own job also answers `400`, because its failures are the record source's to retry. A replay job of specific accounts also answers `400` when its account list is gone, which happens after its details are [flushed](#flush-job-details). Start a new backfill instead. Returns `404` if the job ID is not found.
+Returns `409` while an earlier retry of the same job is running, paused or stopping. Returns `400` when there is nothing to retry: no failures of a retryable kind, `kinds` names none that the job has, or every failure was recovered. A record source's own job also answers `400`, because its failures are the record source's to retry. A replay job of specific accounts also answers `400` when its account list is gone, which happens after its details are [flushed](#flush-job-details). Start a new backfill instead. Returns `404` if the job ID is not found.
 
 ## List accounts for a job
 
