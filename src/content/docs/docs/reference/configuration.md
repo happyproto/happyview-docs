@@ -100,7 +100,8 @@ The three concurrency settings take effect on the next backfill. The backfill co
 | --- | --- | --- |
 | `PLUGIN_DIR` | `./plugins` | Where installed plugins are kept. Under `dev`, `<project>/.happyview/plugins`. |
 | `PLUGIN_CACHE_DIR` | `plugin-cache` beside a SQLite database; none on Postgres | Where compiled plugins are cached on disk, so a restart doesn't recompile them. It must belong to the user HappyView runs as and be private to it, or the cache stays in memory. |
-| `PLUGIN_REGISTRY_URL` | `https://api.happyproto.at` | The plugin registry. Empty or `off` stops HappyView reading a registry. |
+| `PLUGIN_REGISTRY_URL` | `https://api.happyproto.at` | The plugin registry. Empty or `off` stops HappyView reading a registry, which also turns off the update check. |
+| `UPDATE_CHECK` | on | `off` stops the instance checking the registry for a newer HappyView. See [Upgrading HappyView](/docs/guides/upgrading#what-the-check-sends). |
 | `HAPPYVIEW_DEFAULT_PLUGINS` | none | Plugins to install on the first boot whose value lists them, separated by commas. Each source is installed once, ever: one an operator later removes stays removed. |
 | `PLUGIN_URLS` | none | Plugins to load from manifest URLs at every boot, as `id\|url`, optionally followed by `\|sha256:<hash>`, separated by commas. Unlike `HAPPYVIEW_DEFAULT_PLUGINS`, each is loaded again from its URL at every start. |
 | `PLUGIN_<ID>_<NAME>` | none | A plugin's secret, used when the instance holds none for that plugin. `<ID>` is the plugin's id upper-cased, with every other character as `_`. |

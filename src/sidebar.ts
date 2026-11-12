@@ -191,7 +191,7 @@ export const v3Sidebar: Sidebar = [
   {
     label: 'Migration',
     collapsed: true,
-    items: [d('guides/upgrading-to-v3'), d('guides/migrating-scripts')],
+    items: [d('guides/upgrading'), d('guides/upgrading-to-v3'), d('guides/migrating-scripts')],
   },
   d('changelog'),
   d('roadmap'),
