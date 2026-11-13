@@ -11,7 +11,7 @@ The database upgrades in place, but one way only: the first start moves every re
 
 This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
 
-v3 is in beta. The interpreters and the official libraries are still published to the plugin registry on the `alpha` channel only (as of 2026-11-07). The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
+v3 is in beta, and so are the interpreters and the official libraries: they publish to the plugin registry on the `beta` channel (as of 2026-11-12). The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
 
 ## Architecture changes
 
@@ -74,7 +74,7 @@ Without the variable, `hpy` asks for the key and doesn't echo it. `--api-key-env
 This writes your lexicons, scripts, plugins, app name, superadmin and labelers into `my-app/`:
 
 - It runs each script through HappyView's v3 codemod, so it uses `handle(input, ctx)` and `require`. A query or procedure gets the collection its lexicon's `target_collection` named, written in as a literal NSID.
-- It sets Lua as the project's interpreter, and adds and locks each `happyview.*` library the rewritten scripts `require`, from the registry's `alpha` channel.
+- It sets Lua as the project's interpreter, and adds and locks each `happyview.*` library the rewritten scripts `require`. In `hpy` 1.0.0-beta.5 the official plugins it maps follow the registry's `alpha` channel, not `beta`.
 - It maps official plugins to their registry projects. A plugin with no official project is left out, with a warning naming it.
 - It lists any script that still needs a hand edit, under "To finish by hand".
 
@@ -144,7 +144,7 @@ Looking good! The rest of this page is what to know after the move, and what cha
 
 If you'd rather not use a project, every step `hpy` takes has a dashboard and API equivalent:
 
-- **Interpreter and libraries:** install them at **Integrations > Plugins**, from the registry, on the `alpha` channel. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference. A `registry` install through `POST /admin/plugins` that names no channel asks for `latest` and resolves to nothing.
+- **Interpreter and libraries:** install them at **Integrations > Plugins**, from the registry, on the `beta` channel. [Installing plugins](/docs/guides/plugins#from-the-registry) is the reference. A `registry` install through `POST /admin/plugins` that names no channel asks for `latest` and resolves to nothing.
 - **Scripts:** the editor's **Migrate** button, `POST /admin/scripts/{id}/codemod`, or `happyview-codemod --database-url <url>` (in the Docker image at `/usr/local/bin/happyview-codemod`) for a dry run, then again with `--apply`. Saving refuses a Lua body that still references a removed global, with the names in `removed_globals`, unless you confirm markers with `"allow_markers": true` or `--allow-markers`.
 - **A fleet:** `HAPPYVIEW_DEFAULT_PLUGINS` installs a list of plugin sources on the first boot that names them; see [Default plugins](/docs/guides/plugins#default-plugins).
 
@@ -196,7 +196,7 @@ There is no fallback for any plugin type. A v2-era manifest also has to declare 
 
 The instance still boots. A refused plugin logs an error starting `Failed to load plugin` and is absent, so anything that depended on it, such as a script that loads a library, stops working until you replace it. Check your boot log after the upgrade.
 
-The official plugins are published in the registry on the `alpha` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
+The official plugins are published in the registry on the `beta` channel. Replace a v2-era install by removing it and adding it from the registry. For a plugin of your own, republish it against the v3 SDK with a capabilities-declaring manifest; [Developing plugins](/docs/guides/developing-plugins) covers what it now has to declare.
 
 ### Script limits now apply
 

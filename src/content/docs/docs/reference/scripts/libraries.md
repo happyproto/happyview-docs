@@ -7,18 +7,18 @@ A library is a plugin a script loads with `require`. Each has a namespace under 
 
 | `require` | Capabilities | Purpose | Surface |
 | --- | --- | --- | --- |
-| `happyview.db` | `records:read` | Read indexed records: a chainable query per collection, one record by URI, substring search, and the backend name | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/db) |
-| `happyview.sql` | `database:read`, `database:write` | Raw SQL, and a chainable builder over the operator's own tables | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/sql) |
-| `happyview.backlinks` | `records:read` | Records whose strong refs point at a given AT URI | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/backlinks) |
-| `happyview.record` | `caller:write`, `records:read`, `records:write` | Record writes as the calling user, blob uploads, direct local-index writes, and lexicon validation | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/record) |
-| `happyview.xrpc` | `caller:read`, `caller:call` | XRPC queries and procedures as the calling user | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/xrpc) |
-| `happyview.atproto` | `atproto:read`, `attest:sign` | Service resolution, blob download, label lookup, and attestation signing and verification | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/atproto) |
-| `happyview.spaces` | `spaces:read`, `spaces:write` | atproto spaces: records, membership and invites | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/spaces) |
-| `happyview.linked_repos` | `linked_repos:use` | Record writes, blob uploads and XRPC calls through repos an operator has linked | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/linked-repos) |
-| `happyview.jobs` | `jobs:create`, `jobs:read`, `jobs:read_any` | Enqueue background jobs, and read them back (reading needs `happyview-jobs` 1.1.0 or later) | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/jobs) |
-| `happyview.http` | `network:request:unrestricted` | Outbound HTTP: `get`, `post`, `put`, `patch`, `delete`, `head` | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/http) |
-| `happyview.blobs` | `blobs:read`, `blobs:write` | Store and read byte content, addressed by the CID of its contents | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/blobs) |
-| `happyview.account` | `caller:email` | The calling user's email address, as their PDS reports it | [README](https://github.com/happyproto/plugins/tree/alpha/plugins/happyview/account) |
+| `happyview.db` | `records:read` | Read indexed records: a chainable query per collection, one record by URI, substring search, and the backend name | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/db) |
+| `happyview.sql` | `database:read`, `database:write` | Raw SQL, and a chainable builder over the operator's own tables | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/sql) |
+| `happyview.backlinks` | `records:read` | Records whose strong refs point at a given AT URI | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/backlinks) |
+| `happyview.record` | `caller:write`, `records:read`, `records:write` | Record writes as the calling user, blob uploads, direct local-index writes, and lexicon validation | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/record) |
+| `happyview.xrpc` | `caller:read`, `caller:call` | XRPC queries and procedures as the calling user | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/xrpc) |
+| `happyview.atproto` | `atproto:read`, `attest:sign` | Service resolution, blob download, label lookup, and attestation signing and verification | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/atproto) |
+| `happyview.spaces` | `spaces:read`, `spaces:write` | atproto spaces: records, membership and invites | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/spaces) |
+| `happyview.linked_repos` | `linked_repos:use` | Record writes, blob uploads and XRPC calls through repos an operator has linked | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/linked-repos) |
+| `happyview.jobs` | `jobs:create`, `jobs:read`, `jobs:read_any` | Enqueue background jobs, and read them back (reading needs `happyview-jobs` 1.1.0 or later) | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/jobs) |
+| `happyview.http` | `network:request:unrestricted` | Outbound HTTP: `get`, `post`, `put`, `patch`, `delete`, `head` | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/http) |
+| `happyview.blobs` | `blobs:read`, `blobs:write` | Store and read byte content, addressed by the CID of its contents | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/blobs) |
+| `happyview.account` | `caller:email` | The calling user's email address, as their PDS reports it | [README](https://github.com/happyproto/plugins/tree/beta/plugins/happyview/account) |
 
 The capability column is what an operator grants when installing the library, and it bounds what any script can do through it. `happyview.sql` with `database:write` can run any statement, and `happyview.xrpc` with `caller:call` can invoke any procedure as the user. Install only what your scripts use.
 

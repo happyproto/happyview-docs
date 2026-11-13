@@ -57,7 +57,7 @@ app_name = "statusboard"
 superadmin = "did:plc:…"        # given the superadmin privilege at boot
 
 [interpreters]
-lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "alpha" }
+lua = { did = "did:plc:mo7vq4jbioxwafy5zkcc3eux", name = "happyview-lua", channel = "beta" }
 
 [libraries]
 
