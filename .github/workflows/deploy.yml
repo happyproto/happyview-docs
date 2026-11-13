@@ -62,9 +62,9 @@ jobs:
             if [ "$attempt" -eq 4 ]; then
               break
             fi
-            wait=${waits[$((attempt - 1))]}
-            echo "::warning::wispctl deploy failed on attempt $attempt; retrying in $((wait / 60)) minutes"
-            sleep "$wait"
+            delay=${waits[$((attempt - 1))]}
+            echo "::warning::wispctl deploy failed on attempt $attempt; retrying in $((delay / 60)) minutes"
+            sleep "$delay"
           done
           echo "::error::wispctl deploy failed after 4 attempts"
           exit 1
