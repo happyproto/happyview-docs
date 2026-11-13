@@ -29,13 +29,13 @@ v2 is where HappyView actually became _good_.
 
 The companion services got absorbed — no more Tap, no more AIP, no more keeping three separate deployments in sync. Just one binary. SQLite became the default database so you could spin up a fresh instance with zero external dependencies. The barrier to entry dropped from "configure three services and a database" to "download and run."
 
-The scripting system went from one script per lexicon to a proper [trigger-based system](/docs/v2/guides/lua-scripting) with eight different trigger types. Scripts got their own management interface, their own API endpoints, and access to a full suite of Lua APIs for database queries, HTTP requests, XRPC calls, and atproto operations. If scripting in v1 felt like Baby's First AppView, scripting in v2 feels like an AppView that's all grown up.
+The scripting system went from one script per lexicon to a proper [trigger-based system](https://v2.happyview.dev/guides/lua-scripting) with eight different trigger types. Scripts got their own management interface, their own API endpoints, and access to a full suite of Lua APIs for database queries, HTTP requests, XRPC calls, and atproto operations. If scripting in v1 felt like Baby's First AppView, scripting in v2 feels like an AppView that's all grown up.
 
 Auth got a complete rewrite with DPoP-bound tokens. Backfill went from "start it and pray" to a proper two-phase pipeline with pause, resume, cancellation, concurrent fetching, and real progress tracking. The permission system got rebuilt. The docs site got rebuilt. The dashboard got rebuilt.
 
 Uh... I guess almost everything got rebuilt.
 
-Then there's everything that landed in the point releases: [permissioned spaces](/docs/v2/experimental/spaces), [service identity](/docs/v2/getting-started/service-identity) so your AppView can participate in standard atproto routing, a [background job system](/docs/v2/guides/lua-scripting) for long-running tasks, `db.query` filters so you don't have to write raw SQL for basic lookups, blob utilities for Lua scripts. It's been _a lot_.
+Then there's everything that landed in the point releases: [permissioned spaces](https://v2.happyview.dev/experimental/spaces), [service identity](https://v2.happyview.dev/getting-started/service-identity) so your AppView can participate in standard atproto routing, a [background job system](https://v2.happyview.dev/guides/lua-scripting) for long-running tasks, `db.query` filters so you don't have to write raw SQL for basic lookups, blob utilities for Lua scripts. It's been _a lot_.
 
 I'm really happy with where v2 ended up. It's the version of HappyView I wanted to build from the start.
 

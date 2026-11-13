@@ -52,7 +52,7 @@ jobs:
           WISPCTL_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
 
       # The deployed landing page answers 200 with its H1, and an old URL
-      # answers 301 to its new home. SITE_URL is unset until the domain
+      # answers 301 to its page on v2.happyview.dev. SITE_URL is unset until the domain
       # points at wisp.place, and then the check is skipped.
       - name: Smoke check
         if: vars.SITE_URL != ''
@@ -65,7 +65,7 @@ jobs:
             status=$(curl -sS -o "$body" -w '%{http_code}' --max-time 15 "$SITE_URL/" || true)
             location=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "$SITE_URL/guides/backfill" || true)
             echo "Attempt $attempt: / is HTTP $status; /guides/backfill is $location"
-            if [ "$status" = "200" ] && grep -qF "$expected" "$body" && [ "${location%% *}" = "301" ] && [ "${location#* }" = "$SITE_URL/docs/guides/backfill" ]; then
+            if [ "$status" = "200" ] && grep -qF "$expected" "$body" && [ "${location%% *}" = "301" ] && [ "${location#* }" = "https://v2.happyview.dev/guides/backfill" ]; then
               exit 0
             fi
             sleep 10
