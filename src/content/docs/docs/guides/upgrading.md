@@ -21,7 +21,7 @@ A 2.x prerelease, such as 2.16.0-beta.1, has no channel: 2.x is published only a
 
 A prerelease is also told when its version has been released as stable, and a stable instance when a newer major is out. Neither is offered as an update: moving between lines is a choice, not a patch.
 
-[Version that ships the check: fill in when it is released.] Earlier releases don't check; watch the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases) instead.
+The check ships in HappyView 3.0.0-beta.14 and 2.17.6. Earlier releases don't check; watch the [releases page](https://github.com/gamesgamesgamesgamesgames/happyview/releases) instead.
 
 ### What the check sends
 
