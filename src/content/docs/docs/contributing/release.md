@@ -51,6 +51,26 @@ After `release` cuts a version, three things run from it.
 
 The `Release` workflow builds the native binaries with [cargo-dist](https://axodotdev.github.io/cargo-dist/), with the dashboard compiled in, and uploads them to the tag's GitHub release with a shell installer. The targets are macOS (`aarch64` and `x86_64`), Linux with glibc (`x86_64` and `aarch64`) and Linux with musl (`x86_64` and `aarch64`).
 
+### Release records
+
+Every release also runs one of two jobs that describe it as `software.release` records in happyview.dev's repo (`did:plc:qneu5uamqs6cug7sjobbaexm`). Running instances read those records to learn of a newer HappyView; see [Upgrading HappyView](/docs/guides/upgrading). The records are written by `happyproto/actions/release-publish`, straight to the account's PDS.
+
+| Job | Runs when | Does |
+| --- | --- | --- |
+| `plan-release-records` | the repository variable `PUBLISH_RELEASE_RECORDS` isn't `true` | a dry run with public reads only: the job log shows every record the release would write |
+| `publish-release-records` | `PUBLISH_RELEASE_RECORDS` is `true` | writes them, in the `release-records` environment that holds the account's app password |
+
+The release's channels come from its version:
+- a beta → `v<major>-beta`
+- an alpha → `v<major>-alpha`
+- a stable release → `v<major>`, plus `latest` when its major is the repository variable `REGISTRY_LATEST_MAJOR`
+
+`release/v2` runs the same two jobs for 2.17.x releases.
+
+**Before cutting 3.0.0, set `REGISTRY_LATEST_MAJOR` to `3`.** It is `2` while v2 is the stable line. If it is still `2` when 3.0.0 ships, `latest` stays on 2.17.x, and v2 instances are never told that v3 is out. Once it is `3`, a 2.17.x fix moves only `v2`.
+
+The `Backfill release records` workflow (`workflow_dispatch`) publishes past releases. It always prints its plan first, and writes only when dispatched with `dry-run` off.
+
 ### Native binaries for beta
 
 A beta version gets native binaries at most once every 20 hours. When another prerelease native build, including one started by hand, succeeded or is still running within that window, `dispatch-native-release` skips the build and writes the command that would run it to the job summary. The tag and the container images are published for every beta version regardless.
