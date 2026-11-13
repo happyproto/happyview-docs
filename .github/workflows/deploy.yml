@@ -83,12 +83,12 @@ jobs:
           WISP_HANDLE: ${{ vars.WISP_HANDLE }}
           WISP_SITE: ${{ vars.WISP_SITE }}
 
-      # The public domain shows readers get it. This fails while happyview.dev
-      # points anywhere other than wisp.place, which is the point: the old
-      # check was skipped until SITE_URL was set, and it never was, so a
-      # domain still serving the old Vercel site went unnoticed.
+      # The public domain shows readers get it. It's skipped until the
+      # SITE_URL repo variable is set, which should happen as soon as
+      # happyview.dev points at wisp.place (HAP-379). Until then it would
+      # only report that the domain still serves the old Vercel site.
       - name: Smoke check (public domain)
-        if: always() && steps.deploy.outcome == 'success'
+        if: always() && steps.deploy.outcome == 'success' && vars.SITE_URL != ''
         run: scripts/smoke-check.sh "$SITE_URL"
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://happyview.dev' }}
+          SITE_URL: ${{ vars.SITE_URL }}
