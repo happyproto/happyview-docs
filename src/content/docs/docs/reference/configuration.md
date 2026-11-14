@@ -69,7 +69,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `JETSTREAM_PROTOCOL` | `auto` | `auto`, `v2` or `v1`. `happyview.toml`: `[jetstream] protocol`. |
 | `JETSTREAM_COMPRESSION` | `true` | `true` or `false` (also `1`/`0`, `yes`/`no`, `on`/`off`). `happyview.toml`: `[jetstream] compression`. |
 | `JETSTREAM_WORKERS` | `8` | Records processed in parallel, `1` to `64`. |
-| `JETSTREAM_STALL_TIMEOUT_SECS` | `60` | Seconds a Jetstream connection may go without delivering an event before HappyView treats it as stalled, logs `jetstream.stalled` and reconnects from its saved position. `0` never does. Jetstream sends account and identity events to every subscriber, so a healthy connection is never quiet for long. |
+| `JETSTREAM_STALL_TIMEOUT_SECS` | `60` | Seconds a Jetstream connection may go without delivering an event before HappyView treats it as stalled, logs `jetstream.stalled` and reconnects from its saved position. Each stall in a row at the same position, with no event delivered, doubles the timeout for the next connection, up to 15 minutes. `0` never does. Jetstream sends account and identity events to every subscriber, so a healthy connection is never quiet for long. |
 | `RELAY_URL` | `https://bsky.network` | The relay backfill asks which accounts hold a collection. |
 | `PLC_URL` | `https://plc.directory` | The PLC directory DIDs are resolved through. |
 | `ALLOW_PRIVATE_DESTINATIONS` | `false` | `true`, `1` or `yes` switches off the check that keeps outbound requests away from non-public addresses (loopback, private ranges, link-local and the like), for every request. Each boot logs a warning while it's on. Process environment only. |
