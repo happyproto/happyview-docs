@@ -42,7 +42,7 @@ const client = new HappyViewBrowserClient({
 
 The DPoP key is imported with `extractable: false` and kept in IndexedDB, so the page can sign with it but can't read it back, during sign-in and after. Storage holds only the public key. A session stored by an older version, with its JWK, moves its key into IndexedDB the next time it's restored. When the client starts, it removes what sign-ins abandoned more than an hour ago left behind, in IndexedDB and in storage; `sweepPendingSignIns()` does the same on demand.
 
-The instance still returns the private key once, when it's provisioned, so code already running on the page at sign-in can copy it.
+The instance sends the key to the page once, when it's provisioned; from then on the client keeps it non-extractable.
 
 ### Storage
 
