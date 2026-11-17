@@ -209,6 +209,8 @@ Pass a relative path (prepends the HappyView instance URL) or a full URL (used a
 | `did`    | `string` | The authenticated user's DID             |
 | `sub`    | `string` | Alias for `did` (matches upstream naming) |
 
+After a sign-in with `ticketKeyProof`, `session.ticketPin` is `pinned`, or `refused` when the instance registered the session without the pin.
+
 `session.dpopKeyThumbprint()` resolves to the RFC 7638 thumbprint of the session's DPoP key: what a key proof's `dpop_jkt` names.
 
 ### Sign out
