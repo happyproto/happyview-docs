@@ -149,6 +149,39 @@ Some script types carry more:
 
 A field that doesn't apply is absent rather than set to an empty value. In JavaScript, `"method" in ctx` is `false` for a record event.
 
+### Caller assertions
+
+A procedure that calls another service on its caller's behalf can ask the instance for a signed statement of who the caller is, addressed to that service, so the service doesn't have to trust a DID the script passes along. In Lua:
+
+```lua
+local assertion, why, code = ctx.caller_assertion("https://service.example", input.keyProof)
+if not assertion then
+  return { error = "Unavailable", message = why }
+end
+```
+
+It returns the token, or `nil`, the reason and the error code. The instance must have [`CALLER_ASSERTION_*`](/docs/reference/configuration#management-tickets-and-caller-assertions) set, and the audience must be in `CALLER_ASSERTION_AUDIENCES`.
+
+The assertion is a 30-second ES256 JWS (`typ: hv-caller+jwt`, with `kid`), signed with `CALLER_ASSERTION_KEY`. The instance fills in every claim about the caller, never the script:
+
+| Claim | Value |
+| --- | --- |
+| `iss` | This instance's `PUBLIC_URL`, without a trailing slash |
+| `sub` | The caller's DID |
+| `cnf.jkt` | The thumbprint of the caller's DPoP key, or of the key the key proof proves |
+| `cnf_src` | `dpop` or `key_proof`, saying which |
+| `azp` | The OAuth client id of the API client the caller signed in through |
+| `aud` | The audience the script named |
+| `lxm` | The running script's method |
+| `iat`, `exp`, `jti` | When, until when, and a random id |
+
+- Only a procedure whose caller signed in with DPoP gets one. A cookie session, a query, a job, a record script and a test run get none.
+- A run may ask for at most four.
+- **With a key proof**, the assertion names a key of the caller's own instead of their DPoP key. The caller passes the proof, and the script forwards it untouched: a JWS (`typ: hv-key-proof+jwt`, public JWK in the header) with `aud` this instance's `PUBLIC_URL`, `lxm` the script's method, `dpop_jkt` the thumbprint of the caller's DPoP key, `iat` within 5 minutes and `jti`. The key must be the one the sign-in pinned with [`ticket_key_proof`](/docs/reference/authentication#3-register-the-session) when its session was registered. Another key's proof is refused with `BAD_INPUT`, and a sign-in that pinned none gets `NO_SESSION`: sign in again.
+- Each assertion is recorded in the event log as `caller_assertion.issued`, without the token.
+
+The service verifies the assertion against the instance's public key, which the instance's operator gives it to pin.
+
 ## Return values
 
 | Script type | What `handle` returns |
