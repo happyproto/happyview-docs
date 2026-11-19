@@ -159,7 +159,8 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 | ----------------------------------- | -------- | ----------- | --------------------------------------------------------------------- |
 | `jetstream.connected`               | info     | none        | `url`, `protocol`, `compression`, `dictionary_id`                     |
 | `jetstream.disconnected`            | warn     | none        | `reason`                                                              |
-| `jetstream.stalled`                 | warn     | none        | `idle_secs`, `host`, `protocol`, `delivered`                          |
+| `jetstream.stalled`                 | warn     | none        | `idle_secs`, `idle_ms`, `host`, `protocol`, `delivered`               |
+| `jetstream.stall_backoff`           | warn     | none        | `stalls`, `cursor`, `stall_timeout_secs`, `stall_timeout_ms`, `host`  |
 | `jetstream.gap`                     | warn     | none        | `reason`, and more by reason (below)                                  |
 | `jetstream.invalid_request`         | error    | none        | `message`, `retry_in_secs`                                            |
 | `jetstream.account_deleted`         | info     | Account DID | `purged`, `seq`                                                       |
@@ -172,7 +173,9 @@ A backfill that fails writes no event of its own: its `error` is on the backfill
 
 `jetstream.connected` and `jetstream.disconnected` are logged when the WebSocket connection to [Jetstream](https://github.com/bluesky-social/jetstream) is established or lost.
 
-`jetstream.stalled` is logged when a connection stays open but delivers no event for `JETSTREAM_STALL_TIMEOUT_SECS` (60 by default). It's never logged when that's `0`. HappyView closes it and reconnects from its saved position, so nothing is skipped. `idle_secs` is the timeout that was reached, and `delivered` says whether the connection had delivered any event before it went quiet. One now and then is harmless. Repeated ones point at the Jetstream host or the network path to it.
+`jetstream.stalled` is logged when a connection stays open but delivers no event for `JETSTREAM_STALL_TIMEOUT_SECS` (60 by default). It's never logged when that's `0`. HappyView closes it and reconnects from its saved position, so nothing is skipped. `idle_secs` (and `idle_ms`) is the timeout that was reached, and `delivered` says whether the connection had delivered any event before it went quiet. One now and then is harmless. Repeated ones point at the Jetstream host or the network path to it.
+
+`jetstream.stall_backoff` is logged when a connection starts after one or more stalls in a row at the same position, none of which delivered an event. Jetstream sends nothing while it scans past events your collection filter drops, and a burst of millions of events from one repository can take it minutes to scan. So each such stall doubles the timeout for the next connection, up to 15 minutes (a `JETSTREAM_STALL_TIMEOUT_SECS` above `900` stays as set). The count starts again when an event is delivered, when the connection resumes from a different position, or when it ends any other way than a stall. `stalls` is how many stalls came before this connection, `cursor` the position it resumes from, and `stall_timeout_secs` (and `stall_timeout_ms`) the timeout it waits. If it reaches 15 minutes and keeps stalling, the Jetstream host is most likely at fault; a scan longer than 15 minutes would do the same, and moving the saved position past the burst gets past it.
 
 `jetstream.gap` means events may have been missed. The same gap (same reason and cursor) is logged once per run of the Jetstream consumer. Its `reason` is one of:
 
