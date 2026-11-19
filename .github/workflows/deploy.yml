@@ -15,7 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: depot-ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 50
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # sequoia publishes new blog posts as site.standard documents; without
@@ -44,31 +44,51 @@ jobs:
 
       # wispctl reads the app password from WISPCTL_APP_PASSWORD, so the
       # secret never appears on the command line.
+      #
+      # The account's PDS rate-limits uploadBlob. wispctl retries each blob
+      # for only about six seconds before it gives up, so a deploy that
+      # follows another one closely fails with a 429 (most failed deploys
+      # since Nov 7 did). Retry the whole deploy after a longer wait. The 429
+      # comes while blobs upload, before wispctl writes any records, so a
+      # failed attempt leaves the live site as it was.
       - name: Deploy to wisp.place
-        run: wispctl deploy "$WISP_HANDLE" --path dist --site "$WISP_SITE" --yes --quiet
+        id: deploy
+        run: |
+          waits=(300 600 900)
+          for attempt in 1 2 3 4; do
+            if wispctl deploy "$WISP_HANDLE" --path dist --site "$WISP_SITE" --yes --quiet --concurrency 2; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              break
+            fi
+            delay=${waits[$((attempt - 1))]}
+            echo "::warning::wispctl deploy failed on attempt $attempt; retrying in $((delay / 60)) minutes"
+            sleep "$delay"
+          done
+          echo "::error::wispctl deploy failed after 4 attempts"
+          exit 1
         env:
           WISP_HANDLE: ${{ vars.WISP_HANDLE }}
           WISP_SITE: ${{ vars.WISP_SITE }}
           WISPCTL_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
 
-      # The deployed landing page answers 200 with its H1, and an old URL
-      # answers 301 to its new home. SITE_URL is unset until the domain
-      # points at wisp.place, and then the check is skipped.
-      - name: Smoke check
-        if: vars.SITE_URL != ''
+      # Checks the docs index, a deep docs page with and without its trailing
+      # slash, llms.txt, the sitemap and a legacy redirect
+      # (scripts/smoke-check.sh). The wisp.place copy shows the deploy itself
+      # worked.
+      - name: Smoke check (wisp.place)
+        run: scripts/smoke-check.sh "https://sites.wisp.place/$WISP_HANDLE/$WISP_SITE"
+        env:
+          WISP_HANDLE: ${{ vars.WISP_HANDLE }}
+          WISP_SITE: ${{ vars.WISP_SITE }}
+
+      # The public domain shows readers get it. It's skipped until the
+      # SITE_URL repo variable is set, which should happen as soon as
+      # happyview.dev points at wisp.place (HAP-379). Until then it would
+      # only report that the domain still serves the old Vercel site.
+      - name: Smoke check (public domain)
+        if: always() && steps.deploy.outcome == 'success' && vars.SITE_URL != ''
+        run: scripts/smoke-check.sh "$SITE_URL"
         env:
           SITE_URL: ${{ vars.SITE_URL }}
-        run: |
-          expected='Write the lexicon. HappyView serves the API.'
-          for attempt in 1 2 3 4 5 6; do
-            body=$(mktemp)
-            status=$(curl -sS -o "$body" -w '%{http_code}' --max-time 15 "$SITE_URL/" || true)
-            location=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "$SITE_URL/guides/backfill" || true)
-            echo "Attempt $attempt: / is HTTP $status; /guides/backfill is $location"
-            if [ "$status" = "200" ] && grep -qF "$expected" "$body" && [ "${location%% *}" = "301" ] && [ "${location#* }" = "$SITE_URL/docs/guides/backfill" ]; then
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "::error::$SITE_URL did not serve the landing page and the redirects after deploy"
-          exit 1
