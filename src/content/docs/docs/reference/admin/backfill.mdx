@@ -444,6 +444,7 @@ interface BackfillJob {
   note: string | null;
   hooks: ScriptStats | null;
   hook_stats: ScriptStats | null;
+  rate_limited: number;
 }
 
 interface ScriptStats {
@@ -539,7 +540,8 @@ curl http://127.0.0.1:3000/admin/backfill/status -H "$AUTH"
     "replay": null,
     "note": null,
     "hooks": null,
-    "hook_stats": null
+    "hook_stats": null,
+    "rate_limited": 0
   }
 ]
 ```
@@ -574,7 +576,8 @@ A replay job looks like this:
   "recent_completions_limit": 1000,
   "note": null,
   "hooks": null,
-  "hook_stats": null
+  "hook_stats": null,
+  "rate_limited": 0
 }
 ```
 
@@ -589,6 +592,8 @@ The three `*_repos` counters count work units. A unit is one account under one c
 `discovery_complete` is `false` while a network crawl is still listing accounts from the relay. Discovery runs alongside resolving and fetching. A network replay job lists no accounts and reports `false` throughout. `discovery_unfinished` lists a crawl's collections whose saved relay cursor hasn't reached the end of the listing, with that cursor. A collection appears once its first page is listed, so a crawl's `relay_cursor` is always set. While the job runs, these are the collections still being discovered. On a paused job, they are collections whose discovery stopped short, and [resuming](#resume-a-backfill-job) it continues from them. On a completed job, [create a backfill](#create-a-backfill-job) with the collection and its `relay_cursor` to continue. The field is left out when there are none. `recent_completions_limit` is set for jobs on the bounded queue, which keep only that many completed accounts for the `fetched` list. It is `null` for jobs created before the bounded queue.
 
 A job HappyView paused itself, because it ran out of work with accounts it could not complete still queued, has `status` `paused` and the reason in `error` (for example `"paused: 3 units could not be completed; resume to retry"`). A crawl whose discovery stopped short is paused the same way, with `stage` `discovery_incomplete` and an `error` naming the collections. A job an operator paused has no `error`. Resuming clears it.
+
+`rate_limited` counts the HTTP 429 responses a crawl's record fetches got from PDSes. Each one was waited out and the request sent again, so it is not a failure and doesn't count towards `error_counts`; see [Rate limiting](/docs/guides/backfill#rate-limiting). It is added to about once a minute per PDS while the job runs, and is `0` for a replay.
 
 A record source can backfill some collections itself rather than crawl or replay them. Such a job's `source` is the name the record source gives its backfills, and its counters are what the record source reports. Its `note` may carry a sentence from the record source about what the job did or found. `note` is `null` for every other job.
 
@@ -1032,10 +1037,12 @@ curl "http://127.0.0.1:3000/admin/backfill/$JOB_ID/pds-summary" -H "$AUTH"
 ```json
 {
   "pds_endpoints": [
-    { "pds_endpoint": "https://morel.us-east.host.bsky.network", "total_repos": 1200, "completed_repos": 800, "total_records": 5000 }
+    { "pds_endpoint": "https://morel.us-east.host.bsky.network", "total_repos": 1200, "completed_repos": 800, "total_records": 5000, "rate_limited": 42 }
   ]
 }
 ```
+
+`rate_limited` counts the 429 responses the PDS sent the job. It is always `0` for a job created before the bounded queue.
 
 ## Stream backfill events (SSE)
 
