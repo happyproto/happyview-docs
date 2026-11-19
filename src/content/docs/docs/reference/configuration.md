@@ -81,8 +81,9 @@ HappyView refuses outbound connections to non-public addresses, except to the ho
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `BACKFILL_CONCURRENT_PDS` | `10` | PDSes fetched from at once. Instance setting `backfill_concurrent_pds`. |
-| `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | Accounts fetched at once from one PDS. Instance setting `backfill_concurrent_dids_per_pds`. |
-| `BACKFILL_CONCURRENT_RESOLUTION` | `100` | DIDs resolved at once. Instance setting `backfill_concurrent_resolution`. |
+| `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | The most accounts fetched at once from one PDS. HappyView runs fewer while the PDS is rate-limiting or failing, and works back up as it answers; see [Rate limiting](/docs/guides/backfill#rate-limiting). Instance setting `backfill_concurrent_dids_per_pds`. |
+| `BACKFILL_CONCURRENT_RESOLUTION` | `100` | The most DIDs resolved at once. Lookups to the PLC directory run fewer at once after a 429, and work back up as it answers. Instance setting `backfill_concurrent_resolution`. |
+| `BACKFILL_RATE_LIMIT_DOMAINS` | `host.bsky.network` | Comma-separated host suffixes whose PDSes share one rate-limit budget, such as one operator's hosts behind one limiter. A crawl paces every host under a suffix together. `none` paces each host on its own. Instance setting `backfill_rate_limit_domains`. |
 | `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. Held to the [`log_retention_days` limit](/docs/guides/instance-limits#log_retention_days) when one is set. |
 | `BACKFILL_DISCOVERY_WINDOW` | `50000` | Units of work discovered ahead of fetching. A unit is one account under one collection. |
 | `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it, and a value that isn't a number uses `4`; both log a warning. Records from the live stream always run their scripts one at a time. A record storage that applies fewer deltas at once lowers it, and HappyView logs a warning. See [Record scripts run concurrently](/docs/guides/backfill#record-scripts-run-concurrently). |
@@ -177,6 +178,7 @@ These keys can be saved as instance settings, and then win over the environment.
 | `app_name` | `APP_NAME` |
 | `logo_uri`, `tos_uri`, `policy_uri`, `client_uri` | `LOGO_URI`, `TOS_URI`, `POLICY_URI`, `CLIENT_URI` |
 | `backfill_concurrent_pds`, `backfill_concurrent_dids_per_pds`, `backfill_concurrent_resolution` | `BACKFILL_CONCURRENT_*` |
+| `backfill_rate_limit_domains` | `BACKFILL_RATE_LIMIT_DOMAINS` |
 | `backfill_retention_days` | `BACKFILL_RETENTION_DAYS` |
 | `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` |
 | `space_access_log_retention_days` | `SPACE_ACCESS_LOG_RETENTION_DAYS` |
