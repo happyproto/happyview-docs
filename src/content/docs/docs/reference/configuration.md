@@ -61,6 +61,18 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `ATTESTATION_KEY_ID` | `did:web:localhost#attestation` | The key's id in signatures. Read only when `ATTESTATION_PRIVATE_KEY` is set; otherwise the stored key's id is used, else `did:web:<PUBLIC_URL host>#attestation`. |
 | `ATTESTATION_SIG_TYPE` | `games.gamesgamesgamesgames.attestation` | The signature's `$type`. Read only when `ATTESTATION_PRIVATE_KEY` is set. |
 
+## Management tickets and caller assertions
+
+Off unless set. Both are for a hosting platform that manages many instances from one sign-in; see [Management tickets](/docs/reference/authentication#management-tickets).
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `MANAGEMENT_TICKET_ISSUER` | none | The issuer whose management tickets this instance accepts on its admin API. Set with the two below, or not at all. |
+| `MANAGEMENT_TICKET_AUDIENCE` | none | The name a ticket must carry as `aud` to be for this instance. |
+| `MANAGEMENT_TICKET_JWKS` | none | The issuer's public keys, a JSON key set (`{"keys": [...]}`) of P-256 keys with a `kid` each. During a key rotation, both keys. A partial or invalid setting is logged and leaves tickets off. |
+| `CALLER_ASSERTION_KEY` | none | A private P-256 JWK with a `kid`. Lets scripts ask for a [caller assertion](/docs/reference/scripts/contract#caller-assertions), signed with this key. Set with the one below, or not at all. |
+| `CALLER_ASSERTION_AUDIENCES` | none | The services, separated by commas, a caller assertion may be addressed to. A partial or invalid setting is logged and leaves caller assertions off. |
+
 ## Network
 
 | Variable | Default | What it does |

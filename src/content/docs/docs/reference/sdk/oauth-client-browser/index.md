@@ -33,8 +33,18 @@ const client = new HappyViewBrowserClient({
 | `redirectUri` | No       | OAuth callback URL. Defaults to `${window.location.origin}/oauth/callback`    |
 | `scopes`      | No       | OAuth scopes to request. Defaults to `"atproto"`                              |
 | `storage`     | No       | Custom storage adapter. Defaults to localStorage                              |
+| `keyStore`    | No       | Where DPoP keys are kept. Defaults to an `IndexedDbKeyStore`, where the browser has IndexedDB; `null` keeps keys as JWKs in `storage` |
+| `ticketKeyProof` | No    | Called as a sign-in completes with `{ did, dpopJkt, audience, lxm }`; the key proof it returns is sent with the session's registration, pinning that key to the sign-in |
 | `sessionHooks`| No       | Callbacks for [session lifecycle events](#session-event-hooks)                |
 | `fetch`       | No       | Custom fetch implementation                                                   |
+
+### Key storage
+
+The DPoP key is imported with `extractable: false` and kept in IndexedDB, so the page can sign with it but can't read it back, during sign-in and after. Storage holds only the public key. A session stored by an older version, with its JWK, moves its key into IndexedDB the next time it's restored. When the client starts, it removes what sign-ins abandoned more than an hour ago left behind, in IndexedDB and in storage; `sweepPendingSignIns()` does the same on demand.
+
+The instance sends the key to the page once, when it's provisioned; from then on the client keeps it non-extractable.
+
+### Storage
 
 The client uses localStorage by default. You can override it:
 
@@ -198,6 +208,10 @@ Pass a relative path (prepends the HappyView instance URL) or a full URL (used a
 | -------- | -------- | ---------------------------------------- |
 | `did`    | `string` | The authenticated user's DID             |
 | `sub`    | `string` | Alias for `did` (matches upstream naming) |
+
+After a sign-in with `ticketKeyProof`, `session.ticketPin` is `pinned`, or `refused` when the instance registered the session without the pin.
+
+`session.dpopKeyThumbprint()` resolves to the RFC 7638 thumbprint of the session's DPoP key: what a key proof's `dpop_jkt` names.
 
 ### Sign out
 
