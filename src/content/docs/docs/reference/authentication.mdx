@@ -245,10 +245,10 @@ For a service auth JWT to validate:
 - `typ` must not be `at+jwt`, `refresh+jwt` or `dpop+jwt`, which are other token types.
 - `aud` must start with this instance's DID. The fragment after it names the [service entry](/docs/reference/admin/service-entries) the token is for, and that entry must be allowed to call the method. An atproto space route also accepts the bare DID.
 - `exp` must be in the future, and at most an hour away.
-- `lxm`, when present, must name the method being called.
+- `lxm` must name the method being called. A token without `lxm`, or with a different one, is refused with `401` and `BadJwtLexiconMethod`.
 - The signature must verify against the issuer DID's atproto signing key.
 
-The instance needs a [service identity](/docs/guides/service-identity) with a DID to accept one. With none, or with a service identity that isn't exposed, every service auth JWT is refused.
+The instance needs a [service identity](/docs/guides/service-identity) with a DID to accept one. With none, or with a service identity that isn't exposed, every service auth JWT is refused. Routes outside `/xrpc` refuse service auth JWTs with `403`, because they have no method for `lxm` to name.
 
 ## Admin API: user authentication
 
