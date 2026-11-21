@@ -219,7 +219,7 @@ curl -X PUT http://127.0.0.1:3000/admin/settings/app_name \
 
 The body is `{ "value": "..." }`. The value is always a string, so send `"true"`, not `true`. Any key is accepted; the table above lists the keys HappyView reads. `logo`, `xrpc-proxy` and `telemetry` are routes of their own, so `PUT /admin/settings/telemetry` reaches the [telemetry](/docs/reference/admin/telemetry) endpoint, not this one.
 
-**Response**: `204 No Content`. `400 Bad Request` when a script limit is out of range, `script_metrics_enabled` isn't `"true"` or `"false"`, or a retention setting (`backfill_retention_days`, `event_log_retention_days` or `space_access_log_retention_days`) isn't a whole number of days. A `telemetry.*` key returns `409 Conflict` where a hosting platform manages telemetry, and so does a key the platform fixes.
+**Response**: `204 No Content`. `400 Bad Request` when a script limit is out of range, `script_metrics_enabled` isn't `"true"` or `"false"`, or a retention setting (`backfill_retention_days`, `event_log_retention_days` or `space_access_log_retention_days`) isn't a whole number of days from `0` to `36500`, written without spaces. A `telemetry.*` key returns `409 Conflict` where a hosting platform manages telemetry, and so does a key the platform fixes.
 
 A change to `event_log_retention_days`, `space_access_log_retention_days` or `feature.space_inspector_enabled` is audited. Its [protected event](/docs/guides/event-logs#protected-events) is saved together with the setting, and if the event can't be written, the setting isn't changed. A delete is audited the same way.
 
