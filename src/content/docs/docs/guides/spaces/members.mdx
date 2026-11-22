@@ -397,7 +397,7 @@ The response returns the **resolved** member list, with delegation chains traver
 
 ## Delegation
 
-A space can be added as a member of another space by setting `isDelegation: true` and passing the delegated space's URI as `did`. The delegated space's members become members of this space, with the flags they hold in the delegated space.
+A space can be added as a member of another space by setting `isDelegation: true` and passing the delegated space's URI as `did`. The delegated space's members become members of this space, with the flags they hold in the delegated space, limited to the entry's own `read` and `write`.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -515,15 +515,15 @@ curl -X POST 'https://happyview.example.com/xrpc/com.atproto.simplespace.putMemb
 </TabItem>
 </Tabs>
 
-Delegation chains are resolved up to 10 levels deep. The delegation entry's own `read` and `write` are not applied; delegated members keep their own. When a member appears in several chains, each flag is combined separately: the member can read if any path grants `read`, and can write if any path grants `write`.
+Delegation chains are resolved up to 10 levels deep. At every level, a delegated member gets a flag only if both the entry and their own membership grant it: an entry with `read: true, write: false` lets them read but not write, however much they hold in the delegated space. Lowering an entry's flags revokes the space credentials its members no longer qualify for. When a member appears in several chains, each flag is combined separately: the member can read if any path grants `read`, and can write if any path grants `write`.
 
 ### Example: nested teams
 
 ```mermaid
 graph TD
     accTitle: Example: nested teams
-    A[Forum Space] -->|delegation| B[Engineering Team Space]
-    A -->|delegation| C[Design Team Space]
+    A[Forum Space] -->|delegation: read + write| B[Engineering Team Space]
+    A -->|delegation: read| C[Design Team Space]
     B -->|read + write| D[Alice]
     B -->|read + write| E[Bob]
     C -->|read| F[Carol]
