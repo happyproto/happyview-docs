@@ -399,6 +399,8 @@ The response returns the **resolved** member list, with delegation chains traver
 
 A space can be added as a member of another space by setting `isDelegation: true` and passing the delegated space's URI as `did`. The delegated space's members become members of this space, with the flags they hold in the delegated space, limited to the entry's own `read` and `write`.
 
+Adding a delegation entry, raising either of its flags, or pointing it at another space requires administering both spaces. The administrator of the space holding the entry can lower its flags, down to none, or remove it, without administering the delegated space.
+
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
 
