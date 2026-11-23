@@ -5,7 +5,7 @@ description: "Admin API endpoints for script run metrics and the record ingest p
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All four endpoints need `metrics:read`. The dashboard's **Script performance** page reads them.
+Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All four endpoints need `metrics:read`. The dashboard's **Script performance** page reads them. On a managed instance, the [platform principal](/docs/reference/admin/platform) can also read [List scripts](#list-scripts), [Get one script](#get-one-script) and [Ingest](#ingest), but not [Live](#live).
 
 Metrics are kept in memory by the process that runs the scripts, for the last hour by the minute and the last day by the half hour. Each minute that closes is written to the database once, so the `7d` and `30d` windows survive a restart. Test files run by `happyview test` are not recorded.
 
