@@ -54,7 +54,7 @@ If an earlier install left `hpy` in `~/.cargo/bin`, the script offers to remove 
 hpy --version
 ```
 
-Excellent! `hpy update` keeps it up to date on its channel. On the `beta` channel (as of 2026-11-05), `hpy update` can't replace a copy in `/usr/local/bin` yet, so run the install command again to update until the next beta release. From `1.0.0-alpha.31`, the `alpha` channel's `hpy update` asks for `sudo` itself. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
+Excellent! `hpy update` keeps it up to date on its channel. When `hpy` is in a folder we can't write to, such as `/usr/local/bin`, `hpy update` asks for our password through `sudo`, for the copy alone. For apt, dnf and building from source, see [hpy's own install instructions](https://github.com/happyproto/cli/tree/beta#install).
 
 ## Create a project
 
