@@ -9,7 +9,7 @@ The libraries went the same way. `db`, `http`, `Record` and the rest were the ho
 
 The database upgrades in place, but one way only: the first start moves every record into a compact format, and the way back is the backup you take first. Every environment variable you set for v2 still means the same thing, and the admin API keeps its routes. The other breaking changes are concentrated in scripts and plugins.
 
-This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating from v2](/docs/guides/migrating-scripts).
+This guide covers the operator-facing changes. The script contract itself (the removed globals, `handle(input, ctx)`, the codemod's rewrites and markers) is in [Migrating scripts to v3](/docs/guides/migrating-scripts).
 
 v3 is in beta, and so are the interpreters and the official libraries: they publish to the plugin registry on the `beta` channel (as of 2026-11-12). The `hpy` commands this guide uses, `hpy hv pull` and `hpy hv env push`, are in `hpy` from `1.0.0-beta.5`.
 
@@ -82,7 +82,7 @@ It finishes by running `hpy hv check` to verify the results will work on a v3 in
 
 ## 4. Finish the conversion
 
-- **Fix any flagged scripts.** Each `-- codemod:` marker says what it needs; [Migrating from v2](/docs/guides/migrating-scripts) covers every one. `hpy hv check` also warns about a query or procedure with no script, since v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)), and `hpy hv scaffold` writes a starter for each.
+- **Fix any flagged scripts.** Each `-- codemod:` marker says what it needs; [Migrating scripts to v3](/docs/guides/migrating-scripts) covers every one. `hpy hv check` also warns about a query or procedure with no script, since v3 no longer answers one on its own (see [Queries and procedures need a script](#queries-and-procedures-need-a-script)), and `hpy hv scaffold` writes a starter for each.
 - **Fill in your script variables.** Their names are pulled into `.env.example`, but their values are not. `hpy` respects `.env`, so copy `.env.example` to `.env` and fill in the values.
 - **Set any required plugin secrets.** The pull lists the secrets each plugin needs, and pulls none of their values. On a self-hosted v3 instance, set them as `PLUGIN_<ID>_` environment variables before you deploy. The dashboard's fields for them appear once the deploy in step 9 has installed the plugin. See [Plugin configuration](/docs/guides/plugins#plugin-configuration).
 
@@ -224,7 +224,7 @@ A record read through a library answers `{uri, did, collection, rkey, cid, index
 
 The public XRPC query routes keep their flat body-plus-`uri` shape. A query with no script still answers a `uri` lookup as it did in v2, but nothing else; see [Queries and procedures need a script](#queries-and-procedures-need-a-script).
 
-A script the codemod migrated keeps v2's flat rows, through a polyfill the codemod inlines; [Migrating from v2](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
+A script the codemod migrated keeps v2's flat rows, through a polyfill the codemod inlines; [Migrating scripts to v3](/docs/guides/migrating-scripts#libraries) describes it and how to retire it.
 
 ### Queries and procedures need a script
 
@@ -292,7 +292,7 @@ Anything written after the upgrade, including operators, scripts and settings, i
 
 ## Next steps
 
-- [Migrating from v2](/docs/guides/migrating-scripts): the script contract, the codemod, and every marker it emits
+- [Migrating scripts to v3](/docs/guides/migrating-scripts): the script contract, the codemod, and every marker it emits
 - [Plugins](/docs/guides/plugins): installing and configuring plugins
 - [Developing plugins](/docs/guides/developing-plugins): the SDK, capabilities, and the library surface
 - [Configuration reference](/docs/reference/configuration): every environment variable
