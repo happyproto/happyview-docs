@@ -45,7 +45,7 @@ Create an API client for the app and authenticate users through it; see [API cli
 
 ## My v2 scripts are refused after upgrading. What do I do?
 
-v3 removed some Lua globals, and a script that still uses one is refused with `script references removed globals: ... -- run the codemod first`. [Migrating from v2](/docs/guides/migrating-scripts) lists the replacements and how to run the codemod.
+v3 removed some Lua globals, and a script that still uses one is refused with `script references removed globals: ... -- run the codemod first`. [Migrating scripts to v3](/docs/guides/migrating-scripts) lists the replacements and how to run the codemod.
 
 ## Can I write my own plugin?
 

@@ -61,6 +61,18 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `ATTESTATION_KEY_ID` | `did:web:localhost#attestation` | The key's id in signatures. Read only when `ATTESTATION_PRIVATE_KEY` is set; otherwise the stored key's id is used, else `did:web:<PUBLIC_URL host>#attestation`. |
 | `ATTESTATION_SIG_TYPE` | `games.gamesgamesgamesgames.attestation` | The signature's `$type`. Read only when `ATTESTATION_PRIVATE_KEY` is set. |
 
+## Management tickets and caller assertions
+
+Off unless set. Both are for a hosting platform that manages many instances from one sign-in; see [Management tickets](/docs/reference/authentication#management-tickets).
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `MANAGEMENT_TICKET_ISSUER` | none | The issuer whose management tickets this instance accepts on its admin API. Set with the two below, or not at all. |
+| `MANAGEMENT_TICKET_AUDIENCE` | none | The name a ticket must carry as `aud` to be for this instance. |
+| `MANAGEMENT_TICKET_JWKS` | none | The issuer's public keys, a JSON key set (`{"keys": [...]}`) of P-256 keys with a `kid` each. During a key rotation, both keys. A partial or invalid setting is logged and leaves tickets off. |
+| `CALLER_ASSERTION_KEY` | none | A private P-256 JWK with a `kid`. Lets scripts ask for a [caller assertion](/docs/reference/scripts/contract#caller-assertions), signed with this key. Set with the one below, or not at all. |
+| `CALLER_ASSERTION_AUDIENCES` | none | The services, separated by commas, a caller assertion may be addressed to. A partial or invalid setting is logged and leaves caller assertions off. |
+
 ## Network
 
 | Variable | Default | What it does |
@@ -69,6 +81,7 @@ Anything none of them sets takes its default. Running `happyview` with no argume
 | `JETSTREAM_PROTOCOL` | `auto` | `auto`, `v2` or `v1`. `happyview.toml`: `[jetstream] protocol`. |
 | `JETSTREAM_COMPRESSION` | `true` | `true` or `false` (also `1`/`0`, `yes`/`no`, `on`/`off`). `happyview.toml`: `[jetstream] compression`. |
 | `JETSTREAM_WORKERS` | `8` | Records processed in parallel, `1` to `64`. |
+| `JETSTREAM_STALL_TIMEOUT_SECS` | `60` | Seconds a Jetstream connection may go without delivering an event before HappyView treats it as stalled, logs `jetstream.stalled` and reconnects from its saved position. `0` turns the stall timeout (and its backoff) off. Each stall in a row at the same position, with no event delivered, doubles the timeout for the next connection, up to 15 minutes; a value above `900` stays as set. Jetstream sends account and identity events to every subscriber, so a healthy connection is never quiet for long. |
 | `RELAY_URL` | `https://bsky.network` | The relay backfill asks which accounts hold a collection. |
 | `PLC_URL` | `https://plc.directory` | The PLC directory DIDs are resolved through. |
 | `ALLOW_PRIVATE_DESTINATIONS` | `false` | `true`, `1` or `yes` switches off the check that keeps outbound requests away from non-public addresses (loopback, private ranges, link-local and the like), for every request. Each boot logs a warning while it's on. Process environment only. |
@@ -81,8 +94,9 @@ HappyView refuses outbound connections to non-public addresses, except to the ho
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `BACKFILL_CONCURRENT_PDS` | `10` | PDSes fetched from at once. Instance setting `backfill_concurrent_pds`. |
-| `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | Accounts fetched at once from one PDS. Instance setting `backfill_concurrent_dids_per_pds`. |
-| `BACKFILL_CONCURRENT_RESOLUTION` | `100` | DIDs resolved at once. Instance setting `backfill_concurrent_resolution`. |
+| `BACKFILL_CONCURRENT_DIDS_PER_PDS` | `3` | The most accounts fetched at once from one PDS. HappyView runs fewer while the PDS is rate-limiting or failing, and works back up as it answers; see [Rate limiting](/docs/guides/backfill#rate-limiting). Instance setting `backfill_concurrent_dids_per_pds`. |
+| `BACKFILL_CONCURRENT_RESOLUTION` | `100` | The most DIDs resolved at once. Lookups to the PLC directory run fewer at once after a 429, and work back up as it answers. Instance setting `backfill_concurrent_resolution`. |
+| `BACKFILL_RATE_LIMIT_DOMAINS` | `host.bsky.network` | Comma-separated host suffixes whose PDSes share one rate-limit budget, such as one operator's hosts behind one limiter. A crawl paces every host under a suffix together. `none` paces each host on its own. Instance setting `backfill_rate_limit_domains`. |
 | `BACKFILL_RETENTION_DAYS` | `28` | Days a finished backfill's per-account detail is kept. `0` keeps it. Instance setting `backfill_retention_days`. Held to the [`log_retention_days` limit](/docs/guides/instance-limits#log_retention_days) when one is set. |
 | `BACKFILL_DISCOVERY_WINDOW` | `50000` | Units of work discovered ahead of fetching. A unit is one account under one collection. |
 | `BACKFILL_HOOK_CONCURRENCY` | `4` | Record scripts run at once for one batch of a backfill, `1` to `32`. A value outside the range is moved inside it, and a value that isn't a number uses `4`; both log a warning. Records from the live stream always run their scripts one at a time. A record storage that applies fewer deltas at once lowers it, and HappyView logs a warning. See [Record scripts run concurrently](/docs/guides/backfill#record-scripts-run-concurrently). |
@@ -177,6 +191,7 @@ These keys can be saved as instance settings, and then win over the environment.
 | `app_name` | `APP_NAME` |
 | `logo_uri`, `tos_uri`, `policy_uri`, `client_uri` | `LOGO_URI`, `TOS_URI`, `POLICY_URI`, `CLIENT_URI` |
 | `backfill_concurrent_pds`, `backfill_concurrent_dids_per_pds`, `backfill_concurrent_resolution` | `BACKFILL_CONCURRENT_*` |
+| `backfill_rate_limit_domains` | `BACKFILL_RATE_LIMIT_DOMAINS` |
 | `backfill_retention_days` | `BACKFILL_RETENTION_DAYS` |
 | `event_log_retention_days` | `EVENT_LOG_RETENTION_DAYS` |
 | `space_access_log_retention_days` | `SPACE_ACCESS_LOG_RETENTION_DAYS` |

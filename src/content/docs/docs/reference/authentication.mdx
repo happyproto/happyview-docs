@@ -245,10 +245,10 @@ For a service auth JWT to validate:
 - `typ` must not be `at+jwt`, `refresh+jwt` or `dpop+jwt`, which are other token types.
 - `aud` must start with this instance's DID. The fragment after it names the [service entry](/docs/reference/admin/service-entries) the token is for, and that entry must be allowed to call the method. An atproto space route also accepts the bare DID.
 - `exp` must be in the future, and at most an hour away.
-- `lxm`, when present, must name the method being called.
+- `lxm` must name the method being called. A token without `lxm`, or with a different one, is refused with `401` and `BadJwtLexiconMethod`.
 - The signature must verify against the issuer DID's atproto signing key.
 
-The instance needs a [service identity](/docs/guides/service-identity) with a DID to accept one. With none, or with a service identity that isn't exposed, every service auth JWT is refused.
+The instance needs a [service identity](/docs/guides/service-identity) with a DID to accept one. With none, or with a service identity that isn't exposed, every service auth JWT is refused. Routes outside `/xrpc` refuse service auth JWTs with `403`, because they have no method for `lxm` to name.
 
 ## Admin API: user authentication
 
@@ -257,6 +257,7 @@ Admin endpoints don't use API clients. They require an operator, identified by o
 - An [admin API key](#admin-api-key), for automation.
 - The dashboard's session cookie, after signing in.
 - An app's DPoP session the user granted [`dev.happyview.adminFull`](#apps-and-the-admin-api).
+- A [management ticket](#management-tickets) from the issuer the instance trusts.
 
 ### Admin API key
 
@@ -332,6 +333,33 @@ A key only carries the permissions selected at creation time and can never excee
 An app's DPoP session reaches `/admin` only when the user approved the permission set `dev.happyview.adminFull` at sign-in, by the app asking for `include:dev.happyview.adminFull`. HappyView reads what was granted from the user's authorization server, never from the app, and re-reads it once the access token lapses, so a grant revoked at the PDS stops counting within one token lifetime. The resolved DID still has to be an operator with the right [permissions](/docs/guides/permissions).
 
 The admin API refuses every service auth JWT, with `403`.
+
+### Management tickets
+
+An instance with [`MANAGEMENT_TICKET_*`](/docs/reference/configuration#management-tickets-and-caller-assertions) set accepts short-lived tickets from one issuer, such as a hosting platform's control plane, on its admin API:
+
+```
+Authorization: HV-Ticket <ticket>
+HV-Ticket-Proof: <proof>
+```
+
+- **The ticket** is an ES256 JWS (`typ: hv-ticket+jwt`, with `kid`) from the configured issuer. Its claims are `iss`, `sub` (the user's DID), `aud` (this instance's `MANAGEMENT_TICKET_AUDIENCE`), `cnf.jkt` (the thumbprint of the key the user holds), `iat`, `exp`, `jti` and `v: 1`. It lives at most 60 seconds.
+- **The proof** is a JWS (`typ: hv-ticket-proof+jwt`) signed by the key `cnf.jkt` names, with its public JWK in the header. One is needed per request, and each is used once. Its claims bind it to that request:
+
+  | Claim | What it binds |
+  | --- | --- |
+  | `htm` | The method |
+  | `htu` | The URL without query or fragment; its origin must be one of this instance's |
+  | `hq` | base64url SHA-256 of the raw query string (of the empty string when there is none) |
+  | `ct` | The `Content-Type`, exactly as sent; absent with no body |
+  | `bh` | base64url SHA-256 of the body bytes |
+  | `ath` | base64url SHA-256 of the ticket |
+  | `iat` | Within 5 minutes of now |
+  | `jti` | A random id |
+
+- Send ticket requests **without credentials**. A request that carries a ticket alongside any other credential header (a cookie, another `Authorization`, `DPoP`, `X-Client-Key` or `X-Client-Secret`) or a connection upgrade is refused.
+- The ticket's user acts with their own permissions here, and must already be an operator: a ticket never creates a user, and the first-user rule below doesn't apply. It can't reach stored OAuth sessions, so it can't write to a PDS.
+- An expired ticket gets `401` with `"error": "ticket_expired"`; fetch a new one and retry. Admin actions made with a ticket are recorded in the event log with `detail.auth: "ticket"` and `detail.ticket` (`jti`, `iss`, `jkt`). A refused ticket that the issuer did sign is recorded once per ticket and step as `ticket.refused`.
 
 ### Admin access and the first user
 
@@ -502,6 +530,7 @@ For public clients, omit `X-Client-Secret` and include the PKCE verifier in the 
 | `pds_url` | string (URL) | no | Ignored. HappyView sends the session's requests to the PDS named in the user's DID document, the one it checked the access token with. |
 | `issuer` | string (URL) | if `scopes` holds more than `atproto` | The authorization server that issued the tokens. HappyView confirms the scopes with it. The user's PDS must list it in `/.well-known/oauth-protected-resource`, and its metadata must give the same `issuer`, or the registration answers `403`. Without it, the session can't be refreshed or revoked. |
 | `signing_kid` | string | no | The key that signed the token exchange's client assertion. Default: the key the provision's assertions used, else the client's current one. |
+| `ticket_key_proof` | string | no | Pins a key the client holds to this sign-in, for [caller assertions](/docs/reference/scripts/contract#caller-assertions). A key proof (`typ: hv-key-proof+jwt`, public JWK in the header) with `aud` this instance's `PUBLIC_URL` without a trailing slash, `lxm: happyview.oauth.registerSession`, `dpop_jkt` the provisioned key's thumbprint, `iat` within 5 minutes and `jti`. A pin never blocks the sign-in: the response's `ticket_pin` is `pinned`, or `refused` when the proof doesn't verify or conflicts with an existing pin, and then the session is registered without a pin. The pin is set once, only here, and goes when the session ends. |
 
 **HappyView confirms the scopes with the authorization server.** When `scopes` holds anything beyond `atproto`, HappyView refreshes the session once at `issuer` and reads the scope the authorization server reports. A registration that asks for more than that answers `400`, naming the scopes that weren't granted, and no session is kept. Without a `refresh_token` there is nothing to confirm with, so `scopes` may be only `atproto`.
 

@@ -32,6 +32,7 @@ const client = new HappyViewOAuthClient({
 | `clientKey` | Yes | The API client key. |
 | `clientSecret` | No | The API client secret. |
 | `storage` | No | A [`StorageAdapter`](#storageadapter). Defaults to `MemoryStorage`. |
+| `keyStore` | No | A [`KeyStore`](#keystore). With one, DPoP keys are kept there non-extractable, and stored sessions hold only the public key. Sessions stored with a JWK move their key over on the next restore. |
 | `sessionHooks` | No | `onSessionUpdate(did)` and `onSessionDelete(did, cause?)`. |
 | `fetch` | No | A custom fetch implementation. Defaults to the global `fetch`. |
 
@@ -202,6 +203,19 @@ If no `StorageAdapter` is provided, sessions are stored in memory and won't surv
 :::note
 The built-in `MemoryStorage` is exported for testing. In production, always provide a persistent storage adapter.
 :::
+
+### KeyStore
+
+```typescript
+interface KeyStore {
+  get(id: string): Promise<CryptoKeyPair | null>;
+  set(id: string, pair: CryptoKeyPair): Promise<void>;
+  delete(id: string): Promise<void>;
+  entries?(): Promise<Array<{ id: string; createdAt: number }>>;
+}
+```
+
+Keeps Web Crypto key pairs by id; `sessionKeyId(did)` is a session's. The browser client's `IndexedDbKeyStore` is one. A session whose key is missing from the store doesn't restore.
 
 ## Other exports
 
