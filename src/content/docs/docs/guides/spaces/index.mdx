@@ -134,9 +134,10 @@ Some of these endpoints also answer under a deprecated `dev.happyview.space.*` a
 | `com.atproto.space.listRecords`                | GET    | List records                                    |
 | `com.atproto.space.deleteRecord`               | POST   | Delete a record                                 |
 | `com.atproto.space.applyWrites`                | POST   | Batch write operations                          |
+| `com.atproto.space.clearRecords`               | POST   | Delete every record in your repo                |
 | `com.atproto.space.getLatestCommit`            | GET    | Get per-user signed commit                      |
 | `com.atproto.space.getRepoState`               | GET    | Earlier name of `getLatestCommit`               |
-| `com.atproto.space.getRepo`                    | GET    | Export a user's repo as a CAR file              |
+| `com.atproto.space.getRepo`                    | GET    | Export a user's repo (STAR, or CAR with `did`)  |
 | `com.atproto.space.listRepoOps`                | GET    | List record operation log entries               |
 | `com.atproto.space.listRepos`                  | GET    | List the space's writer set                     |
 | `com.atproto.space.getBlob`                    | GET    | Get a blob from a space                         |
@@ -212,7 +213,8 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **SignedCommit**: versioned commit struct (`ver: 1`) with hash, ikm, sig, mac, rev
 - **Record operation log**: `listRepoOps` returns the oplog for sync (values inlined by default, `excludeValues` to opt out)
 - **Latest commit**: `getLatestCommit` returns the signed commit for a user in a space
-- **Repo export**: `getRepo` exports a user's repo as a CAR v1 file (signedCommit + DRISL index)
+- **Repo export**: `getRepo` exports a user's repo as a STAR archive when the repo is named `repo`, or as a CAR v1 file (signedCommit + DRISL index) when it's named `did`
+- **Clearing a repo**: `clearRecords` deletes every record in the caller's repo in one commit
 - **Sync**: `registerNotify` by service identifier, `notifyWrite` in both directions, `listRepos` from the writer set with a space-wide revision
 - **Space-scoped blobs**: `getBlob`, `listBlobs`
 

@@ -495,7 +495,8 @@ interface RecordEntry {
   collection: string;
   rkey: string;
   cid: string;
-  // Only present when `includeValues` is `true`.
+  // Present unless `excludeValues` is `true` (or the earlier
+  // `includeValues` is `false`).
   value?: Record<string, unknown>;
 }
 interface ListRecordsResponse {
@@ -961,6 +962,21 @@ Each write operation has an `action` field:
 
 Each entry in `results` corresponds to the write at the same index. Create and update operations return `uri` and `cid`; delete operations return an empty object.
 
+## Clearing a repo
+
+`clearRecords` deletes every record in your own repo in a space, in one commit. The deletes go into the [operation log](#record-operation-log), and the clear is announced to syncers like any write.
+
+```json
+POST /xrpc/com.atproto.space.clearRecords
+{ "space": "at://did:web:happyview.example.com/space/com.example.forum/main", "repo": "did:plc:author" }
+```
+
+- `repo` must be the signed-in account, and it must be a member that can write.
+- An app needs a `delete` grant on each collection the repo holds. If the repo lives on the author's PDS, it needs `delete` on every collection (`collection=*`), and the clear is forwarded there.
+- In the space authority's repo, the space's published configuration records stay.
+- If the repo changes while the clear runs, the clear answers `409`. Try again.
+- Clearing an empty repo changes nothing.
+
 ## Optimistic concurrency
 
 `swapRecord` and `swapCommit` provide optimistic concurrency control to prevent lost updates when several writers change the same space.
@@ -992,6 +1008,20 @@ The space's current revision is `revision` in the space object returned by [`com
   "writes": [...]
 }
 ```
+
+## Naming the repo in sync reads
+
+`getLatestCommit`, `getRepoState`, `getRepo` and `listRepoOps` take the repo as `repo`, as the space lexicons name it. They also still take `did`, the name HappyView used before. The name you use decides the answer:
+
+| | `did` | `repo` |
+|---|---|---|
+| Commit | In the model the repo's state holds (signed, or with `data`) | The lexicons' commit: `{ver, repo, space, rev, data}` |
+| Repo never written | `commit: null` (`getRepo`: 404) | `RepoNotFound` |
+| `getRepo` | CAR | [STAR](https://dasl.ing/star.html) (`application/vnd.dasl.star`) |
+| `listRepoOps` entries | HappyView's full entries | `rev`, `collection`, `rkey`, `cid`, `prev`, and `value` where inlined |
+| Malformed `listRepoOps` cursor | Read as before | `InvalidCursor` |
+
+Send one or the other. Naming both with different values is `InvalidRequest`.
 
 ## Latest commit
 
@@ -1111,6 +1141,8 @@ curl 'https://happyview.example.com/xrpc/com.atproto.space.getLatestCommit?space
 ## Record operation log
 
 `listRepoOps` returns an author's operation log in a space. HappyView records each write (create, update, delete) as an entry in the operation log.
+
+Pass `since`, a rev, to list only the operations after it. `since` is exclusive. With both `since` and `cursor`, the listing starts after whichever is later.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -1247,7 +1279,10 @@ Each entry records a single write operation. The `action` is one of `create`, `u
 
 ## Repo export
 
-`getRepo` exports an author's full repo within a space as a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
+`getRepo` exports an author's full repo within a space.
+
+- **Named with `repo`**, it answers a STAR archive (`application/vnd.dasl.star`, profile `atproto-space-repo`). The metadata is the commit's fields, and each pair is a record: its `collection/rkey` path, then its DRISL bytes, in byte order of the paths.
+- **Named with `did`**, it answers a CAR v1 file. The file contains two roots: the signed commit and a DRISL index (flat DAG-CBOR map of `collection/rkey` to CID). Record blocks follow in lexicographic order.
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
