@@ -143,6 +143,7 @@ Each admin API endpoint requires a specific permission. See the [Permissions gui
 | `GET /admin/metrics/scripts/{trigger}`   | `metrics:read`             |
 | `GET /admin/metrics/ingest`              | `metrics:read`             |
 | `GET /admin/metrics/delivered`           | `metrics:read`             |
+| `GET /admin/metrics/xrpc`                | `metrics:read`             |
 | `GET /admin/metrics/live`                | `metrics:read`             |
 | `GET /admin/jobs`                        | `jobs:read`                |
 | `GET /admin/jobs/{id}`                   | `jobs:read`                |

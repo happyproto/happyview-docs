@@ -22,7 +22,7 @@ The platform principal can:
 
 - list, add, remove and promote [domains](/docs/reference/admin/domains); while `PLATFORM_API_KEY_HASH` is set, the platform principal is the only caller that can add, remove or promote one
 - read [stats](/docs/reference/admin/stats), including [Jetstream status](/docs/reference/admin/stats#jetstream-status)
-- read script and ingest [metrics](/docs/reference/admin/metrics) and [records delivered](/docs/reference/admin/metrics#records-delivered), but not the [live view](/docs/reference/admin/metrics#live)
+- read script and ingest [metrics](/docs/reference/admin/metrics), [records delivered](/docs/reference/admin/metrics#records-delivered) and [XRPC requests](/docs/reference/admin/metrics#xrpc-requests), but not the [live view](/docs/reference/admin/metrics#live)
 - read a `TOKEN_ENCRYPTION_KEY` rotation's [status](/docs/reference/admin/encryption#rotation-status): counts per store and whether the previous key can be removed, never a stored value. It can't start a re-seal
 - call the endpoints on this page
 
