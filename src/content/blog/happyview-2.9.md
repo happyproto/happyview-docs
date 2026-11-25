@@ -29,11 +29,11 @@ The biggest conceptual change in 2.9: scripts are no longer embedded with lexico
 
 For record events, the dispatcher tries the action-specific trigger first (e.g. `record.create:com.example.post`), then falls back to the wildcard `record.index:com.example.post`. This means you can have one general-purpose script that handles everything, or surgical scripts for specific actions — or both.
 
-Scripts are managed through the dashboard under **Settings > Scripts**, or via the new [`/admin/scripts`](/docs/v2/api-reference/admin/scripts) API endpoints. The lexicon detail page also shows which scripts target each lexicon, with links to create or edit them.
+Scripts are managed through the dashboard under **Settings > Scripts**, or via the new [`/admin/scripts`](https://v2.happyview.dev/api-reference/admin/scripts) API endpoints. The lexicon detail page also shows which scripts target each lexicon, with links to create or edit them.
 
 **If you're upgrading from v2.x to v2.9:** existing index hooks and lexicon scripts will be migrated to the new system automatically.
 
-Full docs: [Record & Label Scripts](/docs/v2/guides/record-scripts), [Lua Scripting](/docs/v2/guides/lua-scripting), [Admin API — Scripts](/docs/v2/api-reference/admin/scripts).
+Full docs: [Record & Label Scripts](https://v2.happyview.dev/guides/record-scripts), [Lua Scripting](https://v2.happyview.dev/guides/lua-scripting), [Admin API — Scripts](https://v2.happyview.dev/api-reference/admin/scripts).
 
 ## Backfill, but concurrent
 
@@ -88,7 +88,7 @@ Both of these are fixed properly now, AND I added a couple new endpoints so clie
 - `GET /oauth/sessions/{did}/devices` — list all active sessions
 - `DELETE /oauth/sessions/{did}/devices/{session_id}` — revoke a session
 
-The existing `DELETE /oauth/sessions/{did}` endpoint still works: confidential clients revoke all device sessions for the user, and public clients revoke the session matching their DPoP key. Full details in the [Authentication guide](/docs/v2/getting-started/authentication#6-managing-device-sessions).
+The existing `DELETE /oauth/sessions/{did}` endpoint still works: confidential clients revoke all device sessions for the user, and public clients revoke the session matching their DPoP key. Full details in the [Authentication guide](https://v2.happyview.dev/getting-started/authentication#6-managing-device-sessions).
 
 ## SDK fix
 

@@ -23,7 +23,7 @@ checks=(
   "/docs/guides/backfill/|<title>Backfill | HappyView"
   "/llms.txt|# HappyView"
   "/sitemap-index.xml|<sitemapindex"
-  "/guides/backfill|301 $base/docs/guides/backfill"
+  "/guides/backfill|301 https://v2.happyview.dev/guides/backfill"
 )
 
 run_checks() {

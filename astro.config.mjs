@@ -13,7 +13,6 @@ import { rehypeTables } from './src/lib/rehype-tables.ts';
 import { remarkMermaid } from './src/lib/remark-mermaid.ts';
 import { remarkWorkbench } from './src/lib/remark-workbench.ts';
 import { v3Sidebar } from './src/sidebar.ts';
-import v2Sidebar from './src/v2-sidebar.json' with { type: 'json' };
 
 export default defineConfig({
   site: 'https://happyview.dev',
@@ -72,19 +71,11 @@ export default defineConfig({
               badge: { text: 'Alpha', variant: 'tip' },
               items: v3Sidebar,
             },
-            {
-              id: 'v2',
-              label: 'v2',
-              link: '/docs/v2/',
-              icon: 'document',
-              badge: { text: 'Archived', variant: 'default' },
-              items: v2Sidebar,
-            },
           ],
           {
-            // Pages reachable only by link: the generated SDK changelogs
-            // (linked from each SDK's page) and v2's orphans.
-            topics: { v3: ['/docs/reference/sdk/*/changelog'], v2: ['/docs/v2/**'] },
+            // Pages reachable only by link: the generated SDK changelogs,
+            // linked from each SDK's page.
+            topics: { v3: ['/docs/reference/sdk/*/changelog'] },
           },
         ),
         starlightLinksValidator({
@@ -95,7 +86,6 @@ export default defineConfig({
           projectName: 'HappyView',
           description:
             'HappyView is an open-source AppView for atproto: each lexicon becomes an XRPC endpoint, and scripts in Lua, JavaScript or TypeScript decide what it answers.',
-          exclude: ['docs/v2/**'],
         }),
       ],
     }),

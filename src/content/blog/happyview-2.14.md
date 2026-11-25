@@ -34,7 +34,7 @@ The dashboard shows you a live session count per key, revoked keys included, so 
 
 You'll find all of this in your dashboard at **Settings → OAuth Keys**, or you can manage it via the Admin API if you'd rather automate the system.
 
-Full docs: [Admin API — OAuth Keys](/docs/v2/api-reference/admin/oauth-keys), [API Clients](/docs/v2/guides/api-clients), [SDK — OAuth Client](/docs/v2/sdk/oauth-client/overview).
+Full docs: [Admin API — OAuth Keys](https://v2.happyview.dev/api-reference/admin/oauth-keys), [API Clients](https://v2.happyview.dev/guides/api-clients), [SDK — OAuth Client](https://v2.happyview.dev/sdk/oauth-client/overview).
 
 ### Sessions actually end now
 
@@ -90,9 +90,9 @@ The two axes are now separate settings:
   HappyView had its own hand-rolled NSID validation, and it was wrong. It rejected authority segments starting with a digit (like `pics.2bit.feed.getPhotos`, which is perfectly valid and was being refused), and it accepted two-segment NSIDs, segments ending in a hyphen, and arbitrarily long segments, none of which are legal. There's now a Rust crate and a matching [`@happyview/nsid`](https://www.npmjs.com/package/@happyview/nsid) npm package, both holding the spec's canonical regex and both pinned by the same interop corpus, so the server and the dashboard can't disagree about what a valid NSID is. The npm package is standalone and tiny if you want to use it for your own project.
 - **A startup audit for NSIDs you already saved.**
   Because that validation only tightened on _write_ paths, a trigger id or proxy pattern stored under the old looser rules will keep working. When you try to save changes to it, tho, you're prompted to fix the NSID. HappyView also scans for those issues at boot and names them in the logs. The scan is read-only and fails open, so a config that currently works won't cause boot failures after an upgrade.
-- **New guide: [Hardening an Instance](/docs/v2/guides/hardening).**
+- **New guide: [Hardening an Instance](https://v2.happyview.dev/guides/hardening).**
   What each auth setting actually grants, why `transition:generic` is broader than you probably want, and how to narrow it. Several of these can't be changed later without re-consent, so getting them right the first time is much cheaper.
-- **New guide: [Local Development](/docs/v2/getting-started/deployment/local-development).**
+- **New guide: [Local Development](https://v2.happyview.dev/getting-started/deployment/local-development).**
   The full stack locally with hot reloading — `cargo watch` for the server, Next.js dev server for the dashboard.
 - **Example production compose files.**
   For when you'd like to deploy without reverse-engineering it from the development compose file.

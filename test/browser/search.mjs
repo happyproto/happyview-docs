@@ -8,7 +8,7 @@ import { chromium } from 'playwright-core';
 
 const port = 4399;
 const base = `http://localhost:${port}`;
-const pages = ['/docs/', '/docs/guides/backfill/', '/docs/v2/'];
+const pages = ['/docs/', '/docs/guides/backfill/'];
 const responsive = (page) =>
   Promise.race([
     page.evaluate(() => true),

@@ -22,7 +22,7 @@ Spaces fix that. They give you private, access-controlled data under your existi
 
 ## What this means for HappyView
 
-Because HappyView is [lexicon-driven](/docs/v2/getting-started/quickstart), Spaces integrate naturally with everything you've already built. All of your scripts can query Spaces directly for membership checks, access levels, private record queries, and more. Custom lexicons can build on top of Spaces today without waiting for anything else to land.
+Because HappyView is [lexicon-driven](https://v2.happyview.dev/getting-started/quickstart), Spaces integrate naturally with everything you've already built. All of your scripts can query Spaces directly for membership checks, access levels, private record queries, and more. Custom lexicons can build on top of Spaces today without waiting for anything else to land.
 
 ## Here be dragons
 

@@ -25,7 +25,7 @@ All of this functionality is possible today, but it requires saving an atproto i
 
 Linked Repos allows those accounts to be authorized over OAuth, with their sessions refreshed automatically in the background. Better yet, because it's using OAuth, you can limit the blast radius of a destructive script by adding limited scopes when linking the account.
 
-Full docs: [Linked Repos](/docs/v2/guides/linked-repos), [Admin API — Linked Repos](/docs/v2/api-reference/admin/linked-repos), [Lua API — `linked_repos`](/docs/reference/scripts/libraries).
+Full docs: [Linked Repos](https://v2.happyview.dev/guides/linked-repos), [Admin API — Linked Repos](https://v2.happyview.dev/api-reference/admin/linked-repos), [Lua API — `linked_repos`](/docs/reference/scripts/libraries).
 
 ## Permissioned data update
 

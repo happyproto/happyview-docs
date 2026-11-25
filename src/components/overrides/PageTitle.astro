@@ -1,17 +1,15 @@
 ---
 // Where the page sits, the title beside a button that copies the page's
 // Markdown source, then what to read first.
-import { getCollection, getEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
 import type { StarlightRouteData } from '@astrojs/starlight/route-data';
-import redirects from '../../redirects.json';
 
 // Starlight's PAGE_TITLE_ID, which the package does not export.
 const PAGE_TITLE_ID = '_top';
 
 const { entry, sidebar } = Astro.locals.starlightRoute;
 const { title, prerequisites } = entry.data as { title: string; prerequisites?: string[] };
-const isV2 = entry.id.startsWith('docs/v2/') || entry.id === 'docs/v2';
-const markdownUrl = isV2 || entry.id === '404' ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
+const markdownUrl = entry.id === '404' ? null : `/${entry.id.replace(/\/index$/, '')}.md`;
 
 // The sidebar groups holding the current page, outermost first. A group whose
 // first entry is its Overview links there.
@@ -35,17 +33,6 @@ const crumbs = trail(sidebar) ?? [];
 const section = crumbs[crumbs.length - 1]?.label;
 const searchTitle = section && section !== title ? `${title} · ${section}` : title;
 
-// The same page in the other version, for the version switch to land on: the
-// same path, or failing that the redirect map, whose old paths are v2's.
-const pageIds = new Set((await getCollection('docs')).map((page) => page.id));
-const moved = Object.entries(redirects as Record<string, string>)
-  .filter(([, to]) => !to.startsWith('/docs/v2'))
-  .map(([from, to]) => [`docs/v2${from}`, to.replace(/^\//, '')] as const);
-const counterpartId = isV2
-  ? (moved.find(([v2]) => v2 === entry.id)?.[1] ?? entry.id.replace(/^docs\/v2/, 'docs'))
-  : (moved.find(([, v3]) => v3 === entry.id)?.[0] ?? entry.id.replace(/^docs/, 'docs/v2'));
-const counterpart = entry.id.startsWith('docs') && pageIds.has(counterpartId) ? `/${counterpartId}/` : undefined;
-
 const prereqs = await Promise.all(
   (prerequisites ?? []).map(async (href) => {
     const page = await getEntry('docs', href.replace(/^\/|\/$/g, ''));
@@ -59,7 +46,7 @@ const prereqs = await Promise.all(
     <ol role="list">{crumbs.map((crumb) => <li>{crumb.href ? <a href={crumb.href}>{crumb.label}</a> : crumb.label}</li>)}</ol>
   </nav>
 )}
-<div class="title-row" data-counterpart={counterpart}>
+<div class="title-row">
   <h1 id={PAGE_TITLE_ID} data-pagefind-meta="title[data-search-title]" data-search-title={searchTitle}>{title}</h1>
   {markdownUrl && (
     <span class="copy-page not-content" data-pagefind-ignore>
@@ -119,16 +106,6 @@ const prereqs = await Promise.all(
   revealCurrentPage();
   sidebar?.addEventListener('toggle', revealCurrentPage);
 
-  // The version switch lands on this page's counterpart when there is one.
-  const counterpart = document.querySelector<HTMLElement>('[data-counterpart]')?.dataset.counterpart;
-  if (counterpart) {
-    const switchTo = counterpart.startsWith('/docs/v2/') ? '/docs/v2/' : '/docs/';
-    const topic = sidebar?.querySelector<HTMLAnchorElement>(`.starlight-sidebar-topics a[href="${switchTo}"]`);
-    if (topic) topic.href = counterpart;
-    const banner = document.querySelector<HTMLAnchorElement>('.sl-banner a');
-    if (banner) banner.href = counterpart;
-  }
-
   // A scroller is a tab stop, and a named landmark, only while it has somewhere
   // to scroll.
   const scrollerLabels = new WeakMap<Element, string>();
@@ -167,7 +144,7 @@ const prereqs = await Promise.all(
   });
 
   // Pagefind's result count isn't announced, and it rewrites that element, so
-  // a status region of ours repeats it. The v2 docs are kept out of search.
+  // a status region of ours repeats it.
   if (search) {
     const announcer = document.createElement('p');
     announcer.className = 'search-status';
@@ -201,12 +178,6 @@ const prereqs = await Promise.all(
       const message = noMatch ? text : (search.querySelector('.pagefind-ui__message')?.textContent ?? '');
       if (announcer.textContent !== message) announcer.textContent = message;
     }).observe(search, { childList: true, subtree: true, characterData: true });
-    if (location.pathname.startsWith('/docs/v2/')) {
-      const scope = document.createElement('p');
-      scope.className = 'search-scope';
-      scope.textContent = 'Search covers the v3 docs only; the v2 docs aren’t indexed.';
-      search.querySelector('.dialog-frame')?.prepend(scope);
-    }
   }
 
   // Other pages send the search shortcut here.

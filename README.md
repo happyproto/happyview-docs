@@ -14,11 +14,11 @@ bun run test:browser  # types in search on the built site; run after a build
 
 ## Where things are
 
-- `src/content/docs/docs/` holds the docs, served under `/docs/`. `v2/` is the v2 documentation, frozen: it is kept for people still on v2 and is not edited.
+- `src/content/docs/docs/` holds the v3 docs, served under `/docs/`. The v2 docs are their own site, [v2.happyview.dev](https://v2.happyview.dev), built from `happyproto/happyview-docs-legacy`; every `/docs/v2/` URL redirects there.
 - `src/sidebar.ts` is the v3 sidebar. A page not listed there builds but is reachable only by link.
 - `src/content/blog/` holds the blog posts. A post's file name is its URL.
 - `src/content/landing/` holds the landing page's copy and the sample project it shows.
-- `src/redirects.json` maps every URL the old site served to its new home. The build writes it to `dist/_redirects` for wisp.place, and `test/legacy-urls.test.ts` checks that every URL in `test/legacy-urls.txt` still answers.
+- `src/redirects.json` maps every URL the old site served to its new home: the old root URLs and the `/docs/v2/` pages go to the same page on v2.happyview.dev. The build writes it to `dist/_redirects` for wisp.place, and `test/legacy-urls.test.ts` checks that every URL in `test/legacy-urls.txt` still answers.
 - `src/styles/marketing.css` holds the rules this site uses from happyproto.at's stylesheet. `src/styles/docs.css` points Starlight's colours and type at the design system's tokens.
 
 ## Writing a page

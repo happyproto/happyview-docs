@@ -24,7 +24,7 @@ HappyView offers three modes:
 
 With a service identity in place, HappyView can act as a service proxy. A PDS sends a request with an `atproto-proxy` header pointing at your AppView, HappyView verifies the caller via service auth, runs your XRPC handler, and responds. This is how atproto apps are _supposed_ to work! Up to this point HappyView only supported direct connections via DPoP.
 
-Full docs: [Service Identity](/docs/v2/getting-started/service-identity).
+Full docs: [Service Identity](https://v2.happyview.dev/getting-started/service-identity).
 
 ## Permissioned spaces alignment
 
@@ -64,7 +64,7 @@ Also, `getMemberGrant` is now `getDelegationToken` (and it's a `GET`, not a `POS
 - **Record operation log** - `listRepoOps` returns the oplog for sync
 - **Write notifications** - `registerNotify`, `notifyWrite`, `notifySpaceDeleted`
 
-Full docs: [Permissioned Spaces](/docs/v2/experimental/spaces).
+Full docs: [Permissioned Spaces](https://v2.happyview.dev/experimental/spaces).
 
 ## Blob utilities for Lua
 

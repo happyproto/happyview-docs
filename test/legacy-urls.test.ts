@@ -11,7 +11,8 @@ const legacy = readFileSync(new URL('legacy-urls.txt', import.meta.url), 'utf8')
   .filter((line) => line && !line.startsWith('#'));
 const map = redirects as Record<string, string>;
 
-// A target outside the site (HappyView's CONTRIBUTING.md) isn't checked here.
+// A target outside the site (v2.happyview.dev, HappyView's CONTRIBUTING.md)
+// isn't checked here.
 const external = (url: string) => /^https?:\/\//.test(url);
 
 const built = (url: string) => {
@@ -48,6 +49,11 @@ describe('redirect map', () => {
   test('dist/_redirects carries every rule, with and without a trailing slash', () => {
     const file = readFileSync(new URL('_redirects', dist), 'utf8');
     expect(redirectLines({ '/a/b': '/docs/c' })).toEqual(['/a/b /docs/c 301', '/a/b/ /docs/c 301']);
+    expect(redirectLines({ '/a/*': 'https://x.test/:splat' })).toEqual(['/a/* https://x.test/:splat 301']);
+    expect(redirectLines({ '/a/': 'https://x.test/a', '/a': 'https://x.test' })).toEqual([
+      '/a/ https://x.test/a 301',
+      '/a https://x.test 301',
+    ]);
     const lines = new Set(file.split('\n'));
     const missing = redirectLines(map).filter((line) => !lines.has(line));
     expect(missing).toEqual([]);

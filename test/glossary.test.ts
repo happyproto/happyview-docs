@@ -1,6 +1,6 @@
 // The words GLOSSARY.md says to avoid don't appear in v3 docs prose
-// (docs/adr/0004). Code, inline code, bold UI labels, link targets and the
-// frozen v2 archive are exempt, so a config key such as `superadmin` or a
+// (docs/adr/0004). Code, inline code, bold UI labels and link targets are
+// exempt, so a config key such as `superadmin` or a
 // dashboard button such as **Retry all matching** can still be named.
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
@@ -21,7 +21,7 @@ describe('avoided', () => {
 
 const root = new URL('../', import.meta.url).pathname;
 const pages = [...new Glob('src/content/docs/docs/**/*.{md,mdx}').scanSync(root)].filter(
-  (p) => !p.startsWith('src/content/docs/docs/v2/') && !/changelog\.md$/.test(p),
+  (p) => !/changelog\.md$/.test(p),
 );
 
 describe('v3 docs prose', () => {
