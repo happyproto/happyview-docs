@@ -964,7 +964,7 @@ Each entry in `results` corresponds to the write at the same index. Create and u
 
 ### The lexicons' write shape
 
-Each write can also be tagged by `$type`, as the space lexicons define: `com.atproto.space.applyWrites#create`, `#update` or `#delete`. Use one tag throughout a batch. Mixing `$type` and `action` writes, or naming an unknown `applyWrites#` type, fails with `InvalidRequest`. A write with `action` is read by its `action`.
+Each write can also be tagged by `$type`, as the space lexicons define: `com.atproto.space.applyWrites#create`, `#update` or `#delete`. Use one tag throughout a batch. A write that has `action` counts as an `action` write, even if it also carries `$type`. Mixing the two, or naming an unknown `applyWrites#` type, fails with `InvalidRequest`.
 
 ```json
 {
@@ -990,14 +990,14 @@ In this shape the lexicons' rules apply:
 
 | | `action` writes | `$type` writes |
 |---|---|---|
-| Create at a taken key | `409` | `RecordAlreadyExists`, and the whole batch is refused |
+| Create at a taken key | `409` | `RecordAlreadyExists` |
 | Update of a missing record | Creates it | `RecordNotFound` |
 | Delete of a missing record | `404` | `RecordNotFound` |
 | `swapRecord` | Checked | Not part of the lexicons, so ignored |
 | `repo` | Not read | Must be the caller when given (`403` otherwise) |
 | Results | As above | Each carries its `$type` (`#createResult`, `#updateResult`, `#deleteResult`) |
 
-A batch takes at most 200 writes, in either shape.
+In the `$type` shape, a key that isn't a valid record key fails with `InvalidRequest`. In either shape, a write that fails fails the whole batch, and a batch takes at most 200 writes. For a repo held on its author's PDS, HappyView forwards the batch there, and that host's rules apply.
 
 ## Clearing a repo
 

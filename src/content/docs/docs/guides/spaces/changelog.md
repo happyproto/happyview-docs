@@ -7,7 +7,7 @@ description: "What changed in HappyView's atproto spaces, release by release."
 
 ### Space URIs
 
-- **`at:space/` URIs.** HappyView reads `at:space/<space-did>/<type>/<skey>` everywhere a space is named, as well as `at://<space-did>/space/<type>/<skey>`, and treats them as the same space. Answers use the form the request used. `space` on `createSpace` and `listSpaces` is in the `at:space/` form; `uri` stays `at://`. See [Space URI forms](/docs/guides/spaces#space-uri-forms).
+- **`at:space/` URIs.** HappyView reads `at:space/<space-did>/<type>/<skey>` everywhere a space is named, as well as `at://<space-did>/space/<type>/<skey>`, and treats them as the same space. `space` fields and record `uri`s answer in the form the request used, and `space` on `createSpace` and `listSpaces` is in the `at:space/` form. A space's `uri` field and notices to syncers stay `at://`. See [Space URI forms](/docs/guides/spaces#space-uri-forms).
 - **Lexicon validation:** the `space-ref` format is now checked (a space URI in either form), and `at-uri` fields accept `at:space/` URIs.
 
 ### Writes

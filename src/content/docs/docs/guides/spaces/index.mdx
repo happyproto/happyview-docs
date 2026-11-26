@@ -31,12 +31,9 @@ at:space/<space-did>/<type-nsid>/<skey>/<author-did>/<collection>/<rkey>
 
 Space URIs have two forms. Proposal 0016 names spaces `at:space/<space-did>/<type>/<skey>`. Earlier revisions named them `at://<space-did>/space/<type>/<skey>`. HappyView accepts both everywhere a space or space record is named, and treats them as the same space. An `at:space/` URI must name its space by DID.
 
-HappyView answers in the form your request used. When a request names no space, as with `createSpace` and `listSpaces`:
+A `space` field, and a space record's `uri`, answer in the form your request named the space in. When a request names no space, as with `createSpace` and `listSpaces`, `space` is in the `at:space/` form. A space's `uri` field, which the Oct 29 text reads, and the notices HappyView sends syncers, always use the `at://` form.
 
-- `space` holds the `at:space/` form.
-- `uri`, the field the Oct 29 text reads, holds the `at://` form.
-
-Examples on these pages use the `at://` form, which works unchanged.
+Examples on these pages use the `at://` form.
 
 ## Feature flag
 
