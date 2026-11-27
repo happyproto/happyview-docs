@@ -1,6 +1,6 @@
 ---
 title: Script types and triggers
-description: The trigger strings that bind a script to XRPC requests, record events, label events and background jobs, and how each type behaves.
+description: The trigger strings that bind a script to XRPC requests, record events, label events, account events and background jobs, and how each type behaves.
 ---
 
 A script is identified by its **trigger string**. The trigger is the script's `id`: there is no separate name. It has the form `<prefix>:<suffix>`, and the prefix decides which events the script receives.
@@ -16,8 +16,11 @@ A script is identified by its **trigger string**. The trigger is the script's `i
 | `labeler.apply:<nsid>` | A label arrives whose subject is `at://<did>/<nsid>/<rkey>` | An NSID |
 | `labeler.apply:_actor` | A label arrives whose subject is a bare DID | The literal `_actor` |
 | `job.run:<type>` | A background job of type `<type>` is picked up by the worker | A job type |
+| `identity:update` | An indexed account's handle or DID document changes | The literal `update` |
+| `account:<event>` | An indexed account's status changes; see [Account scripts](#account-scripts) | `update`, `activate`, `deactivate`, `suspend` or `delete` |
+| `repo:sync` | An indexed account's repo is resynced | The literal `sync` |
 
-Any other prefix is refused. The suffix can't be empty, and every suffix except a job type and `_actor` must be a valid NSID. A job type is 1 to 128 characters of lowercase letters, digits, `.`, `_` and `-`, starting with a letter or digit. The `happyview.` prefix is reserved for built-in jobs. A job type may not end in `.test`, because in a project `src/jobs/<type>.test.<ext>` is a test file.
+Any other prefix is refused. The suffix can't be empty. A job type, `_actor` and the `identity`, `account` and `repo` events have their own forms; every other suffix must be a valid NSID. A job type is 1 to 128 characters of lowercase letters, digits, `.`, `_` and `-`, starting with a letter or digit. The `happyview.` prefix is reserved for built-in jobs. A job type may not end in `.test`, because in a project `src/jobs/<type>.test.<ext>` is a test file.
 
 ## Name a script file
 
@@ -32,6 +35,9 @@ In a project, you don't write the trigger. A script's path under `src/` decides 
 | `src/labels/<nsid>.<ext>` | `labeler.apply:<nsid>` |
 | `src/labels/_actor.<ext>` | `labeler.apply:_actor` |
 | `src/jobs/<type>.<ext>` | `job.run:<type>` |
+| `src/identity/update.<ext>` | `identity:update` |
+| `src/account/<event>.<ext>` | `account:<event>`, for each event the trigger takes |
+| `src/repo/sync.<ext>` | `repo:sync` |
 
 For example, `src/lexicons/xyz/statusphere/status.create.lua` next to `status.json` is the script for `record.create:xyz.statusphere.status`.
 
@@ -42,6 +48,8 @@ A file that names a trigger it can't have fails the build, with a message saying
 - A definitions or space lexicon runs no script, so a file named after one is an error.
 - `src/jobs/` and `src/labels/` are flat: a file in a subdirectory is an error. A name the trigger grammar refuses, such as `src/jobs/Nightly.lua`, is an error too.
 - A script in an extension no installed interpreter claims is an error that lists the extensions that are claimed.
+
+In `src/identity/`, `src/account/` and `src/repo/`, only a file named after one of the directory's events is a script. Any other file there is a module, as it was before these directories named scripts. A project with a module at one of those names, such as `src/account/update.lua`, should rename it: it is now the `account:update` script, and the build refuses it if it defines no `handle`. When the instance starts, the build lists such files in one warning, and a deploy that turns a module into a script warns about that file.
 
 `*.test.<ext>` is a test file wherever it sits. Any other file with a claimed extension is a module that scripts can import. A `.md`, `.markdown` or `.txt` file where a script would go is ignored, and so is a `.json` file in `src/jobs/` or `src/labels/`, so a README can sit next to the code it describes.
 
@@ -91,12 +99,39 @@ A job script runs when the background worker picks up a job of its type. A scrip
 
 The return value becomes the job's result. A job is not held to the instruction limit or the wall clock; it should check `ctx.job.should_stop()` and return when asked. See [Limits](/docs/reference/scripts/limits).
 
+## Account scripts
+
+Identity, account and repo scripts run when the network reports a change to an account this instance indexes, meaning one it holds records for. Events about other accounts don't run them. They run after the event, and what `handle` returns is ignored.
+
+| Trigger | Runs on | `input` |
+| --- | --- | --- |
+| `identity:update` | An `#identity` event: a handle or DID document change | `{did, handle, previous_handle, time}` |
+| `account:update` | Every `#account` event | `{did, active, status, previous_active, previous_status, time}` |
+| `account:activate` | `active` becomes `true` | The same as `account:update` |
+| `account:deactivate` | `active` becomes `false` with status `deactivated` | The same |
+| `account:suspend` | Status becomes `suspended` or `takendown` | The same |
+| `account:delete` | Status `deleted` | The same |
+| `repo:sync` | A `#sync` event: the repo was reset or resynced | `{did, rev, time}` |
+
+- One `#account` event runs `account:update`, and also the script for the change it reports. The `activate`, `deactivate` and `suspend` scripts run only when the status differs from the last one HappyView recorded, or when it recorded none. `account:delete` runs on every deletion event the network sends, so it can run more than once for one account.
+- An account suspended, taken down or resynced is still one this instance indexes after HappyView removes its records, so a reinstated account runs `account:activate`.
+- `account:delete` runs before HappyView removes the account's records, so the script can still read them. `repo:sync` runs after HappyView's resync has removed the records the resync replaced.
+- `previous_handle`, `previous_active` and `previous_status` are the values HappyView last recorded for the account. They're `null` when it recorded none, for example the first time an account script runs for that account.
+- `handle` is `null` when the event carries none. `time` is when the network saw the event, as an RFC 3339 timestamp.
+- `ctx.caller_did` is absent: the event is the network's report about an account, not a request from it. The account is `input.did`. Like a label script, an account script can't write to a PDS or create a job.
+- Events replayed from the archive during a backfill don't run these scripts.
+- Each event runs its scripts once, even if HappyView applies the event again after a failed write.
+- HappyView keeps an account's last recorded handle and status while it indexes the account. It drops them once `account:delete` has run, and after 30 days for an account it no longer indexes.
+
+There is no create trigger. The first event HappyView sees for an account isn't the account's creation, so nothing could run reliably on one. To act the first time you see an account, use its first [record event](#record-scripts).
+
 ## Failures and retries
 
 | Script type | On failure |
 | --- | --- |
 | Query, procedure | One attempt. The caller gets the error |
 | Record, label | Up to 4 attempts in total, with 1, 2 and 4 second delays between them. After the last one, the event is written to the dead-letter table and the record or label is stored as it arrived |
+| Identity, account, repo | Up to 4 attempts, as for record scripts. After the last one, the event is written to the dead-letter table. HappyView handles the event either way |
 | Job | The job's status becomes `failed`, with the error type and the interpreter's error text as its error |
 
 Record and label scripts fail open so a broken script can't stop indexing. They run before indexing, so a slow or failing script holds up the events behind it: a script that fails every time spends about 7 seconds per event on backoff.

@@ -116,6 +116,11 @@ export default async function handle(input: Input, ctx: { caller_did?: string })
 | `record.index:<nsid>`, `record.create:<nsid>`, `record.update:<nsid>`, `record.delete:<nsid>` | `{ action, uri, did, collection, rkey, record }`. `action` is `"create"`, `"update"` or `"delete"`. `record` is `null` on a delete |
 | `labeler.apply:<nsid>`, `labeler.apply:_actor` | `{ src, uri, val, neg, cts, exp }`. `exp` is absent when the label doesn't expire |
 | `job.run:<type>` | The input the job was created with |
+| `identity:update` | `{ did, handle, previous_handle, time }` |
+| `account:update`, `account:activate`, `account:deactivate`, `account:suspend`, `account:delete` | `{ did, active, status, previous_active, previous_status, time }` |
+| `repo:sync` | `{ did, rev, time }` |
+
+The fields of the identity, account and repo inputs are described in [Account scripts](/docs/reference/scripts/types-and-triggers#account-scripts).
 
 In Lua, a JSON `null` in `input` arrives as a sentinel value rather than `nil`, and the sentinel is truthy. Test `input.action`, not `input.record`, to tell a delete apart.
 
@@ -126,8 +131,8 @@ Every invocation carries these four fields:
 | Field | Value |
 | --- | --- |
 | `trigger` | The script's trigger string, such as `xrpc.query:com.example.getThing` |
-| `caller_did` | Query: the caller, or absent when anonymous. Procedure: the authenticated caller. Record event: the DID of the repo the event came from. Job: the DID that created the job. Label: absent |
-| `has_pds_auth` | `true` when the script can write to a PDS as `caller_did`: a procedure whose caller has a session, or a job created with `{ auth: true }`. `false` for queries, record events and labels |
+| `caller_did` | Query: the caller, or absent when anonymous. Procedure: the authenticated caller. Record event: the DID of the repo the event came from. Job: the DID that created the job. Label, identity, account or repo event: absent |
+| `has_pds_auth` | `true` when the script can write to a PDS as `caller_did`: a procedure whose caller has a session, or a job created with `{ auth: true }`. `false` for queries, record events, account events and labels |
 | `env` | The instance's script variables, keyed by name |
 
 Some script types carry more:
@@ -137,6 +142,7 @@ Some script types carry more:
 | Query | `method` |
 | Procedure | `method`, `params`, `delegate_did` |
 | Record event | `collection` |
+| Identity, account or repo event | none |
 | Label | none |
 | Job | `job` |
 
@@ -190,6 +196,7 @@ The service verifies the assertion against the instance's public key, which the 
 | Record event | Nothing to skip indexing. An object to store in place of the record. Anything else, such as `true`, to store the record as it arrived |
 | Label | Nothing to drop the label. An object whose fields are merged over the label. Anything else, such as `true`, to keep the label as it arrived |
 | Job | The job's result |
+| Identity, account, repo | Ignored |
 
 A query or procedure can answer in two other ways:
 

@@ -1,6 +1,6 @@
 ---
 title: Reacting to records
-description: Run a script whenever a record in one of your collections is created, updated or deleted, and when a labeler labels it.
+description: Run a script whenever a record in one of your collections is created, updated or deleted, when a labeler labels it, and when an account changes.
 prerequisites:
   - /docs/getting-started/running-locally
   - /docs/getting-started/lexicons
@@ -292,6 +292,54 @@ export default function handle(input: LabelEvent, ctx: LabelCtx) {
 </Tabs>
 
 A label script has no caller, so `ctx.caller_did` is absent and it can't write to a PDS or create a job. A failing label script is retried and dead-lettered like a record script, and the label is stored as it arrived. See [Script types and triggers](/docs/reference/scripts/types-and-triggers#label-scripts).
+
+## React to account events
+
+An account script runs when the network reports a change to an account we index, meaning one whose records we hold. It lives in `src/identity/`, `src/account/` or `src/repo/`, named by the event:
+
+- `src/identity/update.lua` runs when the account's handle or DID document changes.
+- `src/account/update.lua` runs on every change to the account's status. `src/account/activate.lua`, `deactivate.lua`, `suspend.lua` and `delete.lua` run for that change alone.
+- `src/repo/sync.lua` runs when the account's repo is resynced.
+
+What an account script returns is ignored. This one logs each account deletion, and runs before HappyView removes the account's records:
+
+<Tabs syncKey="lang">
+<TabItem label="Lua">
+
+```lua
+local log = require("internal.logging")
+
+function handle(input, ctx)
+  log.info("account deleted", { did = input.did, previous_status = input.previous_status })
+end
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+import log from "internal.logging";
+
+export default function handle(input, ctx) {
+  log.info("account deleted", { did: input.did, previous_status: input.previous_status });
+}
+```
+
+</TabItem>
+<TabItem label="TypeScript">
+
+```ts
+import log from "internal.logging";
+
+export default function handle(input: { did: string; previous_status: string | null }) {
+  log.info("account deleted", { did: input.did, previous_status: input.previous_status });
+}
+```
+
+</TabItem>
+</Tabs>
+
+There's no script for an account's creation: the first event we see for an account isn't when it was made. To act the first time we see an account, use a record script. [Account scripts](/docs/reference/scripts/types-and-triggers#account-scripts) lists every trigger and its `input`.
 
 ## Next steps
 
