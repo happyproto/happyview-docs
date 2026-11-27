@@ -32,6 +32,7 @@ my-app/
 | `src/lexicons/xyz/statusphere/status.create.lua` | A record script for a record lexicon beside it. `create`, `update`, `delete`, or `index` for all three | `record.create:xyz.statusphere.status` |
 | `src/jobs/export.lua` | A job script | `job.run:export` |
 | `src/labels/<NSID>.lua`, `src/labels/_actor.lua` | A label script, for labels on records of that collection or on accounts | `labeler.apply:<NSID>` |
+| `src/account/delete.lua`, `src/identity/update.lua`, `src/repo/sync.lua` | A script for an account event, named by the event | `account:delete` |
 | `src/lib/format.lua`, or any other path | A module, which scripts import | none |
 | `anything.test.lua` | A test, wherever it is | none |
 
