@@ -22,7 +22,7 @@ When a repo has moved to its author's PDS, HappyView forwards `createRecord`, `p
 
 ## Creating a record
 
-The caller must be a member with `write` access. HappyView generates the rkey as a TID.
+The caller must be a member with `write` access. Pass `rkey` to choose the record key; without one, HappyView generates it as a TID. A key that already holds a record fails with `RecordAlreadyExists`. `repo`, when given, must be the caller (`403` otherwise).
 
 <Tabs syncKey="lang">
 <TabItem label="TypeScript">
@@ -961,6 +961,43 @@ Each write operation has an `action` field:
 ```
 
 Each entry in `results` corresponds to the write at the same index. Create and update operations return `uri` and `cid`; delete operations return an empty object.
+
+### The lexicons' write shape
+
+Each write can also be tagged by `$type`, as the space lexicons define: `com.atproto.space.applyWrites#create`, `#update` or `#delete`. Use one tag throughout a batch. A write that has `action` counts as an `action` write, even if it also carries `$type`. Mixing the two, or naming an unknown `applyWrites#` type, fails with `InvalidRequest`.
+
+```json
+{
+  "space": "at://did:web:happyview.example.com/space/com.example.forum/main",
+  "repo": "did:plc:author456",
+  "writes": [
+    {
+      "$type": "com.atproto.space.applyWrites#create",
+      "collection": "com.example.forum.post",
+      "rkey": "first",
+      "value": { "$type": "com.example.forum.post", "text": "First post" }
+    },
+    {
+      "$type": "com.atproto.space.applyWrites#delete",
+      "collection": "com.example.forum.post",
+      "rkey": "old-post"
+    }
+  ]
+}
+```
+
+In this shape the lexicons' rules apply:
+
+| | `action` writes | `$type` writes |
+|---|---|---|
+| Create at a taken key | `409` | `RecordAlreadyExists` |
+| Update of a missing record | Creates it | `RecordNotFound` |
+| Delete of a missing record | `404` | `RecordNotFound` |
+| `swapRecord` | Checked | Not part of the lexicons, so ignored |
+| `repo` | Not read | Must be the caller when given (`403` otherwise) |
+| Results | As above | Each carries its `$type` (`#createResult`, `#updateResult`, `#deleteResult`) |
+
+In the `$type` shape, a key that isn't a valid record key fails with `InvalidRequest`. In either shape, a write that fails fails the whole batch, and a batch takes at most 200 writes. For a repo held on its author's PDS, HappyView forwards the batch there, and that host's rules apply.
 
 ## Clearing a repo
 

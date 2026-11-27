@@ -3,6 +3,27 @@ title: "Changelog"
 description: "What changed in HappyView's atproto spaces, release by release."
 ---
 
+## Next beta: the Nov 12 and Nov 24 space revisions
+
+### Space URIs
+
+- **`at:space/` URIs.** HappyView reads `at:space/<space-did>/<type>/<skey>` everywhere a space is named, as well as `at://<space-did>/space/<type>/<skey>`, and treats them as the same space. `space` fields and record `uri`s answer in the form the request used, and `space` on `createSpace` and `listSpaces` is in the `at:space/` form. A space's `uri` field and notices to syncers stay `at://`. See [Space URI forms](/docs/guides/spaces#space-uri-forms).
+- **Lexicon validation:** the `space-ref` format is now checked (a space URI in either form), and `at-uri` fields accept `at:space/` URIs.
+
+### Writes
+
+- **`applyWrites` takes the lexicons' `$type`-tagged writes** beside the `action` shape, with the lexicons' rules for that shape. See [The lexicons' write shape](/docs/guides/spaces/records#the-lexicons-write-shape).
+- **Caller-chosen record keys** on `createRecord` and `applyWrites` creates.
+- **`applyWrites` now accepts at most 200 writes per call in either form.**
+
+### Sync
+
+- **`notifyRepoUpdate`** from repo hosts is taken as `notifyWrite`'s spec shape is, with the lexicon's required fields and a per-sender limit. See [notifyRepoUpdate](/docs/guides/spaces/notifications#notifyrepoupdate).
+- **`notifyCredentialsRevoked`**, the Nov 12 name, is sent first and taken beside `notifyCredentialRevoked`.
+- **Commit MACs in both revisions** when syncing a repo from its author's PDS. See [Repositories on authors' PDSes](/docs/guides/spaces#repositories-on-authors-pdses).
+
+---
+
 ## v2.17 beta and v3 alpha: Space moderation and access checks
 
 ### Admin endpoints

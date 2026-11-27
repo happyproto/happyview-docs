@@ -19,13 +19,21 @@ A **space** is identified by three components:
 - **Type**: the space type as an NSID, describing the modality (e.g. a forum, a group chat, a photo album)
 - **Space key (skey)**: a short string differentiating multiple spaces of the same type
 
-These form the space URI: `at://<space-did>/space/<type>/<skey>`
+These form the space URI: `at:space/<space-did>/<type>/<skey>`
 
 A **space record** adds three more components to the URI: the author's DID, the collection NSID, and the record key:
 
 ```
-at://<space-did>/space/<type-nsid>/<skey>/<author-did>/<collection>/<rkey>
+at:space/<space-did>/<type-nsid>/<skey>/<author-did>/<collection>/<rkey>
 ```
+
+### Space URI forms
+
+Space URIs have two forms. Proposal 0016 names spaces `at:space/<space-did>/<type>/<skey>`. Earlier revisions named them `at://<space-did>/space/<type>/<skey>`. HappyView accepts both everywhere a space or space record is named, and treats them as the same space. An `at:space/` URI must name its space by DID.
+
+A `space` field, and a space record's `uri`, answer in the form your request named the space in. When a request names no space, as with `createSpace` and `listSpaces`, `space` is in the `at:space/` form. A space's `uri` field, which the Oct 29 text reads, and the notices HappyView sends syncers, always use the `at://` form.
+
+Examples on these pages use the `at://` form.
 
 ## Feature flag
 
@@ -116,7 +124,7 @@ Space endpoints are split across two namespaces:
 - **`com.atproto.space.*`**: protocol-level routes (queries, data, credentials, sync)
 - **`com.atproto.simplespace.*`**: management routes (create/update/delete spaces, membership)
 
-Some of these endpoints also answer under a deprecated `dev.happyview.space.*` alias. The invite endpoints exist only under `dev.happyview.space.*` and are not deprecated. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and `notifyWrite` and `notifySpaceDeleted` take service auth.
+Some of these endpoints also answer under a deprecated `dev.happyview.space.*` alias. The invite endpoints exist only under `dev.happyview.space.*` and are not deprecated. Most endpoints take [DPoP authentication](/docs/getting-started/authentication) or cookie-based session auth. Read and sync endpoints also take a [space credential](/docs/guides/spaces/credentials), and the `notify*` endpoints take service auth.
 
 | Endpoint                                      | Method | Description                                     |
 | --------------------------------------------- | ------ | ----------------------------------------------- |
@@ -147,6 +155,9 @@ Some of these endpoints also answer under a deprecated `dev.happyview.space.*` a
 | `com.atproto.space.registerNotify`             | POST   | Register a syncer for write notifications       |
 | `com.atproto.space.unregisterNotify`           | POST   | Withdraw a registration                         |
 | `com.atproto.space.notifyWrite`                | POST   | Report a repo's new commit                      |
+| `com.atproto.space.notifyRepoUpdate`           | POST   | Report a repo's new state (Nov 12 name)         |
+| `com.atproto.space.notifyCredentialsRevoked`   | POST   | Revoke credentials by `jti`                     |
+| `com.atproto.space.notifyCredentialRevoked`    | POST   | Earlier name of `notifyCredentialsRevoked`      |
 | `com.atproto.space.notifySpaceDeleted`         | POST   | Push a space-deleted notification               |
 | `dev.happyview.space.createInvite`             | POST   | Create an invite (HappyView extension)          |
 | `dev.happyview.space.acceptInvite`             | POST   | Accept an invite (HappyView extension)          |
@@ -194,6 +205,15 @@ The grant, its reason, and every record list and blob opened under it go to the 
 
 A space repository can move from HappyView to its author's PDS. Each repository goes through three states: `polyfill` (held by HappyView), `migrating`, and `native` (held by the author's PDS). Migration is gated by the `feature.spaces_pds_migration` flag. Operators can follow progress with [`GET /admin/spaces/migration-status`](/docs/reference/admin/spaces#space-migration-status).
 
+When HappyView syncs a native repository, it authenticates the PDS's latest commit:
+
+- A commit in the earlier, signed shape is checked against the author's `#atproto` key.
+- A Proposal 0016 commit carries no signature. HappyView asks for a MAC keyed to the author's `#atproto_kem` key, in both revisions of the request, and checks whichever the PDS answers:
+  - **Nov 12**: an [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) `Accept-Signature` request tagged `atproto-space-commit`, answered with an `Atproto-Space-Commit` header and an `hmac-sha256` signature over it.
+  - **Oct 29**: `Atproto-Space-Want-Mac`, answered with `Atproto-Space-Mac`.
+
+A commit that can't be authenticated isn't synced.
+
 ## Alignment with Proposal 0016
 
 HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/proposals) (Permissioned Data) with some HappyView-specific extensions.
@@ -207,7 +227,8 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **Member list**: `putMember` with independent `read` and `write` flags
 - **Delegation tokens**: `getDelegationToken` (GET, 60-second TTL, single use), or tokens signed by the account's own key
 - **Space credentials**: `atproto-space-credential+jwt`, ES256, 10-minute TTL, bound to a key with `cnf.kid` and used with RFC 9421 HTTP Message Signatures
-- **Credential revocation**: `notifyCredentialRevoked` sent to hosts of repos in the space
+- **Space URIs**: `at:space/` and `at://` forms, both accepted; answers in the form asked
+- **Credential revocation**: `notifyCredentialsRevoked` sent to hosts of repos in the space, or `notifyCredentialRevoked` to a host without it
 - **Deniable commit signatures**: the signature covers a context (space + author + rev + random IKM), not the content hash. HappyView signs the repos it holds with its `#atproto_space` key
 - **LtHash**: homomorphic set-hash (2048-byte state, 1024 uint16 lanes, BLAKE3 XOF)
 - **SignedCommit**: versioned commit struct (`ver: 1`) with hash, ikm, sig, mac, rev
@@ -215,7 +236,8 @@ HappyView implements [atproto Proposal 0016](https://github.com/bluesky-social/p
 - **Latest commit**: `getLatestCommit` returns the signed commit for a user in a space
 - **Repo export**: `getRepo` exports a user's repo as a STAR archive when the repo is named `repo`, or as a CAR v1 file (signedCommit + DRISL index) when it's named `did`
 - **Clearing a repo**: `clearRecords` deletes every record in the caller's repo in one commit
-- **Sync**: `registerNotify` by service identifier, `notifyWrite` in both directions, `listRepos` from the writer set with a space-wide revision
+- **Sync**: `registerNotify` by service identifier, `notifyRepoUpdate` and `notifyWrite` from repo hosts, `notifyWrite` to syncers, `listRepos` from the writer set with a space-wide revision
+- **Commit MACs** when syncing from a PDS: both the Nov 12 and Oct 29 revisions
 - **Space-scoped blobs**: `getBlob`, `listBlobs`
 
 ### HappyView extensions (not in the protocol spec)
