@@ -64,7 +64,7 @@ interface ServiceEntry {
   id: number;
   fragment_id: string;
   service_type: string;
-  access_mode: string;
+  access_mode: "all" | "specific";
   created_at: string;
   updated_at: string;
 }
@@ -241,7 +241,7 @@ await fetch("http://127.0.0.1:3000/admin/service-entries/1", {
   },
   body: JSON.stringify({
     service_type: "AtprotoLabeler",
-    access_mode: "allowlist",
+    access_mode: "specific",
   }),
 });
 ```
@@ -258,7 +258,7 @@ await fetch("http://127.0.0.1:3000/admin/service-entries/1", {
   },
   body: JSON.stringify({
     service_type: "AtprotoLabeler",
-    access_mode: "allowlist",
+    access_mode: "specific",
   }),
 });
 ```
@@ -272,7 +272,7 @@ client
     .bearer_auth(token)
     .json(&serde_json::json!({
         "service_type": "AtprotoLabeler",
-        "access_mode": "allowlist"
+        "access_mode": "specific"
     }))
     .send()
     .await?;
@@ -282,7 +282,7 @@ client
 <TabItem label="Go">
 
 ```go
-body := bytes.NewBufferString(`{"service_type": "AtprotoLabeler", "access_mode": "allowlist"}`)
+body := bytes.NewBufferString(`{"service_type": "AtprotoLabeler", "access_mode": "specific"}`)
 req, _ := http.NewRequest("PUT", "http://127.0.0.1:3000/admin/service-entries/1", body)
 req.Header.Set("Authorization", "Bearer "+token)
 req.Header.Set("Content-Type", "application/json")
@@ -296,7 +296,7 @@ resp, err := http.DefaultClient.Do(req)
 curl -X PUT http://127.0.0.1:3000/admin/service-entries/1 \
   -H "$AUTH" \
   -H "Content-Type: application/json" \
-  -d '{ "service_type": "AtprotoLabeler", "access_mode": "allowlist" }'
+  -d '{ "service_type": "AtprotoLabeler", "access_mode": "specific" }'
 ```
 
 </TabItem>
@@ -306,7 +306,7 @@ curl -X PUT http://127.0.0.1:3000/admin/service-entries/1 \
 | -------------- | ------ | -------- | -------------------------------------------------- |
 | `fragment_id`  | string | no       | Updated DID document fragment                      |
 | `service_type` | string | no       | Updated service type                               |
-| `access_mode`  | string | no       | `all`, `allowlist`, or `disabled`                  |
+| `access_mode`  | string | no       | `all`, or `specific` (only the XRPCs bound to this entry). Any other value is `400 Bad Request` |
 
 All fields are optional. Only provided fields are updated.
 
