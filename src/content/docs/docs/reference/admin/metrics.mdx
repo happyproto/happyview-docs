@@ -5,7 +5,7 @@ description: "Admin API endpoints for script run metrics and the record ingest p
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All five endpoints need `metrics:read`. The dashboard's **Script performance** page reads the other four. On a managed instance, the [platform principal](/docs/reference/admin/platform) can also read [List scripts](#list-scripts), [Get one script](#get-one-script), [Ingest](#ingest) and [Records delivered](#records-delivered), but not [Live](#live).
+Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All six endpoints need `metrics:read`. The dashboard's **Script performance** page reads four of them. On a managed instance, the [platform principal](/docs/reference/admin/platform) can also read [List scripts](#list-scripts), [Get one script](#get-one-script), [Ingest](#ingest), [Records delivered](#records-delivered) and [XRPC requests](#xrpc-requests), but not [Live](#live).
 
 Metrics are kept in memory by the process that runs the scripts, for the last hour by the minute and the last day by the half hour. Each minute that closes is written to the database once, so the `7d` and `30d` windows survive a restart. Test files run by `happyview test` are not recorded.
 
@@ -566,6 +566,38 @@ curl "http://127.0.0.1:3000/admin/metrics/delivered?from=2026-11-01T00:00:00Z&st
 | `store_pass` | A backfill that read an external storage's copy of a collection instead of crawling it |
 | `retry` | A dead-lettered record run again |
 | `unknown` | Counted before origins were kept |
+
+## XRPC requests
+
+```
+GET /admin/metrics/xrpc
+```
+
+How many requests the instance's `/xrpc/` routes were sent, per UTC hour or day, by method kind: `query` (a GET), `procedure` (a POST) and `other`. It takes the same parameters as [Records delivered](#records-delivered), with the same range rules and `400`s, and reads the same way: every instance's stored rows plus this instance's unwritten minutes. Requests are counted whatever the instance's settings, and kept at least 35 days.
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/xrpc?from=2026-11-01T00:00:00Z&step=1h" -H "$AUTH"
+```
+
+**Response**: `200 OK`
+
+```json
+{
+  "step": "1h",
+  "from": "2026-11-01T00:00:00+00:00",
+  "to": "2026-11-26T01:00:00+00:00",
+  "points": [
+    {
+      "start": "2026-11-01T14:00:00+00:00",
+      "requests": 42,
+      "methods": { "query": 40, "procedure": 2 }
+    }
+  ],
+  "retention_days": 30
+}
+```
+
+A step with no requests is left out.
 
 ## Live
 
