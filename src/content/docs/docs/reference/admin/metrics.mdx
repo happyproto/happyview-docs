@@ -5,7 +5,7 @@ description: "Admin API endpoints for script run metrics and the record ingest p
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All four endpoints need `metrics:read`. The dashboard's **Script performance** page reads them. On a managed instance, the [platform principal](/docs/reference/admin/platform) can also read [List scripts](#list-scripts), [Get one script](#get-one-script) and [Ingest](#ingest), but not [Live](#live).
+Read how often each script runs, how long it takes, how it ends and where its time goes, and what each record costs on its way through ingest. All five endpoints need `metrics:read`. The dashboard's **Script performance** page reads the other four. On a managed instance, the [platform principal](/docs/reference/admin/platform) can also read [List scripts](#list-scripts), [Get one script](#get-one-script), [Ingest](#ingest) and [Records delivered](#records-delivered), but not [Live](#live).
 
 Metrics are kept in memory by the process that runs the scripts, for the last hour by the minute and the last day by the half hour. Each minute that closes is written to the database once, so the `7d` and `30d` windows survive a restart. Test files run by `happyview test` are not recorded.
 
@@ -79,7 +79,7 @@ Stored metrics live in the `happyview_script_metrics` table, one row per key, bu
 | --- | --- |
 | `kind` | `script` or `ingest` |
 | `key` | The script's trigger, or the collection for ingest |
-| `variant` | For a script, its kind and layer as `<kind>/<layer>`, such as `record_event/dashboard`. For ingest, the action |
+| `variant` | For a script, its kind and layer as `<kind>/<layer>`, such as `record_event/dashboard`. For ingest, the action and the record's origin as `<action>/<origin>`, such as `create/live`. A row written before origins were kept has the action alone, and reads as origin `unknown` |
 | `resolution` | `minute`, or `hour` for folded rows |
 | `bucket_start` | The start of the bucket, as RFC 3339 text in UTC |
 | `counters` | The bucket's counts and sums, as a JSON object |
@@ -222,7 +222,7 @@ curl "http://127.0.0.1:3000/admin/metrics/scripts?window=24h" -H "$AUTH"
 }
 ```
 
-`overflow` counts the runs that weren't recorded because 1,024 scripts were already held, plus the ingest records dropped because 1,024 collection and action pairs were; the [ingest](#ingest) endpoint returns the same count. Scripts with nothing left inside the last day make room for new ones.
+`overflow` counts the runs that weren't recorded because 1,024 scripts were already held, plus the ingest records dropped because 1,024 collection, action and origin keys were; the [ingest](#ingest) endpoint returns the same count. Scripts with nothing left inside the last day make room for new ones.
 
 ## Get one script
 
@@ -462,6 +462,110 @@ curl "http://127.0.0.1:3000/admin/metrics/ingest?window=24h" -H "$AUTH"
 | `script_share` | Script time over record time, across every record |
 | `platform_share` | The rest of record time: the lookup, the CID check, the write, and whatever in the `hook` stage isn't the script's own code |
 | `scripts_table_reads` | Since the process started, how often a record script's lookup read the scripts table rather than answering from the project or its batch's earlier lookup |
+
+## Records delivered
+
+```
+GET /admin/metrics/delivered
+```
+
+How many records ingest was handed, per UTC hour or day, by where they came from. A record counts whatever ingest decided for it, skipped ones included. Each point reads the stored rows from every instance, plus the minutes still in this instance's memory, so the hour still open is counted too. Records delivered are counted whether or not `script_metrics_enabled` is on, and nothing caps how many are kept.
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `from` | string | yes | RFC 3339 time, aligned down to the step |
+| `to` | string | no | RFC 3339 time, aligned down to the step and not included. Defaults to the end of the step still open |
+| `step` | string | no | `1h` or `1d` (default) |
+
+The range may be at most 31 days, measured after aligning. These are `400 Bad Request`: `from` missing or not RFC 3339, `to` not RFC 3339, `step` not `1h` or `1d`, `to` before `from`, and a range over 31 days.
+
+<Tabs syncKey="lang">
+<TabItem label="TypeScript">
+
+```ts
+const response = await fetch(
+  "http://127.0.0.1:3000/admin/metrics/delivered?from=2026-11-01T00:00:00Z&step=1d",
+  { headers },
+);
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="JavaScript">
+
+```js
+const response = await fetch(
+  "http://127.0.0.1:3000/admin/metrics/delivered?from=2026-11-01T00:00:00Z&step=1d",
+  { headers },
+);
+const data = await response.json();
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:3000/admin/metrics/delivered")
+    .query(&[("from", "2026-11-01T00:00:00Z"), ("step", "1d")])
+    .bearer_auth(token)
+    .send()
+    .await?;
+let data: serde_json::Value = response.json().await?;
+```
+
+</TabItem>
+<TabItem label="Go">
+
+```go
+req, _ := http.NewRequest("GET", "http://127.0.0.1:3000/admin/metrics/delivered?from=2026-11-01T00:00:00Z&step=1d", nil)
+req.Header.Set("Authorization", "Bearer "+token)
+resp, err := http.DefaultClient.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+defer resp.Body.Close()
+```
+
+</TabItem>
+<TabItem label="cURL">
+
+```sh
+curl "http://127.0.0.1:3000/admin/metrics/delivered?from=2026-11-01T00:00:00Z&step=1d" -H "$AUTH"
+```
+
+</TabItem>
+</Tabs>
+
+**Response**: `200 OK`
+
+```json
+{
+  "step": "1d",
+  "from": "2026-11-01T00:00:00+00:00",
+  "to": "2026-11-02T00:00:00+00:00",
+  "points": [
+    {
+      "start": "2026-11-01T00:00:00+00:00",
+      "records": 1520,
+      "origins": { "live": 1200, "backfill": 300, "retry": 20 }
+    }
+  ],
+  "overflow": 0,
+  "retention_days": 30
+}
+```
+
+`from` and `to` are the range as read, after aligning. A step with no records is left out, and rows folded to the hour count whole in their hour. `overflow` is the [ingest](#ingest) endpoint's count of records its per-collection rows dropped; records delivered never drop any. `retention_days` is how long stored rows are kept, so a `from` further back than that returns what exists. `origins` holds only the origins that saw records:
+
+| Origin | Meaning |
+| --- | --- |
+| `live` | The live stream, and an external storage's live feed |
+| `backfill` | A backfill's crawl of the network or of a repo, and an external storage's crawl of a collection |
+| `store_pass` | A backfill that read an external storage's copy of a collection instead of crawling it |
+| `retry` | A dead-lettered record run again |
+| `unknown` | Counted before origins were kept |
 
 ## Live
 
