@@ -49,7 +49,7 @@ A file that names a trigger it can't have fails the build, with a message saying
 - `src/jobs/` and `src/labels/` are flat: a file in a subdirectory is an error. A name the trigger grammar refuses, such as `src/jobs/Nightly.lua`, is an error too.
 - A script in an extension no installed interpreter claims is an error that lists the extensions that are claimed.
 
-In `src/identity/`, `src/account/` and `src/repo/`, only a file named after one of the directory's events is a script. Any other file there is a module, as it was before these directories named scripts.
+In `src/identity/`, `src/account/` and `src/repo/`, only a file named after one of the directory's events is a script. Any other file there is a module, as it was before these directories named scripts. A project with a module at one of those names, such as `src/account/update.lua`, should rename it: it is now the `account:update` script, and the build refuses it if it defines no `handle`.
 
 `*.test.<ext>` is a test file wherever it sits. Any other file with a claimed extension is a module that scripts can import. A `.md`, `.markdown` or `.txt` file where a script would go is ignored, and so is a `.json` file in `src/jobs/` or `src/labels/`, so a README can sit next to the code it describes.
 
@@ -113,12 +113,14 @@ Identity, account and repo scripts run when the network reports a change to an a
 | `account:delete` | Status `deleted` | The same |
 | `repo:sync` | A `#sync` event: the repo was reset or resynced | `{did, rev, time}` |
 
-- One `#account` event runs `account:update`, and also the script for the change it reports. The `activate`, `deactivate` and `suspend` scripts run only when the status differs from the last one HappyView recorded, or when it recorded none. `account:delete` runs on every deletion.
+- One `#account` event runs `account:update`, and also the script for the change it reports. The `activate`, `deactivate` and `suspend` scripts run only when the status differs from the last one HappyView recorded, or when it recorded none. `account:delete` runs on every deletion event the network sends, so it can run more than once for one account.
+- An account suspended, taken down or resynced is still one this instance indexes after HappyView removes its records, so a reinstated account runs `account:activate`.
 - `account:delete` runs before HappyView removes the account's records, so the script can still read them. `repo:sync` runs after HappyView's resync has removed the records the resync replaced.
 - `previous_handle`, `previous_active` and `previous_status` are the values HappyView last recorded for the account. They're `null` when it recorded none, for example the first time an account script runs for that account.
 - `handle` is `null` when the event carries none. `time` is when the network saw the event, as an RFC 3339 timestamp.
 - `ctx.caller_did` is the account's DID.
 - Events replayed from the archive during a backfill don't run these scripts.
+- A script can run more than once for one event, for example when HappyView applies the event again after a failed write. Write it so a second run does no harm; see [Create scripts may run more than once](/docs/reference/scripts/idempotency).
 
 There is no create trigger. The first event HappyView sees for an account isn't the account's creation, so nothing could run reliably on one. To act the first time you see an account, use its first [record event](#record-scripts).
 
