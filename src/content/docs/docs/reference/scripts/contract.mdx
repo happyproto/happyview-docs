@@ -131,7 +131,7 @@ Every invocation carries these four fields:
 | Field | Value |
 | --- | --- |
 | `trigger` | The script's trigger string, such as `xrpc.query:com.example.getThing` |
-| `caller_did` | Query: the caller, or absent when anonymous. Procedure: the authenticated caller. Record event: the DID of the repo the event came from. Identity, account or repo event: the account's DID. Job: the DID that created the job. Label: absent |
+| `caller_did` | Query: the caller, or absent when anonymous. Procedure: the authenticated caller. Record event: the DID of the repo the event came from. Job: the DID that created the job. Label, identity, account or repo event: absent |
 | `has_pds_auth` | `true` when the script can write to a PDS as `caller_did`: a procedure whose caller has a session, or a job created with `{ auth: true }`. `false` for queries, record events, account events and labels |
 | `env` | The instance's script variables, keyed by name |
 

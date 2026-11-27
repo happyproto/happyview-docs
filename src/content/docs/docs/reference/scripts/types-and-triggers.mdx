@@ -49,7 +49,7 @@ A file that names a trigger it can't have fails the build, with a message saying
 - `src/jobs/` and `src/labels/` are flat: a file in a subdirectory is an error. A name the trigger grammar refuses, such as `src/jobs/Nightly.lua`, is an error too.
 - A script in an extension no installed interpreter claims is an error that lists the extensions that are claimed.
 
-In `src/identity/`, `src/account/` and `src/repo/`, only a file named after one of the directory's events is a script. Any other file there is a module, as it was before these directories named scripts. A project with a module at one of those names, such as `src/account/update.lua`, should rename it: it is now the `account:update` script, and the build refuses it if it defines no `handle`.
+In `src/identity/`, `src/account/` and `src/repo/`, only a file named after one of the directory's events is a script. Any other file there is a module, as it was before these directories named scripts. A project with a module at one of those names, such as `src/account/update.lua`, should rename it: it is now the `account:update` script, and the build refuses it if it defines no `handle`. The build warns about each such file when the instance starts and when a deploy turns a module into a script.
 
 `*.test.<ext>` is a test file wherever it sits. Any other file with a claimed extension is a module that scripts can import. A `.md`, `.markdown` or `.txt` file where a script would go is ignored, and so is a `.json` file in `src/jobs/` or `src/labels/`, so a README can sit next to the code it describes.
 
@@ -118,9 +118,10 @@ Identity, account and repo scripts run when the network reports a change to an a
 - `account:delete` runs before HappyView removes the account's records, so the script can still read them. `repo:sync` runs after HappyView's resync has removed the records the resync replaced.
 - `previous_handle`, `previous_active` and `previous_status` are the values HappyView last recorded for the account. They're `null` when it recorded none, for example the first time an account script runs for that account.
 - `handle` is `null` when the event carries none. `time` is when the network saw the event, as an RFC 3339 timestamp.
-- `ctx.caller_did` is the account's DID.
+- `ctx.caller_did` is absent: the event is the network's report about an account, not a request from it. The account is `input.did`. Like a label script, an account script can't write to a PDS or create a job.
 - Events replayed from the archive during a backfill don't run these scripts.
-- A script can run more than once for one event, for example when HappyView applies the event again after a failed write. Write it so a second run does no harm; see [Create scripts may run more than once](/docs/reference/scripts/idempotency).
+- Each event runs its scripts once, even if HappyView applies the event again after a failed write.
+- HappyView keeps an account's last recorded handle and status while it indexes the account. It drops them once `account:delete` has run, and after 30 days for an account it no longer indexes.
 
 There is no create trigger. The first event HappyView sees for an account isn't the account's creation, so nothing could run reliably on one. To act the first time you see an account, use its first [record event](#record-scripts).
 
