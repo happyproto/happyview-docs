@@ -300,6 +300,7 @@ Recently deleted records (`uri`, `rev`, `deleted_at`) and deleted accounts (`did
 | `authority_did`     | text        | For a network lexicon: its authority's DID      |
 | `last_fetched_at`   | timestamp | For a network lexicon: when it was last fetched |
 | `token_cost`        | integer     | Rate-limit cost, overriding the type's default  |
+| `rate_limited`      | boolean     | Whether a call to this query or procedure spends tokens |
 | `indexed`           | boolean     | Whether HappyView ingests this collection       |
 | `created_at`        | timestamp |                                                 |
 | `updated_at`        | timestamp |                                                 |

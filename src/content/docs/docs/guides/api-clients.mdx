@@ -742,6 +742,8 @@ Each API client has its own token bucket for rate limiting:
 
 If not set on the client, the instance defaults apply (`DEFAULT_RATE_LIMIT_CAPACITY` and `DEFAULT_RATE_LIMIT_REFILL_RATE`).
 
+Each call to a query or procedure spends that lexicon's `token_cost`, or the instance default for its type. A lexicon with `rate_limited` set to `false` spends nothing, whatever its cost; set it with the [admin API](/docs/reference/admin/lexicons) or in [`happyview.toml`](/docs/reference/configuration#happyviewtoml).
+
 Rate limit state is returned in response headers:
 
 | Header                | Description                                 |
