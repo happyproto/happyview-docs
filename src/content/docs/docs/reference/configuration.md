@@ -239,6 +239,7 @@ The keys a project's `happyview.toml` can set. Every table is optional, and an u
 | `[lexicons."<NSID>"] backfill` | boolean | `false` | Backfill this record lexicon's collection once. |
 | `[lexicons."<NSID>"] indexed` | boolean | `true` | `false` stops indexing the collection, keeping what's indexed. |
 | `[lexicons."<NSID>"] token_cost` | integer | the cost set for the lexicon's type | How much of an API client's rate-limit budget one call to this endpoint uses. |
+| `[lexicons."<NSID>"] rate_limited` | boolean | `true` | `false` turns rate limiting off for this query or procedure: a call spends no tokens. |
 | `[scripts."<trigger>"] description` | string | none | Shown with the script in the dashboard. |
 | `[scripts."<trigger>"] outbound_xrpcs` | list of strings | the methods found in the script's source | The XRPC methods the script calls, recorded with it and listed by the admin API. A service auth call to a procedure script is refused when the list names any method other than the one called. |
 

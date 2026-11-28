@@ -224,6 +224,7 @@ curl -X POST http://127.0.0.1:3000/admin/lexicons \
 | `backfill`          | boolean | no       | Whether the first upload triggers a historical backfill (default `true`) |
 | `token_cost`        | integer | no       | Token cost for query/procedure endpoints. Overrides the instance default, which a new instance sets to 1 for queries, procedures and proxied calls |
 | `indexed`           | boolean | no       | For record lexicons, whether HappyView ingests the collection. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept. An unindexed lexicon starts no backfill |
+| `rate_limited`      | boolean | no       | For query and procedure lexicons, whether a call spends `token_cost` from the caller's rate-limit bucket. `false` lets every call through without spending tokens or returning `RateLimit-*` headers. Defaults to `true` for a new lexicon; left out on an update, the stored setting is kept |
 
 The body has no `target_collection` or `action`. A query or procedure lexicon names no collection; its [script](/docs/reference/lexicons#queries-and-procedures-need-a-script) does. A request that still sends either field is accepted, and the field is ignored. The lexicon list and the network-lexicon endpoints below don't return them either.
 
@@ -338,6 +339,7 @@ interface Lexicon {
   authority_did: string | null;
   last_fetched_at: string | null;
   token_cost: number | null;
+  rate_limited: boolean;
   // Omitted unless this is a record lexicon.
   record_schema?: Record<string, unknown>;
   // null for a project lexicon, which has no stored row.
@@ -415,6 +417,7 @@ curl http://127.0.0.1:3000/admin/lexicons -H "$AUTH"
     "authority_did": null,
     "last_fetched_at": null,
     "token_cost": null,
+    "rate_limited": true,
     "created_at": "2025-01-01T00:00:00+00:00",
     "updated_at": "2025-01-01T00:00:00+00:00"
   }
@@ -435,6 +438,7 @@ curl http://127.0.0.1:3000/admin/lexicons -H "$AUTH"
 | `authority_did` | string \| null | The authority a network lexicon was fetched from |
 | `last_fetched_at` | string \| null | When a network lexicon was last fetched |
 | `token_cost` | number \| null | The token cost, if set |
+| `rate_limited` | boolean | Whether a call to this query or procedure spends tokens. `true` unless turned off, and always `true` for other lexicon types |
 | `created_at`, `updated_at` | string \| null | `null` for a project lexicon, which has no row |
 | `record_schema` | object | For a record lexicon, the `properties` of its record. Omitted otherwise |
 
